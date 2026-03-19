@@ -3,6 +3,8 @@ from dotenv import load_dotenv
 from langchain_community.utilities import SQLDatabase
 from langchain_openai import AzureChatOpenAI
 from langchain_core.messages import trim_messages
+from langchain_openai.middleware import OpenAIModerationMiddleware
+from langchain.agents import create_agent
 
 load_dotenv()
 
@@ -37,3 +39,19 @@ trimmer = trim_messages(
     include_system = True,
     start_on = "human",
     )
+
+
+moderation = create_agent(
+    model= model,
+    middleware= [
+        OpenAIModerationMiddleware(
+            model= "omni-moderation-latest",
+            check_input=True,
+            check_output=True,
+            check_tool_results=False,
+            exit_behavior="end",
+            violation_message=("Se liga!"
+                               "Sua mensagem caiu na categoria: {categories}")
+        )
+    ]
+)

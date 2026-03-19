@@ -7,7 +7,6 @@ from langgraph.graph import END
 from langchain.agents.middleware import before_model, after_model
 
 
-
 async def agent(state: AgentState):
     prompt = SYSTEM_PROMPT
     messages_trimmer = trimmer.invoke([prompt] + state["messages"])
