@@ -1,0 +1,2 @@
+CREATE DATABASE bussola;
+CREATE DATABASE checkpointers;
