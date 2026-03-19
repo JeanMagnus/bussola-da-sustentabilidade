@@ -5,7 +5,7 @@ from app.agent.tools import tool_node
 
 workflow = StateGraph(AgentState)
 
-workflow.add_node("agent",agent)
+workflow.add_node("agent", agent)
 workflow.add_node("go_tools", tool_node)
 
 
