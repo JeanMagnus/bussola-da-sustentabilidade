@@ -41,17 +41,19 @@ trimmer = trim_messages(
     )
 
 
-moderation = create_agent(
-    model= model,
-    middleware= [
-        OpenAIModerationMiddleware(
-            model= "omni-moderation-latest",
-            check_input=True,
-            check_output=True,
-            check_tool_results=False,
-            exit_behavior="end",
-            violation_message=("Se liga!"
-                               "Sua mensagem caiu na categoria: {categories}")
-        )
-    ]
-)
+# moderation = create_agent(
+#     model= model,
+#     middleware= [
+#         OpenAIModerationMiddleware(
+#             model= "omni-moderation-latest",
+#             check_input=True,
+#             check_output=True,
+#             check_tool_results=False,
+#             exit_behavior="end",
+#             violation_message=("Se liga!"
+#                                "Sua mensagem caiu na categoria: {categories}")
+#         )
+
+
+#     ]
+# )
