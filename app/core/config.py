@@ -32,11 +32,22 @@ model = AzureChatOpenAI(
 
 )
 
+# Fallback model para garantir que o agente continue funcionando mesmo se o modelo principal tiver problemas.
+# backup_model = AzureChatOpenAI(
+#     model = "gpt-5-mini",
+#     azure_deployment = settings.AZURE_OPENAI_DEPLOYMENT,
+#     api_version = settings.AZURE_OPENAI_API_VERSION,
+#     azure_endpoint = settings.AZURE_OPENAI_ENDPOINT,
+#     api_key = settings.AZURE_OPENAI_API_KEY,
+#     temperature = 0,
+# )
+
 trimmer = trim_messages(
     max_tokens = 5000,
     strategy = "last",
     token_counter = model,
     include_system = True,
+    allow_partial = False,
     start_on = "human",
     )
 
