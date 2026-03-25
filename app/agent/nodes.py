@@ -48,7 +48,7 @@ async def summarization_node(state: AgentState, config: RunnableConfig) -> Agent
         ]
     )
 
-    summary_response = summarizer_model.invoke([
+    summary_response = await summarizer_model.ainvoke([
         SystemMessage(content=SUMM_PROMPT),
         HumanMessage(content=f"Por favor, resuma esta conversa:\n\n{message_content}")
     ])
