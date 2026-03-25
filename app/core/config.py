@@ -1,7 +1,7 @@
 import os 
 from dotenv import load_dotenv
 from langchain_community.utilities import SQLDatabase
-from langchain_openai import AzureChatOpenAI
+from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
 from langchain_core.messages import trim_messages
 from langchain_openai.middleware import OpenAIModerationMiddleware
 from langchain.agents import create_agent
@@ -16,6 +16,14 @@ class Settings:
     AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
     AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
     AZURE_OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENTE")
+
+    AZURE_OPENAI_EMBEDDING_DEPLOYMENT = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT")
+    AZURE_OPENAI_EMBEDDING_API_VERSION = os.getenv("AZURE_OPENAI_EMBEDDING_API_VERSION")
+    AZURE_OPENAI_EMBEDDING_ENDPOINT = os.getenv("AZURE_OPENAI_EMBEDDING_ENDPOINT")
+    AZURE_OPENAI_EMBEDDING_API_KEY = os.getenv("AZURE_OPENAI_EMBEDDING_API_KEY")
+
+    PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
+    PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
 
 settings = Settings()
 
@@ -32,6 +40,15 @@ model = AzureChatOpenAI(
 
 )
 
+summarizer_model = AzureChatOpenAI(
+    model = "gpt-5-nano",
+    azure_deployment = settings.AZURE_OPENAI_DEPLOYMENT,
+    api_version = settings.AZURE_OPENAI_API_VERSION,
+    azure_endpoint = settings.AZURE_OPENAI_ENDPOINT,
+    api_key = settings.AZURE_OPENAI_API_KEY,
+    temperature = 0,
+)
+
 # Fallback model para garantir que o agente continue funcionando mesmo se o modelo principal tiver problemas.
 # backup_model = AzureChatOpenAI(
 #     model = "gpt-5-mini",
@@ -41,6 +58,14 @@ model = AzureChatOpenAI(
 #     api_key = settings.AZURE_OPENAI_API_KEY,
 #     temperature = 0,
 # )
+
+embeddings = AzureOpenAIEmbeddings(
+    model = "text-embedding-3-small",
+    azure_deployment = settings.AZURE_OPENAI_EMBEDDING_DEPLOYMENT,
+    api_version = settings.AZURE_OPENAI_EMBEDDING_API_VERSION,
+    azure_endpoint = settings.AZURE_OPENAI_EMBEDDING_ENDPOINT,
+    api_key = settings.AZURE_OPENAI_EMBEDDING_API_KEY,
+)
 
 trimmer = trim_messages(
     max_tokens = 5000,

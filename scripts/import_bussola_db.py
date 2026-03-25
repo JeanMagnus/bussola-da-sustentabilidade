@@ -77,3 +77,5 @@ if __name__ == "__main__":
 
 # PARA IMPORTAR O CSV DIRETO NO CONTAINER DO DOCKER É PRECISO PRIMEIRO SUBIR ELE COM O DOCKER COMPOSE
 # E UTILIZAR O COMANDO NO TERMINAL EXTERNO: docker compose exec api uv run python -m scripts.import-bussola-db
+
+# docker compose exec api uv run python scripts/import_bussola_db.py

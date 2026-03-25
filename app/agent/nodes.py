@@ -1,33 +1,100 @@
-from app.core.config import model, db_bussola
+from app.core.config import model, db_bussola, summarizer_model
 from app.agent.state import AgentState
 from app.agent.prompt import SYSTEM_PROMPT
 from app.agent.tools import tools_agent
 from app.core.config import trimmer
 from langgraph.graph import END
 from langchain.agents.middleware import before_model, after_model
-from langchain_core.messages import BaseMessage, AIMessage, SystemMessage, HumanMessage
+from langchain_core.messages import BaseMessage, AIMessage, SystemMessage, HumanMessage, RemoveMessage
 from langgraph.types import Command
+from langchain_core.runnables import RunnableConfig
 from openai import BadRequestError
 
 
-async def agent(state: AgentState):
+LIMITE_MENSAGENS_PARA_SUMARIZACAO = 20
+
+async def summarization_node(state: AgentState, config: RunnableConfig) -> AgentState:
+    print("--- SUMMARIZATION NODE ---")
+
+    """
+    Sumariza uma lista de mensagens em um resumo conciso para reduzir o comprimento
+    do contexto enquanto preserva informações importantes.
+    """
+    messages = state["messages"]
+
+    print(f"DEBUG: O histórico tem {len(messages)} mensagens agora.")
+
+    if len(messages) < LIMITE_MENSAGENS_PARA_SUMARIZACAO:
+        return state
+    print(">>>> NÓ DE SUMARIZAÇÃO ATIVADO <<<<")
+    SUMM_PROMPT = """
+    Você é um sumarizador de conversas. Crie um resumo conciso da conversa anterior
+    entre o usuário e o assistente.
+
+    O resumo deve:
+    1. Destacar tópicos principais, preferências e decisões tomadas
+    2. Incluir quaisquer detalhes específicos mencionados
+    3. Anotar quaisquer perguntas pendentes ou tópicos que precisam de acompanhamento
+    4. Ser conciso mas informativo
+    5. Mensagens que foram bloqueadas por infrações do sistema não devem ser incluídas no resumo.
+
+    Formate seu resumo como um parágrafo narrativo breve.
+    """
+
+    message_content = "\n".join(
+        [
+            f"{'Usuário' if isinstance(msg, HumanMessage) else 'Assistente'}: {msg.content}"
+            for msg in messages
+        ]
+    )
+
+    summary_response = summarizer_model.invoke([
+        SystemMessage(content=SUMM_PROMPT),
+        HumanMessage(content=f"Por favor, resuma esta conversa:\n\n{message_content}")
+    ])
+
+    summary_message = SystemMessage(
+        content=f"Resumo da conversa até agora:\n\n{summary_response.content}\n\nContinue a conversa baseado neste resumo."
+    )
+
+    # Remover todas as mensagens antigas e manter apenas o resumo + última mensagem do usuário
+    remove_messages = [RemoveMessage(id=msg.id) for msg in messages if msg.id is not None]
+
+    return {"messages": [
+        *remove_messages,  # desempacotando uma lista dentro de outra
+        summary_message,  # Ficará só o SystemMessage com resumo
+        messages[-1],  # Última mensagem (sempre HumanMessage nesse fluxo)
+    ]}
+
+
+async def agent(state: AgentState, config: RunnableConfig):
 
     print("--- AGENT NODE ---")
 
+
+    messages = state["messages"]
+    
     try:
 
         prompt = SYSTEM_PROMPT
-        # model_with_tools = model.bind_tools(tools_agent)
-        # response = await model_with_tools.ainvoke([SystemMessage(content=prompt)] + state["messages"])
+        model_with_tools = model.bind_tools(tools_agent)
+
+        for i, m in enumerate(state["messages"]):
+            print(f"MSG {i} [{type(m).__name__}]: {str(m.content)[:50]}...")
+            if hasattr(m, 'tool_calls'):
+                print(f"   --- Possui tool_calls: {m.tool_calls}")
+        response = await model_with_tools.ainvoke([SystemMessage(content=prompt)] + state["messages"], config=config)
 
         # PRA USAR O TRIMMER: 
-        messages_trimmer = trimmer.invoke(state["messages"])
-        model_with_tools = model.bind_tools(tools_agent)
-        messages_trim = [SystemMessage(content=prompt)] + messages_trimmer
-        response = await model_with_tools.ainvoke(messages_trim)
+        #messages_trimmer = trimmer.invoke(state["messages"])
+        #model_with_tools = model.bind_tools(tools_agent)
+        #messages_trim = [SystemMessage(content=prompt)] + messages_trimmer
+        #response = await model_with_tools.ainvoke(messages_trim)
 
         if response.tool_calls:
             print(" --- FERRAMENTAS FORAM CHAMADAS ---")
+            for call in response.tool_calls:
+                print(f" O AGENTE ESCOLHEU A FERRAMENTA: {call['name']}")
         else:        
             print(" --- NENHUMA FERRAMENTA FOI CHAMADA ---")
 
@@ -302,8 +369,15 @@ def should_continue(state: AgentState):
         print(" --- ERRO ENCONTRADO, BLOQUEANDO ---")
         return END
     if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
-        print(" --- VAI PARA VERIFICAÇÃO DE SQL ---")
-        return "verify_sql"
+        
+        tool_name = last_msg.tool_calls[0]["name"]
+
+        if tool_name in ["sql_db_query", "sql_db_schema", "sql_db_list_tables"]:
+            print(" --- VAI PARA VERIFICAÇÃO DE SQL ---")
+            return "verify_sql"
+        print(" --- NENHUMA FERRAMENTA DE SQL FOI CHAMADA, INDO PARA TOOLS ---")
+        return "go_tools"
+    
     print(" --- VAI PARA MODERAÇÃO DE SAÍDA ---")
     return "moderation_output"
 
