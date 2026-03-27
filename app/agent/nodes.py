@@ -1,3 +1,4 @@
+from app.core import config
 from app.core.config import model, db_bussola, summarizer_model
 from app.agent.state import AgentState
 from app.agent.prompt import SYSTEM_PROMPT
@@ -11,7 +12,7 @@ from langchain_core.runnables import RunnableConfig
 from openai import BadRequestError
 
 
-LIMITE_MENSAGENS_PARA_SUMARIZACAO = 20
+LIMITE_MENSAGENS_PARA_SUMARIZACAO = 10
 
 
 
@@ -77,18 +78,22 @@ async def summarization_node(state: AgentState, config: RunnableConfig) -> Agent
 
     Formate seu resumo como um parágrafo narrativo breve.
     """
+    # Retirando chamadas de tools e SQLs avulsos
+    messages_to_summarize = [
+        m for m in messages 
+        if isinstance(m, (HumanMessage, AIMessage)) and not (hasattr(m, 'tool_calls') and m.tool_calls)
+    ]
 
     message_content = "\n".join(
         [
             f"{'Usuário' if isinstance(msg, HumanMessage) else 'Assistente'}: {msg.content}"
-            for msg in messages
+            for msg in messages_to_summarize
         ]
     )
-
     summary_response = await summarizer_model.ainvoke([
         SystemMessage(content=SUMM_PROMPT),
-        HumanMessage(content=f"Por favor, resuma esta conversa:\n\n{message_content}")
-    ])
+        HumanMessage(content=f"Por favor, resuma esta conversa:\n\n{message_content}"),
+    ], config=config)
 
     summary_message = SystemMessage(
         content=f"Resumo da conversa até agora:\n\n{summary_response.content}\n\nContinue a conversa baseado neste resumo."
@@ -103,7 +108,7 @@ async def summarization_node(state: AgentState, config: RunnableConfig) -> Agent
         messages[-1],  # Última mensagem (sempre HumanMessage nesse fluxo)
     ]}
 
-
+model_with_tools = model.bind_tools(tools_agent)
 async def agent(state: AgentState, config: RunnableConfig):
 
     print("--- AGENT NODE ---")
@@ -114,19 +119,40 @@ async def agent(state: AgentState, config: RunnableConfig):
     try:
 
         prompt = SYSTEM_PROMPT
-        model_with_tools = model.bind_tools(tools_agent)
+
+        # MÉOTODO SEM TRIMMER:
+        # model_with_tools = model.bind_tools(tools_agent)
+
+        # for i, m in enumerate(state["messages"]):
+        #     print(f"MSG {i} [{type(m).__name__}]: {str(m.content)[:50]}...")
+        #     if hasattr(m, 'tool_calls'):
+        #         print(f"   --- Possui tool_calls: {m.tool_calls}")
+        # response = await model_with_tools.ainvoke([SystemMessage(content=prompt)] + state["messages"], config=config)
+
+        # PRA USAR O TRIMMER: 
+
+        messages_trimmer = trimmer.invoke(state["messages"], config=config)
+        user_messages = [m for m in state["messages"] if isinstance(m, HumanMessage)]
+        actual_question = user_messages[-1].content if user_messages else "Analisar dados de sustentabilidade"
+
+        has_tool_results = any(isinstance(m, ToolMessage) for m in state["messages"][-5:])
+
+        prompt_with_mission = f"""{SYSTEM_PROMPT}
+
+        MISSÃO ATUAL CRÍTICA:
+        O usuário solicitou: "{actual_question}"
+        Use os dados das tabelas fornecidos abaixo para responder especificamente a esta solicitação.
+
+        INSTRUÇÃO DE FLUXO:
+        { "Você já recebeu resultados de ferramentas. NÃO chame a mesma ferramenta novamente. Use os dados abaixo para finalizar sua resposta." if has_tool_results else "Se precisar de dados, use as ferramentas de SQL disponíveis." }
+        """
 
         for i, m in enumerate(state["messages"]):
             print(f"MSG {i} [{type(m).__name__}]: {str(m.content)[:50]}...")
             if hasattr(m, 'tool_calls'):
                 print(f"   --- Possui tool_calls: {m.tool_calls}")
-        response = await model_with_tools.ainvoke([SystemMessage(content=prompt)] + state["messages"], config=config)
-
-        # PRA USAR O TRIMMER: 
-        #messages_trimmer = trimmer.invoke(state["messages"])
-        #model_with_tools = model.bind_tools(tools_agent)
-        #messages_trim = [SystemMessage(content=prompt)] + messages_trimmer
-        #response = await model_with_tools.ainvoke(messages_trim)
+        messages_trim = [SystemMessage(content=prompt_with_mission)] + messages_trimmer
+        response = await model_with_tools.ainvoke(messages_trim, config=config)
 
         if response.tool_calls:
             print(" --- FERRAMENTAS FORAM CHAMADAS ---")
@@ -170,7 +196,7 @@ async def agent(state: AgentState, config: RunnableConfig):
 
 
 
-async def guardrail_input(state: AgentState):
+async def guardrail_input(state: AgentState, config: RunnableConfig):
     print("--- GUARDRAIL_INPUT ---")
 
     try:
@@ -190,7 +216,7 @@ async def guardrail_input(state: AgentState):
         Responda APENAS com 'PASSAR1' ou 'BLOQUEAR1' para a primeira diretriz, e 'PASSAR2' ou 'BLOQUEAR2' para a segunda diretriz. 
         
         """
-        response = await model.ainvoke([GUARD_PROMPT])
+        response = await model.ainvoke([GUARD_PROMPT], config=config)
 
         if "BLOQUEAR1" in response.content:
             return {"messages": [AIMessage(content="Desculpa, sua mensagem viola nossas diretrizes de uso.")], "error_occurred": False }
@@ -215,7 +241,7 @@ async def guardrail_input(state: AgentState):
 
 
 
-async def moderation_input(state: AgentState):
+async def moderation_input(state: AgentState, config: RunnableConfig):
     print("--- MODERATION_INPUT ---")
 
     try:
@@ -226,7 +252,7 @@ async def moderation_input(state: AgentState):
         Mensagem: {last_msg}
         Responda APENAS 'PASSAR' ou 'BLOQUEAR'.""" 
 
-        response = await model.ainvoke([MOD_PROMPT])
+        response = await model.ainvoke([MOD_PROMPT], config=config)
 
         if "BLOQUEAR" in response.content:
             # return Command(
@@ -263,7 +289,7 @@ async def moderation_input(state: AgentState):
             "error_occurred": True
             }
 
-async def check_relevance(state: AgentState):
+async def check_relevance(state: AgentState, config: RunnableConfig):
     print("--- CHECK_RELEVANCE ---")
 
     try:
@@ -279,7 +305,7 @@ async def check_relevance(state: AgentState):
         Mensagem: {last_msg}
         Responda APENAS 'PASSAR' ou 'BLOQUEAR'."""
         
-        response = await model.ainvoke([RELEVANCE_PROMPT])
+        response = await model.ainvoke([RELEVANCE_PROMPT], config=config)
 
         if "BLOQUEAR" in response.content:
             # return Command(
@@ -348,7 +374,7 @@ def verify_sql(state: AgentState):
             "error_occurred": True
         }
 
-async def moderation_output(state: AgentState):
+async def moderation_output(state: AgentState, config: RunnableConfig):
     print("--- MODERATION_OUTPUT ---")
 
     try:
@@ -369,7 +395,7 @@ async def moderation_output(state: AgentState):
         Responda APENAS com a palavra 'PASSAR' ou 'BLOQUEAR'.
         """
 
-        response = await model.ainvoke([MOD_PROMPT])
+        response = await model.ainvoke([MOD_PROMPT], config=config)
         decision = response.content.strip().upper()
 
         if "BLOQUEAR" in decision:
@@ -410,11 +436,11 @@ async def moderation_output(state: AgentState):
             }
 
 
-def should_continue(state: AgentState):
-    last_msg = state["messages"][-1]
-    if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
-        return "verify_sql"
-    return "moderation_output"
+# def should_continue(state: AgentState):
+#     last_msg = state["messages"][-1]
+#     if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
+#         return "verify_sql"
+#     return "moderation_output"
 
 
 def route_moderation_input(state: AgentState):
@@ -451,11 +477,12 @@ def should_continue(state: AgentState):
     if state.get("error_occurred"):
         print(" --- ERRO ENCONTRADO, BLOQUEANDO ---")
         return END
+    
     if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
         
         tool_name = last_msg.tool_calls[0]["name"]
 
-        if tool_name in ["sql_db_query", "sql_db_schema", "sql_db_list_tables"]:
+        if tool_name in ["sql_db_query", "sql_db_schema", "sql_db_list_tables", "sql_db_query_checker"]:
             print(" --- VAI PARA VERIFICAÇÃO DE SQL ---")
             return "verify_sql"
         print(" --- NENHUMA FERRAMENTA DE SQL FOI CHAMADA, INDO PARA TOOLS ---")

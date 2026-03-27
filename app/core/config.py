@@ -68,7 +68,7 @@ embeddings = AzureOpenAIEmbeddings(
 )
 
 trimmer = trim_messages(
-    max_tokens = 5000,
+    max_tokens = 8000,
     strategy = "last",
     token_counter = model,
     include_system = True,
