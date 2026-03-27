@@ -5,13 +5,44 @@ from app.agent.tools import tools_agent
 from app.core.config import trimmer
 from langgraph.graph import END
 from langchain.agents.middleware import before_model, after_model
-from langchain_core.messages import BaseMessage, AIMessage, SystemMessage, HumanMessage, RemoveMessage
+from langchain_core.messages import BaseMessage, AIMessage, SystemMessage, HumanMessage, RemoveMessage, ToolMessage
 from langgraph.types import Command
 from langchain_core.runnables import RunnableConfig
 from openai import BadRequestError
 
 
 LIMITE_MENSAGENS_PARA_SUMARIZACAO = 20
+
+
+
+
+async def setup_node(state: AgentState, config: RunnableConfig) -> AgentState:
+    print(" --- SETUP NODE ---")
+    messages = state.get("messages", [])
+
+    update = {
+        "is_blocked": False,
+        "error_occurred": False,
+    }
+    if not messages:
+        return update
+    
+    last_msg = messages[-1]
+
+    messages_to_remove = []
+    
+    for i, msg in enumerate(messages):
+        if isinstance(msg, AIMessage) and msg.tool_calls:
+            next_msg = messages[i + 1] if (i + 1) < len(messages) else None
+            if not isinstance(next_msg, ToolMessage):
+                print(f"!!! SETUP: Removendo AIMessage órfã (Índice {i}) para evitar Erro 400.")
+                if msg.id:
+                    messages_to_remove.append(RemoveMessage(id=msg.id))
+
+    if messages_to_remove:
+        return {**update, "messages": messages_to_remove}
+
+    return update
 
 async def summarization_node(state: AgentState, config: RunnableConfig) -> AgentState:
     print("--- SUMMARIZATION NODE ---")
@@ -37,6 +68,12 @@ async def summarization_node(state: AgentState, config: RunnableConfig) -> Agent
     3. Anotar quaisquer perguntas pendentes ou tópicos que precisam de acompanhamento
     4. Ser conciso mas informativo
     5. Mensagens que foram bloqueadas por infrações do sistema não devem ser incluídas no resumo.
+
+    REGRAS DE OURO:
+    1. DELETE: Remova códigos SQL (SELECT, CREATE TABLE), nomes técnicos de colunas e IDs de ferramentas.
+    2. PRESERVE: Mantenha os fatos descobertos (ex: "O usuário se Fulano", "As cidades sustentáveis são X, Y e Z").
+    3. RESUMA: Transforme diálogos longos em: "O usuário perguntou sobre X e o assistente respondeu Y usando dados da tabela de destinos".
+    4. FOCO: O resumo deve servir para que o assistente saiba o que já foi respondido e quem é o usuário, sem precisar ler o banco de dados de novo.
 
     Formate seu resumo como um parágrafo narrativo breve.
     """
@@ -132,11 +169,50 @@ async def agent(state: AgentState, config: RunnableConfig):
 #     return END
 
 
-def should_continue(state: AgentState):
-    last_msg = state["messages"][-1]
-    if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
-        return "verify_sql"
-    return "moderation_output"
+
+async def guardrail_input(state: AgentState):
+    print("--- GUARDRAIL_INPUT ---")
+
+    try:
+        last_msg = state["messages"][-1].content
+        GUARD_PROMPT = f"""Analise a mensagem do usuário.
+        Você será um moderador rígido do sistema, seguindo duas diretrizes de análise de mensagens: 
+        1. Se a mensagem contiver discurso de ódio explícito, racismo, LGBTfobia ou intenção criminosa contra pessoas ou o sistema, responda 'BLOQUEAR1'. Caso contrário, responda 'PASSAR1'.
+        2. A mensagem deve estar dentro do contexto do sistema, onde ele só pode discorrer sobre o conteúdo da base de dados.
+        Não devendo fugir do tema: Análise de dados para o projeto Bússola da Sustentabilidade, onde o objetivo é apenas analisar os dados da base de dados sobre turísmo
+        sustentável e trazer insights sobre esse mesmo tema. Qualquer assunto relacionado a cidades, sustentabilidade, turismo, economia local, cultura, meio ambiente e temas relacionados são permitidos.
+        Perguntas sobre o nome do usuário, se o modelo reconhece o usuário, apresentação do usário ou dúvidas sobre o projeto e agente são permitidas.
+        
+        Caso o usuário estiver fugindo do tema com sua mensagem, responda 'BLOQUEAR2'. Caso contrário, responda 'PASSAR2'.
+        
+        Mensagem: "{last_msg}"
+
+        Responda APENAS com 'PASSAR1' ou 'BLOQUEAR1' para a primeira diretriz, e 'PASSAR2' ou 'BLOQUEAR2' para a segunda diretriz. 
+        
+        """
+        response = await model.ainvoke([GUARD_PROMPT])
+
+        if "BLOQUEAR1" in response.content:
+            return {"messages": [AIMessage(content="Desculpa, sua mensagem viola nossas diretrizes de uso.")], "error_occurred": False }
+        if "BLOQUEAR2" in response.content:
+            return {"messages": [AIMessage(content="Desculpa, nosso sistema não é capaz de responder perguntas fora do escopo do tema. Refaça sua pergunta no contexto desse sistema.")], "error_occurred": False }
+    
+        return {"is_blocked": False, "error_occurred": False}
+    
+    except BadRequestError as e:
+        print(f"Erro de conteúdo: {e}")
+        return {
+            "messages": [AIMessage(content="Sinto muito, essa mensagem acionou os filtros de segurança.")],
+            "error_occurred": True 
+            }
+    
+    except Exception as e:
+        print(f"Erro inesperado: {e}")
+        return {
+            "messages": [AIMessage(content="Ocorreu um erro inesperado. Por favor, tente novamente.")],
+            "error_occurred": True
+            }
+
 
 
 async def moderation_input(state: AgentState):
@@ -334,6 +410,13 @@ async def moderation_output(state: AgentState):
             }
 
 
+def should_continue(state: AgentState):
+    last_msg = state["messages"][-1]
+    if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
+        return "verify_sql"
+    return "moderation_output"
+
+
 def route_moderation_input(state: AgentState):
     print("--- DECIDINDO ROTA APÓS MODERATION INPUT ---")
     last_msg = state["messages"][-1]
@@ -406,3 +489,19 @@ def route_moderation_output(state: AgentState):
         return "agent"
     print(" --- PASSOU NA MODERAÇÃO DE SAÍDA ---")
     return END
+
+
+def route_guardrail_input(state: AgentState):
+    print("--- ROUTE GUARDRAIL INPUT ---")
+    last_msg = state["messages"][-1]
+    
+    if state.get("error_occurred"):
+        print(" --- ERRO TÉCNICO DETECTADO: ENCERRANDO ---")
+        return END
+
+    if isinstance(last_msg, AIMessage) and "Desculpa" in last_msg.content:
+        print(" --- BLOQUEADO ---")
+        return END
+    
+    print(" --- TUDO OK: SEGUINDO PARA O AGENTE ---")
+    return "agent"

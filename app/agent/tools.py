@@ -9,7 +9,7 @@ from app.agent.memory import vector_store, Memory
 
 
 @tool
-def store_memory_tool(
+async def store_memory_tool(
         memories: Annotated[List[Memory], "Lista de memórias a serem armazenadas"],
         config: RunnableConfig
 ) -> str:
@@ -60,7 +60,7 @@ def store_memory_tool(
         return f"Erro ao armazenar memórias: {str(e)}"
     
 @tool
-def retrieve_memories_tool(
+async def retrieve_memories_tool(
         query: Annotated[str, "Consulta necessária para recuperar as memórias mais similares registradas no banco vetorial."],
         memory_type: Annotated[Literal["episodic", "semantic"], "Tipo de memória a ser recuperada"],
         limit: Annotated[int, "Número máximo de memórias a serem recuperadas"],
