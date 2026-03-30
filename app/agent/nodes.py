@@ -1,5 +1,5 @@
 from app.core import config
-from app.core.config import model, db_bussola, summarizer_model
+from app.core.config import model, db_bussola, summarizer_model, moderation_model
 from app.agent.state import AgentState
 from app.agent.prompt import SYSTEM_PROMPT
 from app.agent.tools import tools_agent
@@ -216,7 +216,7 @@ async def guardrail_input(state: AgentState, config: RunnableConfig):
         Responda APENAS com 'PASSAR1' ou 'BLOQUEAR1' para a primeira diretriz, e 'PASSAR2' ou 'BLOQUEAR2' para a segunda diretriz. 
         
         """
-        response = await model.ainvoke([GUARD_PROMPT], config=config)
+        response = await moderation_model.ainvoke([GUARD_PROMPT], config=config)
 
         if "BLOQUEAR1" in response.content:
             return {"messages": [AIMessage(content="Desculpa, sua mensagem viola nossas diretrizes de uso.")], "error_occurred": False }
@@ -395,7 +395,7 @@ async def moderation_output(state: AgentState, config: RunnableConfig):
         Responda APENAS com a palavra 'PASSAR' ou 'BLOQUEAR'.
         """
 
-        response = await model.ainvoke([MOD_PROMPT], config=config)
+        response = await moderation_model.ainvoke([MOD_PROMPT], config=config)
         decision = response.content.strip().upper()
 
         if "BLOQUEAR" in decision:

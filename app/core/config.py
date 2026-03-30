@@ -5,6 +5,7 @@ from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
 from langchain_core.messages import trim_messages
 from langchain_openai.middleware import OpenAIModerationMiddleware
 from langchain.agents import create_agent
+from langchain_groq import ChatGroq
 
 load_dotenv()
 
@@ -26,6 +27,8 @@ class Settings:
     PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
     PINECONE_INDEX_GUIDE = os.getenv("PINECONE_INDEX_GUIDE")
 
+    GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
 settings = Settings()
 
 db_bussola = SQLDatabase.from_uri(settings.URI_DATABASE_BUSSOLA)
@@ -41,13 +44,26 @@ model = AzureChatOpenAI(
 
 )
 
-summarizer_model = AzureChatOpenAI(
-    model = "gpt-5-nano",
-    azure_deployment = settings.AZURE_OPENAI_DEPLOYMENT,
-    api_version = settings.AZURE_OPENAI_API_VERSION,
-    azure_endpoint = settings.AZURE_OPENAI_ENDPOINT,
-    api_key = settings.AZURE_OPENAI_API_KEY,
-    temperature = 0,
+# summarizer_model = AzureChatOpenAI(
+#     model = "gpt-5-nano",
+#     azure_deployment = settings.AZURE_OPENAI_DEPLOYMENT,
+#     api_version = settings.AZURE_OPENAI_API_VERSION,
+#     azure_endpoint = settings.AZURE_OPENAI_ENDPOINT,
+#     api_key = settings.AZURE_OPENAI_API_KEY,
+#     temperature = 0,
+# )
+
+summarizer_model = ChatGroq(
+    model = "llama-3.1-8b-instant",
+    groq_api_key = settings.GROQ_API_KEY,
+    temperature = 0
+)
+
+
+moderation_model = ChatGroq(
+    model = "openai/gpt-oss-safeguard-20b",
+    groq_api_key = settings.GROQ_API_KEY,
+    temperature = 0
 )
 
 # Fallback model para garantir que o agente continue funcionando mesmo se o modelo principal tiver problemas.
