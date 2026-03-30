@@ -47,53 +47,13 @@ Uma breve documentação acerca das bases de dados que são utilizadas no projet
 Esta base contém um conjunto detalhado de **diretrizes e critérios técnicos** voltados para a certificação de **destinos turísticos sustentáveis**. O conteúdo está estruturado em seis temas fundamentais: **gestão do destino**, proteção da **natureza e paisagem**, cuidado com o **meio ambiente e clima**, preservação da **cultura e tradição**, promoção do **bem-estar social** e práticas de **comunicação e negócios**.
 Cada item estabelece métricas para monitorar impactos ambientais, envolver comunidades locais e garantir a integridade dos ativos culturais e naturais. As informações são apresentadas em formato multilíngue, abrangendo **inglês, português e espanhol**, para facilitar a aplicação internacional das normas. Através de indicadores de sustentabilidade e transparência, o documento busca orientar administradores na criação de um turismo responsável e ético.
 
-| CRITERIO | THEMES | THEME_DESCRIPTION_US | THEME_DESCRIPTION_PT | TOPIC | TOPIC_DESCRIPTION_US | TOPIC_DESCRIPTION_PT | CRITERIA | CRITERIA_TYPE | CRITERIA_NAME_US | CRITERIA_NAME_PT | CRITERIA_DESCRIPTION_US | CRITERIA_DESCRIPTION_PT | ORDEM_1 | ORDEM_2 | THEME_DESCRIPTION_ES | TOPIC_DESCRIPTION_ES | CRITERIA_NAME_ES | CRITERIA_DESCRIPTION_ES |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1.100000 | 1 | Destination Management | Gerenciamento de destinos | 1.100000 | Commitment & Organisation | Compromisso e organizaÃ§Ã£o | 1.1.01 | C15 | Sustainable destination coordinator | Coordenador de destinos sustentÃ¡veis | A person has 
-been assigned the responsibility and authority for the adequate 
-implementation and reporting of sustainable destination management. | Uma pessoa foi
- designada com a responsabilidade e a autoridade para a implementaÃ§Ã£o 
-adequada e a comunicaÃ§Ã£o do gerenciamento de destinos sustentÃ¡veis. | 11,01 | 1,01 | GestiÃ³n del destino | Compromiso y organizaciÃ³n | Coordinador de sostenibilidad | Se ha asignado
- a una persona la responsabilidad y la autoridad para la adecuada 
-implementaciÃ³n y reporte de la gestiÃ³n sostenible del destino. |
-| 1.200000 | 1 | Destination Management | Gerenciamento de destinos | 1.100000 | Commitment & Organisation | Compromisso e organizaÃ§Ã£o | 1.1.02 | nan | Management structure | Estrutura de gestÃ£o | An adequately 
-funded organisation or management structure is responsible for 
-coordinating and promoting sustainable tourism development and 
-management. It works with a range of bodies in delivering destination 
-management and follows principles of sustainability and transparency in 
-its operations and transactions. | Uma 
-organizaÃ§Ã£o ou estrutura de gerenciamento com financiamento adequado 
-Ã© responsÃ¡vel por coordenar e promover o desenvolvimento e o 
-gerenciamento do turismo sustentÃ¡vel. Ela trabalha com uma sÃ©rie de 
-Ã³rgÃ£os para fornecer gerenciamento de destinos e segue princÃ­pios de 
-sustentabilidade e transparÃªncia em suas operaÃ§Ãµes e transaÃ§Ãµes. | 11,02 | 1,02 | GestiÃ³n del destino | Compromiso y organizaciÃ³n | Estructura de gestiÃ³n | Una 
-organizaciÃ³n o estructura de gestiÃ³n adecuadamente financiada se 
-encarga de coordinar y promover el desarrollo y la gestiÃ³n del turismo 
-sostenible. Trabaja con una serie de organismos en la gestiÃ³n del 
-destino y sigue los principios de sostenibilidad y transparencia en sus 
-operaciones y transacciones. |
-| 1.300000 | 1 | Destination Management | Gerenciamento de destinos | 1.100000 | Commitment & Organisation | Compromisso e organizaÃ§Ã£o | 1.1.03 | nan | Trained coordinator/ team | Coordenador/equipe treinada | The person or 
-team responsible for destination development and management is 
-sufficiently staffed and adequately trained on and/or experienced in 
-sustainability issues. | A pessoa ou 
-equipe responsÃ¡vel pelo desenvolvimento e gerenciamento do destino tem 
-pessoal suficiente e Ã© adequadamente treinada e/ou tem experiÃªncia em 
-sustentabilidade problemas. | 11,03 | 1,03 | GestiÃ³n del destino | Compromiso y organizaciÃ³n | Coordinador/equipo capacitado | La persona o 
-el equipo responsable del desarrollo y la gestiÃ³n del destino cuenta 
-con el personal suficiente y con la formaciÃ³n y/o la experiencia 
-adecuadas en materia de sostenibilidad. |
-| 1.400000 | 1 | Destination Management | Gerenciamento de destinos | 1.100000 | Commitment & Organisation | Compromisso e organizaÃ§Ã£o | 1.1.04 | nan | Stakeholder involvement | Envolvimento das partes interessadas | The 
-destination management organisation or structure involves civil society 
-and the private and public sector in sustainable destination management. | A 
-organizaÃ§Ã£o ou estrutura de gerenciamento de destinos envolve a 
-sociedade civil e a setor pÃºblico e privado no gerenciamento de 
-destinos sustentÃ¡veis. | 11,04 | 1,04 | GestiÃ³n del destino | Compromiso y organizaciÃ³n | ParticipaciÃ³n de las partes interesadas (antes de la participaciÃ³n del sector turÃ­stico) | La 
-organizaciÃ³n o estructura de gestiÃ³n del destino implica a la sociedad
- civil y a los sectores pÃºblico y privado en la gestiÃ³n sostenible del
- destino. |
-| 1.500000 | 1 | Destination Management | Gerenciamento de destinos | 1.200000 | Planning & Development | Planejamento e desenvolvimento | 1.2.05 | C15 | Inventory of destination assets | InventÃ¡rio de ativos de destino | The destination has an inventory of its tourism-oriented assets and attractions including natural and cultural sites. | O destino tem um inventÃ¡rio de seus ativos e atraÃ§Ãµes voltados para o turismo incluindo locais naturais e culturais. | 12,05 | 1,05 | GestiÃ³n del destino | PlanificaciÃ³n y desarrollo | Inventario de activos de destino | El destino 
-cuenta con un inventario de sus activos y atracciones orientadas al 
-turismo, incluidos los lugares naturales y culturales. |
+| CRITERIO | THEMES | THEME_DESCRIPTION_US | THEME_DESCRIPTION_PT | THEME_DESCRIPTION_ES | TOPIC | TOPIC_DESCRIPTION_US | TOPIC_DESCRIPTION_PT | TOPIC_DESCRIPTION_ES | CRITERIA | CRITERIA_TYPE | CRITERIA_NAME_US | CRITERIA_NAME_PT | CRITERIA_NAME_ES | CRITERIA_DESCRIPTION_US | CRITERIA_DESCRIPTION_PT | CRITERIA_DESCRIPTION_ES | ORDEM_1 | ORDEM_2 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 1.1 | 1 | Destination Management | Gerenciamento de destinos | Gestión del destino | 1.1 | Commitment & Organisation | Compromisso e organização | Compromiso y organización | 1.1.01 | C15 | Sustainable destination coordinator | Coordenador de destinos sustentáveis | Coordinador de sostenibilidad | A person has been assigned the responsibility and authority for the adequate implementation and reporting of sustainable destination management. | Uma pessoa foi designada com a responsabilidade e a autoridade para a implementação adequada e a comunicação do gerenciamento de destinos sustentáveis. | Se ha asignado a una persona la responsabilidad y la autoridad para la adecuada implementación y reporte de la gestión sostenible del destino. | 11,01 | 1,01 |
+| 1.2 | 1 | Destination Management | Gerenciamento de destinos | Gestión del destino | 1.1 | Commitment & Organisation | Compromisso e organização | Compromiso y organización | 1.1.02 | nan | Management structure | Estrutura de gestão | Estructura de gestión | An adequately funded organisation or management structure is responsible for coordinating and promoting sustainable tourism development and management. | Uma organização ou estrutura de gerenciamento com financiamento adequado é responsável por coordenar e promover o desenvolvimento e o gerenciamento do turismo sustentável. | Una organización o estructura de gestión adecuadamente financiada se encarga de coordinar y promover el desarrollo y la gestión del turismo sostenible. | 11,02 | 1,02 |
+| 1.3 | 1 | Destination Management | Gerenciamento de destinos | Gestión del destino | 1.1 | Commitment & Organisation | Compromisso e organização | Compromiso y organización | 1.1.03 | nan | Trained coordinator/ team | Coordenador/equipe treinada | Coordinador/equipo capacitado | The person or team responsible for destination development and management is sufficiently staffed and adequately trained on and/or experienced in sustainability issues. | A pessoa ou equipe responsável pelo desenvolvimento e gerenciamento do destino tem pessoal suficiente e é adequadamente treinada e/ou tem experiência em sustentabilidade problemas. | La persona o el equipo responsable del desarrollo y la gestión del destino cuenta con el personal suficiente y con la formación y/o la experiencia adecuadas en materia de sostenibilidad. | 11,03 | 1,03 |
+| 1.4 | 1 | Destination Management | Gerenciamento de destinos | Gestión del destino | 1.1 | Commitment & Organisation | Compromisso e organização | Compromiso y organización | 1.1.04 | nan | Stakeholder involvement | Envolvimento das partes interessadas | Participación de las partes interesadas | The destination management organisation or structure involves civil society and the private and public sector in sustainable destination management. | A organização ou estrutura de gerenciamento de destinos envolve a sociedade civil e a setor público e privado no gerenciamento de destinos sustentáveis. | La organización o estructura de gestión del destino implica a la sociedad civil y a los sectores público y privado en la gestión sostenible del destino. | 11,04 | 1,04 |
+| 1.5 | 1 | Destination Management | Gerenciamento de destinos | Gestión del destino | 1.2 | Planning & Development | Planejamento e desenvolvimento | Planificación y desarrollo | 1.2.05 | C15 | Inventory of destination assets | Inventário de ativos de destino | Inventario de activos de destino | The destination has an inventory of its tourism-oriented assets and attractions including natural and cultural sites. | O destino tem um inventário de seus ativos e atrações voltados para o turismo incluindo locais naturais e culturais. | El destino cuenta con un inventario de sus activos y atracciones orientadas al turismo, incluidos los lugares naturales y culturales. | 12,05 | 1,05 |
 
 ### Explorando as colunas:
 
@@ -128,28 +88,12 @@ Está base detalha a infraestrutura econômica dos municípios brsileiros, regis
 Esta base contém os registros de avaliação de destinos turísticos com base em critérios específicos de sustentabilidade e gestão. Em resumo, é um **boletim de desempenho detalhado**, servindo para cruzar as exigências do programa de turismo sustentável com a nota alcançada pelo município, garantindo que as informações estejam traduzidas e padronizadas.
 
 | DESCRICAO | CRITERIO | NOTA | CIDADE | ANO | ESTADO | THEME | THEME_PT | THEME_US | CRITERIA_DESCRIPTION_PT | CRITERIA_DESCRIPTION_US | CRITERIA_NAME_PT | CRITERIA_NAME_US | ORDEM | CHAVE | CODIGO_MUNICIPIO | TOPIC | CRITERIA_DESCRIPTION_ES | CRITERIA_NAME_ES | THEME_ES |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Sustainable destination coordinator | 1.100000 | 5 | Treze TÃ­lias | 2022 | SC | 1 | Gerenciamento de destinos | Destination Management | Uma pessoa foi 
-designada com a responsabilidade e a autoridade para a implementaÃ§Ã£o 
-adequada e a comunicaÃ§Ã£o do gerenciamento de destinos sustentÃ¡veis. | A person has 
-been assigned the responsibility and authority for the adequate 
-implementation and reporting of sustainable destination management. | Coordenador de destinos sustentÃ¡veis | Sustainable destination coordinator | 1,01 | TREZE TÃLIAS-SC | 4218509 | 1.100000 | Se ha asignado
- a una persona la responsabilidad y la autoridad para la adecuada 
-implementaciÃ³n y reporte de la gestiÃ³n sostenible del destino. | Coordinador de sostenibilidad | GestiÃ³n del destino |
-| Nature conservation | 2.100000 | 5 | Treze TÃ­lias | 2022 | SC | 2 | Natureza e cenÃ¡rio | Nature & Scenery | O destino tem um sistema para conservar ecossistemas, habitats e espÃ©cies. | The destination has a system to conserve ecosystems, habitats and species. | ConservaÃ§Ã£o da natureza | Nature conservation | 2,01 | TREZE TÃLIAS-SC | 4218509 | 2.100000 | El destino cuenta con un sistema de conservaciÃ³n de ecosistemas, hÃ¡bitats y especies. | ConservaciÃ³n de la naturaleza | Naturaleza y paisaje |
-| Noise | 3.100000 | 5 | Treze TÃ­lias | 2022 | SC | 3 | Meio ambiente e clima | Environment & Climate | O ruÃ­do Ã© adequadamente regulamentado e minimizado | Noise is adequately regulated and minimised; tourism enterprises and visitors are encouraged to minimise noise. | Barulho | Noise | 3,01 | TREZE TÃLIAS-SC | 4218509 | 3.100000 | El ruido estÃ¡ adecuadamente regulado y minimizado; se anima a las empresas turÃ­sticas y a los visitantes a minimizar el ruido. | Ruido | Medio ambiente y clima |
-| Light pollution | 3.200000 | 5 | Treze TÃ­lias | 2022 | SC | 3 | Meio ambiente e clima | Environment & Climate | Os impactos da 
-poluiÃ§Ã£o luminosa na vida selvagem, na experiÃªncia dos residentes e 
-dos visitantes sÃ£o tratados adequadamente. As empresas de turismo e os 
-visitantes sÃ£o incentivados a minimizar a poluiÃ§Ã£o luminosa. | Impacts of 
-light pollution to wildlife, resident and visitor experience are 
-adequately addressed. Tourism enterprises and visitors are encouraged to
- minimise light pollution'. | PoluiÃ§Ã£o luminosa | Light pollution | 3,02 | TREZE TÃLIAS-SC | 4218509 | 3.100000 | Los impactos 
-de la contaminaciÃ³n lumÃ­nica en la vida silvestre y en la experiencia 
-de los residentes y visitantes se abordan adecuadamente. Se anima a las 
-empresas turÃ­sticas y a los visitantes a minimizar la contaminaciÃ³n 
-lumÃ­nica. | ContaminaciÃ³n lumÃ­nica | Medio ambiente y clima |
-| Community involvement in planning | 5.700000 | 5 | Treze TÃ­lias | 2022 | SC | 5 | Bem-estar social | Social Well-Being | O destino permite e promove a participaÃ§Ã£o pÃºblica no planejamento e na gestÃ£o de destinos sustentÃ¡veis. | The destination enables and promotes public participation in sustainable destination planning and management. | Envolvimento da comunidade em planejamento | Community involvement in planning | 5,07 | TREZE TÃLIAS-SC | 4218509 | 5.200000 | El destino permite y promueve la participaciÃ³n pÃºblica en la planificaciÃ³n y gestiÃ³n sostenible del destino. | ParticipaciÃ³n de la comunidad en la planificaciÃ³n | Bienestar social |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Sustainable destination coordinator | 1.1 | 5 | Treze Tílias | 2022 | SC | 1 | Gerenciamento de destinos | Destination Management | Uma pessoa foi designada com a responsabilidade e a autoridade para a implementação adequada e a comunicação do gerenciamento de destinos sustentáveis. | A person has been assigned the responsibility and authority for the adequate implementation and reporting of sustainable destination management. | Coordenador de destinos sustentáveis | Sustainable destination coordinator | 1,01 | TREZE TÍLIAS-SC | 4218509 | 1.1 | Se ha asignado a una persona la responsabilidad y la autoridad para la adecuada implementación y reporte de la gestión sostenible del destino. | Coordinador de sostenibilidad | Gestión del destino |
+| Nature conservation | 2.1 | 5 | Treze Tílias | 2022 | SC | 2 | Natureza e cenário | Nature & Scenery | O destino tem um sistema para conservar ecossistemas, habitats e espécies. | The destination has a system to conserve ecosystems, habitats and species. | Conservação da natureza | Nature conservation | 2,01 | TREZE TÍLIAS-SC | 4218509 | 2.1 | El destino cuenta con un sistema de conservación de ecosistemas, hábitats y especies. | Conservación de la naturaleza | Naturaleza y paisaje |
+| Noise | 3.1 | 5 | Treze Tílias | 2022 | SC | 3 | Meio ambiente e clima | Environment & Climate | O ruído é adequadamente regulamentado e minimizado | Noise is adequately regulated and minimised; tourism enterprises and visitors are encouraged to minimise noise. | Barulho | Noise | 3,01 | TREZE TÍLIAS-SC | 4218509 | 3.1 | El ruido está adecuadamente regulado y minimizado; se anima a las empresas turísticas y a los visitantes a minimizar el ruido. | Ruido | Medio ambiente y clima |
+| Light pollution | 3.2 | 5 | Treze Tílias | 2022 | SC | 3 | Meio ambiente e clima | Environment & Climate | Os impactos da poluição luminosa na vida selvagem, na experiência dos residentes e dos visitantes são tratados adequadamente. As empresas de turismo e os visitantes são incentivados a minimizar a poluição luminosa. | Impacts of light pollution to wildlife, resident and visitor experience are adequately addressed. Tourism enterprises and visitors are encouraged to minimise light pollution. | Poluição luminosa | Light pollution | 3,02 | TREZE TÍLIAS-SC | 4218509 | 3.1 | Los impactos de la contaminación lumínica en la vida silvestre y en la experiencia de los residentes y visitantes se abordan adecuadamente. Se anima a las empresas turísticas y a los visitantes a minimizar la contaminación lumínica. | Contaminación lumínica | Medio ambiente y clima |
+| Community involvement in planning | 5.7 | 5 | Treze Tílias | 2022 | SC | 5 | Bem-estar social | Social Well-Being | O destino permite e promove a participação pública no planejamento e na gestão de destinos sustentáveis. | The destination enables and promotes public participation in sustainable destination planning and management. | Envolvimento da comunidade em planejamento | Community involvement in planning | 5,07 | TREZE TÍLIAS-SC | 4218509 | 5.2 | El destino permite y promueve la participación pública en la planificación y gestión sostenible del destino. | Participación de la comunidad en la planificación | Bienestar social |
 
 ### Explorando as colunas:
 
@@ -170,80 +114,25 @@ lumÃ­nica. | ContaminaciÃ³n lumÃ­nica | Medio ambiente y clima |
 
 ## 4 - TOP100_15.csv
 
-Esta base foca especificamente em um conjunto reduzido dos 15 critérios principais da sustentabilidade. Dessa forma, possuindo a mesma estrutura e colunas da base TOP100_30.csv.
-
 | DESCRICAO | CRITERIO | NOTA | CIDADE | ANO | ESTADO | THEME | THEME_PT | THEME_US | CRITERIA_NAME_PT | CRITERIA_NAME_US | CRITERIA_DESCRIPTION_PT | CRITERIA_DESCRIPTION_US | ORDEM | CHAVE | CODIGO_MUNICIPIO | TOPIC | CRITERIA_NAME_ES | CRITERIA_DESCRIPTION_ES | THEME_ES |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Sustainable destination coordinator | 1.100000 | 5 | Urubici | 2023 | SC | 1 | Gerenciamento de destinos | Destination Management | Coordenador de destinos sustentÃ¡veis | Sustainable destination coordinator | Uma pessoa foi
- designada com a responsabilidade e a autoridade para a implementaÃ§Ã£o 
-adequada e a comunicaÃ§Ã£o do gerenciamento de destinos sustentÃ¡veis. | A person has 
-been assigned the responsibility and authority for the adequate 
-implementation and reporting of sustainable destination management. | 1,01 | URUBICI-SC | 4218905 | 1.100000 | Coordinador de sostenibilidad | Se ha asignado
- a una persona la responsabilidad y la autoridad para la adecuada 
-implementaciÃ³n y reporte de la gestiÃ³n sostenible del destino. | GestiÃ³n del destino |
-| Inventory of destination assets | 1.500000 | 2,25 | Urubici | 2023 | SC | 1 | Gerenciamento de destinos | Destination Management | InventÃ¡rio de ativos de destino | Inventory of destination assets | O destino tem um inventÃ¡rio de seus ativos e atraÃ§Ãµes voltados para o turismo incluindo locais naturais e culturais. | The destination has an inventory of its tourism-oriented assets and attractions including natural and cultural sites. | 1,05 | URUBICI-SC | 4218905 | 1.200000 | Inventario de activos de destino | El destino 
-cuenta con un inventario de sus activos y atracciones orientadas al 
-turismo, incluidos los lugares naturales y culturales. | GestiÃ³n del destino |
-| Destination Management Policy or Strategy | 1.700000 | 2,75 | Urubici | 2023 | SC | 1 | Gerenciamento de destinos | Destination Management | PolÃ­tica ou estratÃ©gia de gerenciamento de destinos | Destination Management Policy or Strategy | O destino tem 
-uma polÃ­tica ou estratÃ©gia de gerenciamento de destino atualizada, 
-disponÃ­vel publicamente e plurianual, que aborda questÃµes ambientais, 
-sociais, culturais e econÃ´micas. A polÃ­tica Ã© adequada Ã  escala do 
-destino, desenvolvida com o envolvimento das partes interessadas e Ã© 
-baseada em princÃ­pios de sustentabilidade. Ela estÃ¡ relacionada a e 
-influencia polÃ­ticas e aÃ§Ãµes mais amplas de desenvolvimento 
-sustentÃ¡vel no destino. | The 
-destination has an up-to-date, publicly available, multi-year 
-destination management policy or strategy addressing environmental, 
-social, cultural and economic issues. The policy is suited to the scale 
-of the destination, developed with stakeholder engagement and is based 
-on sustainability principles. It relates to and influences wider 
-sustainable development policy and action in the destination. | 1,07 | URUBICI-SC | 4218905 | 1.200000 | PolÃ­tica o estrategia de gestiÃ³n de destinos | El destino 
-cuenta con una polÃ­tica o estrategia de gestiÃ³n plurianual, 
-actualizada y disponible pÃºblicamente, que aborda temas 
-medioambientales, sociales, culturales y econÃ³micos. La polÃ­tica se 
-desarrolla con la participaciÃ³n de las partes interesadas y se basa en 
-los principios de sostenibilidad. Se relaciona e influencia polÃ­ticas 
-de desarrollo sostenible y su acciÃ³n en el destino. | GestiÃ³n del destino |
-| Tourism impact on nature | 2.200000 | 2,25 | Urubici | 2023 | SC | 2 | Natureza e cenÃ¡rio | Nature & Scenery | Impactos no turismo sobre a natureza | Tourism impacts on nature | O destino mede
- e monitora o impacto do turismo na natureza meio ambiente. Os impactos 
-identificados do turismo na natureza sÃ£o respondidos adequadamente. | The 
-destination measures and monitors the impact of tourism on the natural 
-environment. Identified impacts of tourism on nature are adequately 
-responded to. | 2,02 | URUBICI-SC | 4218905 | 2.100000 | Impacto del turismo en la naturaleza | El destino 
-mide y monitorea el impacto del turismo en el entorno natural. Se 
-responde adecuadamente a los impactos identificados del turismo en la 
-naturaleza. | Naturaleza y paisaje |
-| Landscape & Scenery | 2.500000 | 2,5 | Urubici | 2023 | SC | 2 | Natureza e cenÃ¡rio | Nature & Scenery | Paisagem e cenÃ¡rio | Landscape & Scenery | As vistas cÃªnicas naturais e rurais sÃ£o protegidas. | Natural and 
-rural scenic views are protected; landscape degradation and urban sprawl
- into scenic landscapes is effectively avoided. | 2,05 | URUBICI-SC | 4218905 | 2.100000 | Paisaje y panorama | Se protegen 
-las vistas escÃ©nicas naturales y rurales; se evita efectivamente la 
-degradaciÃ³n del paisaje y la expansiÃ³n urbana en los paisajes 
-escÃ©nicos. | Naturaleza y paisaje |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Sustainable destination coordinator | 1.1 | 5 | Urubici | 2023 | SC | 1 | Gerenciamento de destinos | Destination Management | Coordenador de destinos sustentáveis | Sustainable destination coordinator | Uma pessoa foi designada com a responsabilidade e a autoridade para a implementação adequada e a comunicação do gerenciamento de destinos sustentáveis. | A person has been assigned the responsibility and authority for the adequate implementation and reporting of sustainable destination management. | 1,01 | URUBICI-SC | 4218905 | 1.1 | Coordinador de sostenibilidad | Se ha asignado a una persona la responsabilidad y la autoridad para la adecuada implementación y reporte de la gestión sostenible del destino. | Gestión del destino |
+| Inventory of destination assets | 1.5 | 2,25 | Urubici | 2023 | SC | 1 | Gerenciamento de destinos | Destination Management | Inventário de ativos de destino | Inventory of destination assets | O destino tem um inventário de seus ativos e atrações voltados para o turismo incluindo locais naturais e culturais. | The destination has an inventory of its tourism-oriented assets and attractions including natural and cultural sites. | 1,05 | URUBICI-SC | 4218905 | 1.2 | Inventario de activos de destino | El destino cuenta con un inventario de sus activos y atracciones orientadas al turismo, incluidos los lugares naturales y culturales. | Gestión del destino |
+| Destination Management Policy or Strategy | 1.7 | 2,75 | Urubici | 2023 | SC | 1 | Gerenciamento de destinos | Destination Management | Política ou estratégia de gerenciamento de destinos | Destination Management Policy or Strategy | O destino tem uma política ou estratégia de gerenciamento de destino atualizada, disponível publicamente e plurianual, que aborda questões ambientais, sociais, culturais e econômicas. | The destination has an up-to-date, publicly available, multi-year destination management policy or strategy addressing environmental, social, cultural and economic issues. | 1,07 | URUBICI-SC | 4218905 | 1.2 | Política o estrategia de gestión de destinos | El destino cuenta con una política o estrategia de gestión plurianual, actualizada y disponible públicamente, que aborda temas medioambientales, sociales, culturales y económicos. | Gestión del destino |
+| Tourism impact on nature | 2.2 | 2,25 | Urubici | 2023 | SC | 2 | Natureza e cenário | Nature & Scenery | Impactos no turismo sobre a natureza | Tourism impacts on nature | O destino mede e monitora o impacto do turismo na natureza meio ambiente. Os impactos identificados do turismo na natureza são respondidos adequadamente. | The destination measures and monitors the impact of tourism on the natural environment. Identified impacts of tourism on nature are adequately responded to. | 2,02 | URUBICI-SC | 4218905 | 2.1 | Impacto del turismo en la naturaleza | El destino mide y monitorea el impacto del turismo en el entorno natural. Se responde adecuadamente a los impactos identificados del turismo en la naturaleza. | Naturaleza y paisaje |
+| Landscape & Scenery | 2.5 | 2,5 | Urubici | 2023 | SC | 2 | Natureza e cenário | Nature & Scenery | Paisagem e cenário | Landscape & Scenery | As vistas cênicas naturais e rurais são protegidas. | Natural and rural scenic views are protected; landscape degradation and urban sprawl into scenic landscapes is effectively avoided. | 2,05 | URUBICI-SC | 4218905 | 2.1 | Paisaje y panorama | Se protegen las vistas escénicas naturales y rurales; se evita efectivamente la degradación del paisaje y la expansión urbana en los paisajes escénicos. | Naturaleza y paisaje |
 
 ## 5 - SITUACIONAL_2023.csv
 
 Esta base contém os registros da percepção, opiniões e avaliações dos respondentes locais em relação ao desenvolvimento do turismo na sua cidade. 
 
 | DATA | CODIGO_MUNICIPIO | CIDADE | ESTADO | Q01 | Q02 | Q03 | Q04 | Q05 | Q06 | Q07 | Q08 | Q09 | Q10 | Q11 | Q12 | Q13 | Q14 | Q15 | Q16 | Q17 | Q18 | Q19 | Q20 | Q21 | Q22 | Q23 | Q24 | Q25 | Q26 | Q27 | Q28 | Q29 | Q30 | Q31 | Q32 | Q33 | Q34 | Q35 | Q36 | Q37 | Q38 | Q39 | Q40 | Q41 | Q42 | Q43 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2020-08-04 00:00:00,000 | 4217402 | Schroeder | SC | 8.000000 | 8.000000 | Sim | 7.000000 | 7.000000 | 7.000000 | nan | 8.000000 | 9.000000 | 8.000000 | 7.000000 | 10.000000 | 8.000000 | 8.000000 | 8.000000 | 8.000000 | 7.000000 | 8.000000 | 8.000000 | 4.000000 | 9.000000 | 8.000000 | 7.000000 | 7.000000 | 9.000000 | 9.000000 | 8.000000 | 9.000000 | 8.000000 | 7.000000 | 8.000000 | 8.000000 | 8.000000 | 7.000000 | 7.000000 | Parcialmente | Turista de aventura, ecolÃ³gico, que cuida do municÃ­pio enquanto o conhece. | Morro pelado, Rio do JÃºlio. | Mais forÃ§a 
-para aprovaÃ§Ã£o de projetos do turismo perante a prefeitura. Pessoas 
-qualificadas para buscar recursos nessa Ã¡rea. (Estadual, federal, 
-privado) | PrÃ³xima gestÃ£o do Executivo. | nan | nan | nan |
-| 2020-08-17 00:00:00,000 | 4205456 | Forquilhinha | SC | 5.000000 | 8.000000 | Sim | 6.000000 | 7.000000 | 5.000000 | 7.000000 | 3.000000 | 6.000000 | 5.000000 | 4.000000 | 7.000000 | 9.000000 | 5.000000 | nan | 8.000000 | 5.000000 | 10.000000 | 6.000000 | 8.000000 | 8.000000 | 8.000000 | 6.000000 | 9.000000 | 7.000000 | 8.000000 | 9.000000 | 9.000000 | 7.000000 | 6.000000 | nan | nan | nan | nan | 7.000000 | Parcialmente | Turista que busca a experiÃªncia cultural, gastronÃ´mica, festiva, religiosa e lazer. | Apontaria o 
-municÃ­pio como um todo, o conjunto da arquitetura alemÃ£, o paisagismo,
- urbanismo e a mobilidade urbana e a cultura e educaÃ§Ã£o do povo. | - Identidade cultural alemÃ£;
-- Incentivos na infraestrutura e serviÃ§os;
-- Eventos culturais e gastronÃ´micos;
-- Parque SÃ£o Francisco de Assis;
-- Paisagismo e Sustentabilidade;
-- Dr. Zilda Arns e Dom Paulo Evaristo Arns;
-... | A falta de planejamento direcionado a identidade turÃ­stica alemÃ£;
-A interaÃ§Ã£o entre as trÃªs esferas;
-O mal planejamento e execuÃ§Ã£o dos Planos e CÃ³digos do municÃ­pio. | nan | nan | nan |
-| 2020-08-25 00:00:00,000 | 4217402 | Schroeder | SC | 7.000000 | 9.000000 | Parcialmente | 5.000000 | 5.000000 | 5.000000 | 7.000000 | 8.000000 | 7.000000 | 7.000000 | 6.000000 | 8.000000 | 10.000000 | 7.000000 | 6.000000 | 7.000000 | 6.000000 | 9.000000 | 7.000000 | 6.000000 | 6.000000 | 6.000000 | 6.000000 | 7.000000 | 6.000000 | 7.000000 | 8.000000 | 7.000000 | 6.000000 | 8.000000 | 8.000000 | 7.000000 | 7.000000 | 7.000000 | 6.000000 | Parcialmente | nan | nan | nan | nan | nan | LINDO E SUSTENTÃVEL! | nan |
-| 2020-08-26 00:00:00,000 | 4205902 | Gaspar | SC | 5.000000 | 5.000000 | NÃ£o | 0.000000 | 0.000000 | 0.000000 | nan | 0.000000 | 0.000000 | 8.000000 | 0.000000 | 0.000000 | 8.000000 | nan | nan | nan | nan | 0.000000 | 0.000000 | nan | nan | nan | nan | nan | 0.000000 | 0.000000 | nan | nan | nan | nan | nan | nan | 10.000000 | 1.000000 | nan | Sim | nan | nan | nan | Infraestrutura. | nan | nan | nan |
-| 2020-08-26 00:00:00,000 | 4205902 | Gaspar | SC | 8.000000 | 9.000000 | Parcialmente | 8.000000 | 8.000000 | 8.000000 | 7.000000 | 7.000000 | 7.000000 | 9.000000 | 8.000000 | 9.000000 | 9.000000 | 7.000000 | 9.000000 | 7.000000 | 8.000000 | 7.000000 | 7.000000 | 8.000000 | 7.000000 | 9.000000 | 8.000000 | 7.000000 | 7.000000 | 8.000000 | 7.000000 | 8.000000 | 7.000000 | 7.000000 | 7.000000 | 8.000000 | 7.000000 | 7.000000 | 9.000000 | Parcialmente | Todos sÃ£o bem vindos | Parques aquÃ¡ticos; restaurantes; engenhos etc | nan | nan | nan | Lugar ideal para conhecer. | nan |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 2020-08-04 | 4217402 | Schroeder | SC | 8 | 8 | Sim | 7 | 7 | 7 | nan | 8 | 9 | 8 | 7 | 10 | 8 | 8 | 8 | 8 | 7 | 8 | 8 | 4 | 9 | 8 | 7 | 7 | 9 | 9 | 8 | 9 | 8 | 7 | 8 | 8 | 8 | 7 | 7 | Parcialmente | Turista de aventura, ecológico, que cuida do município enquanto o conhece. | Morro pelado, Rio do Júlio. | Mais força para aprovação de projetos do turismo perante a prefeitura. Pessoas qualificadas para buscar recursos nessa área. (Estadual, federal, privado) | Próxima gestão do Executivo. | nan | nan | nan |
+| 2020-08-17 | 4205456 | Forquilhinha | SC | 5 | 8 | Sim | 6 | 7 | 5 | 7 | 3 | 6 | 5 | 4 | 7 | 9 | 5 | nan | 8 | 5 | 10 | 6 | 8 | 8 | 8 | 6 | 9 | 7 | 8 | 9 | 9 | 7 | 6 | nan | nan | nan | nan | 7 | Parcialmente | Turista que busca a experiência cultural, gastronômica, festiva, religiosa e lazer. | Apontaria o município como um todo, o conjunto da arquitetura alemã, o paisagismo, urbanismo e a mobilidade urbana e a cultura e educação do povo. | - Identidade cultural alemã; - Incentivos na infraestrutura e serviços; - Eventos culturais e gastronômicos; - Parque São Francisco de Assis; - Paisagismo e Sustentabilidade; - Dr. Zilda Arns e Dom Paulo Evaristo Arns; | A falta de planejamento direcionado a identidade turística alemã; A interação entre as três esferas; O mal planejamento e execução dos Planos e Códigos do município. | nan | nan | nan |
+| 2020-08-25 | 4217402 | Schroeder | SC | 7 | 9 | Parcialmente | 5 | 5 | 5 | 7 | 8 | 7 | 7 | 6 | 8 | 10 | 7 | 6 | 7 | 6 | 9 | 7 | 6 | 6 | 6 | 6 | 7 | 6 | 7 | 8 | 7 | 6 | 8 | 8 | 7 | 7 | 7 | 6 | Parcialmente | nan | nan | nan | nan | nan | LINDO E SUSTENTÁVEL! | nan |
+| 2020-08-26 | 4205902 | Gaspar | SC | 5 | 5 | Não | 0 | 0 | 0 | nan | 0 | 0 | 8 | 0 | 0 | 8 | nan | nan | nan | nan | 0 | 0 | nan | nan | nan | nan | nan | 0 | 0 | nan | nan | nan | nan | nan | nan | 10 | 1 | nan | Sim | nan | nan | nan | Infraestrutura. | nan | nan | nan |
+| 2020-08-26 | 4205902 | Gaspar | SC | 8 | 9 | Parcialmente | 8 | 8 | 8 | 7 | 7 | 7 | 9 | 8 | 9 | 9 | 7 | 9 | 7 | 8 | 7 | 7 | 8 | 7 | 9 | 8 | 7 | 7 | 8 | 7 | 8 | 7 | 7 | 7 | 8 | 7 | 7 | 9 | Parcialmente | Todos são bem vindos | Parques aquáticos; restaurantes; engenhos etc | nan | nan | nan | Lugar ideal para conhecer. | nan |
 
 ### Explorando as colunas:
 
@@ -290,69 +179,15 @@ Esta base atua como uma **consolidação estatística** (focada na mediana/médi
 
 ## 8 - atividade_turistica.csv
 
-Esta base funciona como um i**nventário e mapeamento do nível de desenvolvimento do turismo nos municípios brasileiros**, coletando uma variedade de dados de cada cidade, abrangendo desde a organização política e econômica, até a infraestrutura hoteleira, perfil dos turistas, e detalhamentos especificos sobre aproveitamento de recursos naturais e nauticos.
+Esta base funciona como um **inventário e mapeamento do nível de desenvolvimento do turismo nos municípios brasileiros**, coletando uma variedade de dados de cada cidade, abrangendo desde a organização política e econômica, até a infraestrutura hoteleira, perfil dos turistas, e detalhamentos especificos sobre aproveitamento de recursos naturais e nauticos.
 
-| UF | MunicÃ­pio | O MunicÃ­pio possui LegislaÃ§Ã£o relacionada ao Turismo? | Quais? | O MunicÃ­pio participa de governanÃ§as regionais e estaduais de turismo? | Quais?_1 | Informar
- as principais parcerias, rede de cooperaÃ§Ã£o, intercÃ¢mbios etc. com 
-outros municÃ­pios e/ou entidades regionais, nacionais ou internacionais
- voltados ao desenvolvimento do Turismo. | O MunicÃ­pio participa ou Ã© contemplado em programas ou projetos com o MTur? | Quais?_2 | Informe quais as principais atividades econÃ´micas em seu MunicÃ­pio | Outros, descreva | HÃ¡ um Fundo Municipal de Turismo | Valor disponÃ­vel | NÂº da legislaÃ§Ã£o vigente | O MunicÃ­pio possui Plano Diretor Urbano que contemple o Setor de Turismo | NÃºmero da Lei | O MunicÃ­pio possui Plano Municipal de Turismo e /ou Plano de Desenvolvimento Territorial do Turismo | Ano | O MunicÃ­pio possui Plano de Marketing do Turismo ou outros similares? | Ano_3 | O MunicÃ­pio possui programas, projetos e aÃ§Ãµes acerca da atividade turÃ­stica? | Quais?_4 | Possui gestÃ£o adequada de ResÃ­duos SÃ³lidos? (Conforme Lei nÂº 12.305/2010). | Qual a receita tributÃ¡ria das atividades turÃ­sticas no municÃ­pio? | O municipio possui InventÃ¡rio TurÃ­stico? | Ano da UtilizaÃ§Ã£o | NÂº de hospedagem | NÂº de Leitos | Outros, descreva_5 | Quais os meios de hospedagem mais utilizado pelo turista? | Outros, descreva_6 | Quantos
- meios de hospedagem possuem cadastro no sistema CADASTUR? (Sitema de 
-Cadastro de Pessoas FÃ­sicas e JurÃ­dicas que atuam no Setor de 
-Turismo). | Qual o perÃ­odo de maior fluxo turÃ­stico? (descreva os meses de Jan-Dez). | Qual o meio de comunicaÃ§Ã£o utilizado para divulgaÃ§Ã£o do destino? | Outros, descreva: | Qual a mÃ©dia do nÃºmero de empregos gerados no setor de hospedagem? | O MunicÃ­pio possui cursos, programas e/ou aÃ§Ãµes de qualificaÃ§Ã£o profissional para o turismo? | Quais?_7 | JÃ¡ houve manifestaÃ§Ã£o de interesse de investidores em empreender no setor de turismo no municÃ­pio? | Quais?_8 | Possui guias e/ou condutores de turismo? | Quantos | O MunicÃ­pio possui locadoras de imÃ³veis, automÃ³veis, embarcaÃ§Ãµes e aeronaves para temporadas? | Quais?_9 | Quantas agÃªncias bancÃ¡rias o municÃ­pio possui? | Quantas casas de cÃ¢mbio o municÃ­pio possui? | Quantos templos de manifestaÃ§Ã£o de fÃ©, igrejas o municÃ­pio possui? | O municÃ­pio possui abastecimento de Ã¡gua, serviÃ§os de esgoto, serviÃ§os de energia, serviÃ§os de coleta de lixo? | Quais?_10 | O municÃ­pio possui aeroporto? | Quais?_11 | Quais os tipos de sistema de Transporte? | Qual a principal forma de acesso ao(s) destino(s) turÃ­stico(s)? | Qual a situaÃ§Ã£o do acesso aos Atrativos TurÃ­sticos do municÃ­pio? | Qual a situaÃ§Ã£o atual da SinalizaÃ§Ã£o TurÃ­stica do municÃ­pio? | O MunicÃ­pio faz parte de alguma rota turÃ­stica? | Quais?_12 | Existe linha regular de transporte turÃ­stico que interligue os principais atrativos? | Descreva as rotas turÃ­sticas | Qual a qualidade da rede de telefonia celular do municÃ­pio? | Qual a qualidade do fornecimento de internet no municÃ­pio? | Quantos prontos socorros pÃºblicos existem? | Quantos prontos socorros privados existem? | Quais sistema de seguranÃ§a e equipamentos que proporcionam Ã  populaÃ§Ã£o e ao turista as garantias bÃ¡sicas do cidadÃ£o? | Outros, descreva_13 | HÃ¡ delegacia de proteÃ§Ã£o ao turista? | Existem locais de embarque e desembarque sinalizados e com acesso em nÃ­vel? | Existem espaÃ§os reservados para pessoa com deficiÃªncia ou mobilidade reduzida? | O 
-municÃ­pio dispÃµe de profissionais capacitados para o atendimento de 
-pessoas com deficiÃªncia? (ex.: domÃ­nio da LÃ­ngua Brasileira de Sinais
- â LIBRAS). | O municÃ­pio possui acesso ao crÃ©dito do Fundo Geral de Turismo - FUNGETUR? | Qual? | Qual o nÃºmero total de empresas formais do setor do turismo existentes no municÃ­pio? | Qual a mÃ©dia do nÃºmero de empregos gerados no Setor de Turismo? | HÃ¡ uma polÃ­tica de atraÃ§Ã£o de investimentos privados para o setor? | Quem Ã© o responsÃ¡vel? | Valor da arrecadaÃ§Ã£o hÃ¡ dois anos (R$) | AlÃ­quota mÃ©dia do ISS hÃ¡ dois anos (%) | Valor da arrecadaÃ§Ã£o no ano anterior (R$) | AlÃ­quota mÃ©dia do ISS no ano anterior (%) | Quais tipos de PatrimÃ´nio Natural? | HÃ¡ unidades de conservaÃ§Ã£o (federal, estadual e/ou municipal)? | Quais estÃ£o fechadas para uso pÃºblico? | Quais tipos de PatrimÃ´nio Cultural? | NegÃ³cios e eventos | Sol e Praia | Turismo Cultural | Ecoturismo | Turismo de Aventura | Outros, descreva_14 | NegÃ³cios e eventos_15 | Sol e Praia_16 | Turismo Cultural_17 | Ecoturismo_18 | Turismo de Aventura_19 | Outros, descreva_20 | O MunicÃ­pio possui | O MunicÃ­pio possui Ã¡guas termais? | O MunicÃ­pio possui estudo sobre a profundidade desses rios, lagos ou lagoa? | No 
-MunicÃ­pio esses rios, lagos ou lagoas sÃ£o navegÃ¡veis, que possui 
-possibilidade de equipamentos aquÃ¡ticos como (jet ski, lancha ou 
-qualquer outra embarcaÃ§Ã£o) para navegar neles? | Cite o nome desse rio em potencial | O MunicÃ­pio possui pontes sobre o(s) rio(s)? | Cite o nome da ponte, sua altura atÃ© o nÃ­vel da Ã¡gua do rio? | O MunicÃ­pio possuÃ­ marinas/garagens nÃ¡uticas, guarda para barcos? | Informe a quantidade, quais sÃ£o e sua localizaÃ§Ã£o? | Essas estruturas possuem AlvarÃ¡? | Possui LicenÃ§a Ambiental vigente? | O
- MunicÃ­pio possui empresas de comercializaÃ§Ã£o de produtos ou 
-serviÃ§os nÃ¡uticos? (stand up, caiaque, surf, pesca, boias, mergulho). | O MunicÃ­pio possui barcos para passeios turÃ­sticos? | Quantos? | O MunicÃ­pio tem Lei que regulamenta a atividade nÃ¡utica? | Qual?_21 | O MunicÃ­pio tem algum projeto nÃ¡utico? | O MunicÃ­pio possui Turismo de Pesca? | Qual?_22 | O MunicÃ­pio possui alguma atividade turÃ­stica de mergulho? | Qual?_23 | O MunicÃ­pio possui alguma atividade turÃ­stica de vela? | Qual?_24 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| RN | Almino Afonso | Sim | Lei nÂº 386/2011 e Lei nÂº 591/2025 | Sim | IGR Oeste Potiguar | Sebrae/RN | NÃ£o | nan | Agricultura e PecuÃ¡ria, ComÃ©rcio | nan | Sim | 0.000000 | Lei nÂº 591/2025 | NÃ£o | nan | NÃ£o | nan | NÃ£o | nan | NÃ£o | nan | NÃ£o | R$ 50.000,00 | NÃ£o | nan | 2 | 23 | nan | Pousada, Casa de amigos/parentes | nan | 0 | Fevereiro/MarÃ§o, Novembro E Dezembro. | Rede sociais, Internet | nan | 30 | NÃ£o | nan | NÃ£o | nan | NÃ£o | nan | NÃ£o | nan | 2 | 0 | 16 | Sim | Abastecimento de Ã¡gua, serviÃ§os de esgoto parcial, serviÃ§os de energia e serviÃ§os de coleta de lixo. | NÃ£o | nan | Transporte 
-rodoviÃ¡rio de passageiros: (Transporte rodoviÃ¡rio coletivo de 
-passageiros, organizaÃ§Ã£o de excursÃµes em veÃ­culos rodoviÃ¡rios 
-prÃ³prios, ServiÃ§o de tÃ¡xi e locaÃ§Ã£o de automÃ³veis) | Rodovia | Regular | NÃ£o tem sinalizaÃ§Ã£o turÃ­stica | NÃ£o | nan | NÃ£o | nan | Regular | Regular | 4 | 0 | Postos de saÃºde, Delegacias de PolÃ­cia, Hospitais e defesa civil | nan | NÃ£o | NÃ£o | NÃ£o | Sim | NÃ£o | nan | 10 | 30 | NÃ£o | nan | 314460.140000 | 5.000000 | 228206.000000 | 5.000000 | nan | NÃ£o | nan | Outros | 2.000000 | 6.000000 | 4.000000 | 6.000000 | 5.000000 | nan | nan | nan | nan | nan | nan | nan | Rios | NÃ£o | NÃ£o | NÃ£o | nan | Sim | O municÃ­pio nÃ£o detÃ©m dessas informaÃ§Ãµes. | NÃ£o | nan | NÃ£o | NÃ£o | NÃ£o | NÃ£o | nan | NÃ£o | nan | NÃ£o | NÃ£o | nan | NÃ£o | nan | NÃ£o | nan |
-| RN | Alto do Rodrigues | Sim | Lei Municipal de CriaÃ§Ã£o do Conselho de Turismo | Sim | Instancia de GovernanÃ§a do SertÃ£o para o mar | a formalizaÃ§Ã£o da IGR  com outros municÃ­pios vizinhos | NÃ£o | nan | ServiÃ§os, Agricultura e PecuÃ¡ria, ComÃ©rcio | nan | NÃ£o | nan | nan | NÃ£o | nan | NÃ£o | nan | NÃ£o | nan | Sim | AÃ§Ã£o de mÃ­dia de incentivo turÃ­stico , parcerias com Feira e eventos de caracterÃ­stica turÃ­stica, eventos locais. | NÃ£o | Em mÃ©dia de 100 mil | Sim | 2025.000000 | 11 | 326 | nan | Hotel, Casa de amigos/parentes, Pousada | nan | 04 | MarÃ§o-Abril , Julho, Outubro | RÃ¡dio e TelevisÃ£o, Rede sociais, Internet, IndicaÃ§Ã£o de parentes/amigos | nan | 50 | NÃ£o | nan | Sim | Alto folia | NÃ£o | nan | Sim | imÃ³veis, automÃ³veis | 3 | 0 | 29 | Sim | serviÃ§os de energia , abastecimento de Ã¡gua , coleta de lixo, serviÃ§os de esgoto | NÃ£o | nan | Transporte 
-rodoviÃ¡rio de passageiros: (Transporte rodoviÃ¡rio coletivo de 
-passageiros, organizaÃ§Ã£o de excursÃµes em veÃ­culos rodoviÃ¡rios 
-prÃ³prios, ServiÃ§o de tÃ¡xi e locaÃ§Ã£o de automÃ³veis) | Rodovia | Boa | NÃ£o tem sinalizaÃ§Ã£o turÃ­stica | Sim | Do sertÃ£o para o mar ( roteiro em processo) | NÃ£o | nan | Ãtima | Ãtima | 1 | 0 | Delegacias de PolÃ­cia, Postos de saÃºde, Hospitais e defesa civil, Postos de polÃ­cia rodoviÃ¡ria | nan | NÃ£o | NÃ£o | NÃ£o | NÃ£o | NÃ£o | nan | 30 | 40 | NÃ£o | nan | 13522520.600000 | 5.000000 | 8827834.550000 | 5.000000 | nan | NÃ£o | nan | HistÃ³rico: 
-(edificaÃ§Ãµes tombadas com genuÃ­no fluxo e interesse turÃ­stico e 
-histÃ³rico), Equipamentos: (Museus; Pinacotecas; Teatros; Anfiteatros) | 1.000000 | 6.000000 | 3.000000 | 6.000000 | 6.000000 | nan | nan | nan | nan | nan | nan | nan | Rios | NÃ£o | NÃ£o | Sim | Rio Piranhas-aÃ§u | Sim | Popularmente conhecida como, "ponte do rio do Alto! | NÃ£o | nan | NÃ£o | NÃ£o | NÃ£o | NÃ£o | nan | NÃ£o | nan | NÃ£o | NÃ£o | nan | NÃ£o | nan | NÃ£o | nan |
-| RN | Angicos | Sim | Lei de CriaÃ§Ã£o
- do Conselho Municipal do Turismo - Lei Municipal nÂº 1.183/2021 e Lei 
-Municipal de CriaÃ§Ã£o do Fundo Municipal de Turismo - Lei Municipal nÂº
- 1.182/2021 | Sim | IGR CABUGI CENTRAL | MunicÃ­pios da IGR CABUGI CENTRAL, IUFERSA, BNB e CDL | Sim | RegionalizaÃ§Ã£o do turismo | ComÃ©rcio, Turismo, Agricultura e PecuÃ¡ria, ServiÃ§os | nan | Sim | 30000.000000 | Lei Municipal nÂº 1182/2021 | NÃ£o | nan | NÃ£o | nan | Sim | 2024.000000 | NÃ£o | nan | NÃ£o | 1.500.000,00 | NÃ£o | nan | 4 | 200 | nan | Pousada, Casa de amigos/parentes | Pousada | 1 | Fevereiro, MarÃ§o, Julho E Outubro | Jornais, RÃ¡dio e TelevisÃ£o, IndicaÃ§Ã£o de parentes/amigos, Rede sociais, Internet | nan | 800 | NÃ£o | nan | NÃ£o | nan | Sim | 1.000000 | NÃ£o | nan | 4 | 0 | 30 | Sim | CAERN | NÃ£o | nan | Transporte 
-rodoviÃ¡rio de passageiros: (Transporte rodoviÃ¡rio coletivo de 
-passageiros, organizaÃ§Ã£o de excursÃµes em veÃ­culos rodoviÃ¡rios 
-prÃ³prios, ServiÃ§o de tÃ¡xi e locaÃ§Ã£o de automÃ³veis) | Rodovia | Boa | Boa | Sim | CABUGI CENTRAL | NÃ£o | nan | Ãtima | Ãtima | 1 | 0 | Hospitais e defesa civil, Postos de saÃºde, Outros, Delegacias de PolÃ­cia | COMPANHIA DA POLICIA MILITAR | NÃ£o | Sim | Sim | Sim | NÃ£o | nan | 10 | 100 | NÃ£o | nan | 1500000.000000 | 2.000000 | 2000000.000000 | 5.000000 | Reservas ecolÃ³gicas, Unidade de ConservaÃ§Ã£o, Parques Naturais | Sim | PARQUE ECOLÃGICO  DE CONSERVAÃÃO DO PICO DO CABUGI | Outros | 1.000000 | 6.000000 | 1.000000 | 1.000000 | 1.000000 | nan | nan | nan | nan | nan | nan | nan | Rios, Lagoas | NÃ£o | NÃ£o | Sim | LAGOA AZUL | NÃ£o | nan | NÃ£o | nan | NÃ£o | NÃ£o | Sim | NÃ£o | nan | NÃ£o | nan | NÃ£o | NÃ£o | nan | NÃ£o | nan | NÃ£o | nan |
-| RN | Apodi | Sim | Fundo Municipal 
-de Turismo, Lei de CriaÃ§Ã£o da Secretaria Municipal de Turismo e 
-Cultura, Conselho Municipal de Turismo e Projeto da Semana do Turismo 
-PedagÃ³gico. | Sim | IGR Oeste Potiguar | CONETUR, IGR OESTE POTIGUAR, ALIANÃA DO OESTE POTIGUAR | NÃ£o | nan | ComÃ©rcio, ServiÃ§os, Agricultura e PecuÃ¡ria, Turismo | nan | Sim | 0.000000 | 1970/2023 | Sim | LEI NÂ° 479/2006, DE 10 DE OUTUBRO DE 2006 | Sim | 2023.000000 | NÃ£o | nan | Sim | PROJETO DO INVENTARIO TURISTICO E ANDAMENTO | NÃ£o | 0 | NÃ£o | nan | 5 | 120 | nan | Hotel, Casa de amigos/parentes, Pousada | nan | 4 | Fevereiro | IndicaÃ§Ã£o de parentes/amigos, Rede sociais, Internet, RÃ¡dio e TelevisÃ£o | nan | 100 | Sim | HOTELARIA, GARÃON, CONDUTOR TURÃSTICO LOCAL | Sim | MIRANTES | Sim | 16.000000 | NÃ£o | nan | 6 | 0 | 27 | Sim | cosern | NÃ£o | nan | Transporte 
-rodoviÃ¡rio de passageiros: (Transporte rodoviÃ¡rio coletivo de 
-passageiros, organizaÃ§Ã£o de excursÃµes em veÃ­culos rodoviÃ¡rios 
-prÃ³prios, ServiÃ§o de tÃ¡xi e locaÃ§Ã£o de automÃ³veis) | Rodovia | Boa | PrecÃ¡ria | Sim | Rota das cavernas | NÃ£o | nan | Boa | Ãtima | 3 | 0 | Corpo de bombeiros, Postos de saÃºde, Delegacias de PolÃ­cia, Hospitais e defesa civil | nan | NÃ£o | NÃ£o | Sim | NÃ£o | NÃ£o | nan | 7 | 100 | NÃ£o | nan | 190000.000000 | 5.000000 | 180000.000000 | 5.000000 | Unidade de ConservaÃ§Ã£o | Sim | casarÃµes, museus | HistÃ³rico: 
-(edificaÃ§Ãµes tombadas com genuÃ­no fluxo e interesse turÃ­stico e 
-histÃ³rico), Equipamentos: (Museus; Pinacotecas; Teatros; Anfiteatros) | 2.000000 | 6.000000 | 1.000000 | 4.000000 | 5.000000 | nan | nan | nan | nan | nan | nan | nan | Lagoas, Rios | NÃ£o | NÃ£o | Sim | Lagoa do Apodi | Sim | Ponte da Marinha | NÃ£o | nan | NÃ£o | NÃ£o | NÃ£o | NÃ£o | nan | NÃ£o | nan | NÃ£o | NÃ£o | nan | NÃ£o | nan | NÃ£o | nan |
-| RN | CarnaÃºba dos Dantas | Sim | LEI NÂº979, DE 
-27 DE AGOSTO DE 2018 DispÃµe sobre o Fundo Municipal de Turismo, cria o 
-Conselho Municipal de Turismo; LEI NÂº 1131, DE 23 DE DEZEMBRO DE 2021 
-Cria a Secretaria de Turismo e Desenvolvimento EconÃ´mico | Sim | GEOPARQUE SERIDÃ, IGRS - SeridÃ³ | Governo do Estado | NÃ£o | nan | ComÃ©rcio, ServiÃ§os, Turismo, Agricultura e PecuÃ¡ria, IndÃºstria de base | nan | Sim | 0.000000 | LEI NÂº979, DE 27 DE AGOSTO DE 2018 | NÃ£o | nan | NÃ£o | nan | Sim | 2026.000000 | Sim | Projeto 
-turismo pedagÃ³gico; AÃ§Ãµes de revitalizaÃ§Ã£o de trilhas e descoberta 
-de novos SÃ­tios arqueolÃ³gicos; Projeto de DivulgaÃ§Ã£o turÃ­stica 
-atravÃ©s de vÃ­deos. | NÃ£o | NÃO TENHO A INFORMAÃÃO | Sim | 2023.000000 | 1 | 8 | nan | Casa de amigos/parentes, Camping, Pousada | nan | 0 | Out-Dez. | Outros, Internet, RÃ¡dio e TelevisÃ£o, Rede sociais, IndicaÃ§Ã£o de parentes/amigos | Panfletos; outdoor | 3 | Sim | CapacitaÃ§Ãµes
- e oficinas para empreendedores e prestadores de serviÃ§os turÃ­sticos, 
-em parceria com o Sebrae/RN; condutor local; atendimento ao turista, 
-hospitalidade e prÃ¡ticas sustentÃ¡veis. | Sim | pousadas, restaurantes | Sim | 14.000000 | NÃ£o | nan | 0 | 0 | 17 | Sim | Sim. O 
-MunicÃ­pio conta com abastecimento regular de Ã¡gua, serviÃ§os de 
-esgotamento sanitÃ¡rio, fornecimento de energia elÃ©trica e coleta 
-periÃ³dica de lixo, atendendo a toda a Ã¡rea urbana e parte da zona 
-rural. | NÃ£o | nan | Transporte 
-rodoviÃ¡rio de passageiros: (Transporte rodoviÃ¡rio coletivo de 
-passageiros, organizaÃ§Ã£o de excursÃµes em veÃ­culos rodoviÃ¡rios 
-prÃ³prios, ServiÃ§o de tÃ¡xi e locaÃ§Ã£o de automÃ³veis) | Outros, Rodovia | Boa | Boa | Sim | geoparque SeridÃ³, Religiosa e ArqueolÃ³gica | NÃ£o | nan | Ãtima | Ãtima | 6 | 0 | Delegacias de PolÃ­cia, Postos de saÃºde | nan | NÃ£o | Sim | Sim | Sim | NÃ£o | nan | 0 | 3 | NÃ£o | nan | 871401.620000 | 5.000000 | 386905.620000 | 5.000000 | Parques Naturais, Reservas ecolÃ³gicas, Outros | NÃ£o | nan | Equipamentos: 
-(Museus; Pinacotecas; Teatros; Anfiteatros), HistÃ³rico: (edificaÃ§Ãµes 
-tombadas com genuÃ­no fluxo e interesse turÃ­stico e histÃ³rico) | 1.000000 | 6.000000 | 1.000000 | 1.000000 | 2.000000 | nan | nan | nan | nan | nan | nan | nan | Rios | NÃ£o | NÃ£o | NÃ£o | nan | NÃ£o | nan | NÃ£o | nan | NÃ£o | NÃ£o | NÃ£o | NÃ£o | nan | NÃ£o | nan | NÃ£o | NÃ£o | nan | NÃ£o | nan | NÃ£o | nan |
+| UF | Município | O Município possui Legislação relacionada ao Turismo? | Quais? | O Município participa de governanças regionais e estaduais de turismo? | Quais?_1 | Informar as principais parcerias, rede de cooperação, intercâmbios etc. | O Município participa ou é contemplado em programas ou projetos com o MTur? | Quais?_2 | Informe quais as principais atividades econômicas em seu Município | Outros, descreva | Há um Fundo Municipal de Turismo | Valor disponível | Nº da legislação vigente | O Município possui Plano Diretor Urbano que contemple o Setor de Turismo | Número da Lei | O Município possui Plano Municipal de Turismo e /ou Plano de Desenvolvimento Territorial do Turismo | Ano | O Município possui Plano de Marketing do Turismo ou outros similares? | Ano_3 | O Município possui programas, projetos e ações acerca da atividade turística? | Quais?_4 | Possui gestão adequada de Resíduos Sólidos? | Qual a receita tributária das atividades turísticas no município? | O municipio possui Inventário Turístico? | Ano da Utilização | Nº de hospedagem | Nº de Leitos | Outros, descreva_5 | Quais os meios de hospedagem mais utilizado pelo turista? | Outros, descreva_6 | Quantos meios de hospedagem possuem cadastro no sistema CADASTUR? | Qual o período de maior fluxo turístico? | Qual o meio de comunicação utilizado para divulgação do destino? | Outros, descreva: | Qual a média do número de empregos gerados no setor de hospedagem? | O Município possui cursos, programas e/ou ações de qualificação profissional para o turismo? | Quais?_7 | Já houve manifestação de interesse de investidores em empreender no setor de turismo no município? | Quais?_8 | Possui guias e/ou condutores de turismo? | Quantos | O Município possui locadoras de imóveis, automóveis, embarcações e aeronaves para temporadas? | Quais?_9 | Quantas agências bancárias o município possui? | Quantas casas de câmbio o município possui? | Quantos templos de manifestação de fé, igrejas o município possui? | O município possui abastecimento de água, serviços de esgoto, serviços de energia, serviços de coleta de lixo? | Quais?_10 | O município possui aeroporto? | Quais?_11 | Quais os tipos de sistema de Transporte? | Qual a principal forma de acesso ao(s) destino(s) turístico(s)? | Qual a situação do acesso aos Atrativos Turísticos do município? | Qual a situação atual da Sinalização Turística do município? | O Município faz parte de alguma rota turística? | Quais?_12 | Existe linha regular de transporte turístico que interligue os principais atrativos? | Descreva as rotas turísticas | Qual a qualidade da rede de telefonia celular do município? | Qual a qualidade do fornecimento de internet no município? | Quantos prontos socorros públicos existem? | Quantos prontos socorros privados existem? | Quais sistema de segurança e equipamentos que proporcionam à população e ao turista as garantias básicas do cidadão? | Outros, descreva_13 | Há delegacia de proteção ao turista? | Existem locais de embarque e desembarque sinalizados e com acesso em nível? | Existem espaços reservados para pessoa com deficiência ou mobilidade reduzida? | O município dispõe de profissionais capacitados para o atendimento de pessoas com deficiência? | O município possui acesso ao crédito do Fundo Geral de Turismo - FUNGETUR? | Qual? | Qual o número total de empresas formais do setor do turismo existentes no município? | Qual a média do número de empregos gerados no Setor de Turismo? | Há uma política de atração de investimentos privados para o setor? | Quem é o responsável? | Valor da arrecadação há dois anos (R$) | Alíquota média do ISS há dois anos (%) | Valor da arrecadação no ano anterior (R$) | Alíquota média do ISS no ano anterior (%) | Quais tipos de Patrimônio Natural? | Há unidades de conservação (federal, estadual e/ou municipal)? | Quais estão fechadas para uso público? | Quais tipos de Patrimônio Cultural? | Negócios e eventos | Sol e Praia | Turismo Cultural | Ecoturismo | Turismo de Aventura | Outros, descreva_14 | Negócios e eventos_15 | Sol e Praia_16 | Turismo Cultural_17 | Ecoturismo_18 | Turismo de Aventura_19 | Outros, descreva_20 | O Município possui | O Município possui águas termais? | O Município possui estudo sobre a profundidade desses rios, lagos ou lagoa? | No Município esses rios, lagos ou lagoas são navegáveis? | Cite o nome desse rio em potencial | O Município possui pontes sobre o(s) rio(s)? | Cite o nome da ponte, sua altura até o nível da água do rio? | O Município possuí marinas/garagens náuticas, guarda para barcos? | Informe a quantidade, quais são e sua localização? | Essas estruturas possuem Alvará? | Possui Licença Ambiental vigente? | O Município possui empresas de comercialização de produtos ou serviços náuticos? | O Município possui barcos para passeios turísticos? | Quantos? | O Município tem Lei que regulamenta a atividade náutica? | Qual?_21 | O Município tem algum projeto náutico? | O Município possui Turismo de Pesca? | Qual?_22 | O Município possui alguma atividade turística de mergulho? | Qual?_23 | O Município possui alguma atividade turística de vela? | Qual?_24 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| RN | Almino Afonso | Sim | Lei nº 386/2011 e Lei nº 591/2025 | Sim | IGR Oeste Potiguar | Sebrae/RN | Não | nan | Agricultura e Pecuária, Comércio | nan | Sim | 0 | Lei nº 591/2025 | Não | nan | Não | nan | Não | nan | Não | nan | Não | R$ 50.000,00 | Não | nan | 2 | 23 | nan | Pousada, Casa de amigos/parentes | nan | 0 | Fevereiro/Março, Novembro E Dezembro. | Rede sociais, Internet | nan | 30 | Não | nan | Não | nan | Não | nan | Não | nan | 2 | 0 | 16 | Sim | Abastecimento de água, serviços de esgoto parcial, serviços de energia e coleta de lixo. | Não | nan | Rodoviário coletivo, táxi, locação | Rodovia | Regular | Não tem sinalização | Não | nan | Não | nan | Regular | Regular | 4 | 0 | Postos de saúde, Delegacias, Hospitais, Defesa civil | nan | Não | Não | Não | Sim | Não | nan | 10 | 30 | Não | nan | 314460.14 | 5 | 228206 | 5 | nan | Não | nan | Outros | 2 | 6 | 4 | 6 | 5 | nan | nan | nan | nan | nan | nan | nan | Rios | Não | Não | Não | nan | Sim | Sem informação | Não | nan | Não | Não | Não | Não | nan | Não | nan | Não | Não | nan | Não | nan | Não | nan |
+| RN | Alto do Rodrigues | Sim | Lei Municipal do Conselho | Sim | IGR Sertão para o Mar | Formalização da IGR | Não | nan | Serviços, Agricultura e Pecuária, Comércio | nan | Não | nan | nan | Não | nan | Não | nan | Não | nan | Sim | Ações de mídia, parcerias eventos | Não | 100 mil | Sim | 2025 | 11 | 326 | nan | Hotel, Casa de amigos, Pousada | nan | 04 | Março-Abril, Julho, Outubro | Rádio, TV, Redes sociais, Internet | nan | 50 | Não | nan | Sim | Alto folia | Não | nan | Sim | Imóveis, automóveis | 3 | 0 | 29 | Sim | Energia, água, lixo, esgoto | Não | nan | Rodoviário coletivo, táxi, locação | Rodovia | Boa | Não tem sinalização | Sim | Do sertão para o mar | Não | nan | Ótima | Ótima | 1 | 0 | Delegacias, Postos de saúde, Hospitais, Rodoviária | nan | Não | Não | Não | Não | Não | nan | 30 | 40 | Não | nan | 13522520.6 | 5 | 8827834.55 | 5 | nan | Não | nan | Histórico / Equipamentos | 1 | 6 | 3 | 6 | 6 | nan | nan | nan | nan | nan | nan | nan | Rios | Não | Não | Sim | Rio Piranhas-açu | Sim | Ponte do rio do Alto | Não | nan | Não | Não | Não | Não | nan | Não | nan | Não | Não | nan | Não | nan | Não | nan |
+| RN | Angicos | Sim | Lei nº 1.183/2021 e Lei nº 1.182/2021 | Sim | IGR CABUGI CENTRAL | Municípios IGR, UFERSA, BNB, CDL | Sim | Regionalização | Comércio, Turismo, Agricultura, Serviços | nan | Sim | 30000 | Lei nº 1182/2021 | Não | nan | Não | nan | Sim | 2024 | Não | nan | Não | 1.500.000,00 | Não | nan | 4 | 200 | nan | Pousada, Casa de amigos | Pousada | 1 | Fev, Mar, Jul, Out | Jornais, Rádio, TV, Redes sociais, Internet | nan | 800 | Não | nan | Não | nan | Sim | 1 | Não | nan | 4 | 0 | 30 | Sim | CAERN | Não | nan | Rodoviário coletivo, táxi, locação | Rodovia | Boa | Boa | Sim | CABUGI CENTRAL | Não | nan | Ótima | Ótima | 1 | 0 | Hospitais, Defesa civil, Postos de saúde, Delegacias | Cia PM | Não | Sim | Sim | Sim | Não | nan | 10 | 100 | Não | nan | 1500000 | 2 | 2000000 | 5 | Reservas, Unidade de Cons., Parques | Sim | Parque Pico do Cabugi | Outros | 1 | 6 | 1 | 1 | 1 | nan | nan | nan | nan | nan | nan | nan | Rios, Lagoas | Não | Não | Sim | LAGOA AZUL | Não | nan | Não | nan | Não | Não | Sim | Não | nan | Não | nan | Não | Não | nan | Não | nan | Não | nan |
+| RN | Apodi | Sim | Fundo, Criação de Secretaria, Conselho e Semana Turismo | Sim | IGR Oeste Potiguar | CONETUR, IGR OESTE, ALIANÇA | Não | nan | Comércio, Serviços, Agricultura, Turismo | nan | Sim | 0 | 1970/2023 | Sim | Lei nº 479/2006 | Sim | 2023 | Não | nan | Sim | Projeto Inventário em andamento | Não | 0 | Não | nan | 5 | 120 | nan | Hotel, Casa de amigos, Pousada | nan | 4 | Fevereiro | Indicação, Redes sociais, Internet, Rádio, TV | nan | 100 | Sim | Hotelaria, Garçom, Condutor local | Sim | MIRANTES | Sim | 16 | Não | nan | 6 | 0 | 27 | Sim | Cosern | Não | nan | Rodoviário coletivo, táxi, locação | Rodovia | Boa | Precária | Sim | Rota das cavernas | Não | nan | Boa | Ótima | 3 | 0 | Bombeiros, Postos de saúde, Delegacias, Hospitais | nan | Não | Não | Sim | Não | Não | nan | 7 | 100 | Não | nan | 190000 | 5 | 180000 | 5 | Unidade de Conservação | Sim | Casarões, museus | Histórico / Equipamentos | 2 | 6 | 1 | 4 | 5 | nan | nan | nan | nan | nan | nan | nan | Lagoas, Rios | Não | Não | Sim | Lagoa do Apodi | Sim | Ponte da Marinha | Não | nan | Não | Não | Não | Não | nan | Não | nan | Não | Não | nan | Não | nan | Não | nan |
+| RN | Carnaúba dos Dantas | Sim | Lei nº 979/2018 e Lei nº 1131/2021 | Sim | GEOPARQUE SERIDÓ, IGRS | Governo do Estado | Não | nan | Comércio, Serviços, Turismo, Agricultura, Indústria | nan | Sim | 0 | Lei nº 979/2018 | Não | nan | Não | nan | Sim | 2026 | Sim | Turismo pedagógico, trilhas, arqueologia | Não | Não informado | Sim | 2023 | 1 | 8 | nan | Casa de amigos, Camping, Pousada | nan | 0 | Out-Dez | Internet, Rádio, TV, Redes sociais, Indicação | Panfletos; outdoor | 3 | Sim | Oficinas Sebrae, Condutor local, Hospitalidade | Sim | Pousadas, restaurantes | Sim | 14 | Não | nan | 0 | 0 | 17 | Sim | Abastecimento, Esgoto, Energia, Coleta lixo | Não | nan | Rodoviário coletivo, táxi, locação | Outros, Rodovia | Boa | Boa | Sim | Geoparque Seridó, Religiosa e Arqueológica | Não | nan | Ótima | Ótima | 6 | 0 | Delegacias, Postos de saúde | nan | Não | Sim | Sim | Sim | Não | nan | 0 | 3 | Não | nan | 871401.62 | 5 | 386905.62 | 5 | Parques, Reservas, Outros | Não | nan | Equipamentos / Histórico | 1 | 6 | 1 | 1 | 2 | nan | nan | nan | nan | nan | nan | nan | Rios | Não | Não | Não | nan | Não | nan | Não | nan | Não | Não | Não | Não | nan | Não | nan | Não | Não | nan | Não | nan | Não | nan |
 
 ### Explorando as colunas:
 
@@ -434,226 +269,12 @@ Esta base funciona como um **dicionário de dados ou tabela de referência estru
 Esta base contém **dados estatísticos e demográficos dos municipios** brasileiros, traçando um “raio-X” completo da realidade socioeconômica, educacional, ambiental e geográfica de cada cidade.
 
 | CIDADE | ESTADO | IMAGEM | POPULACAO | DENSIDADE_DEMOGRAFICA | SALARIO_MEDIO | PESSOAS_OCUPADA | POPULACAO_OCUPADA | PERCENTUAL_MEIO_MINIMO | TAXA_ESCOLARIDADE | IDEB_ANOSINICIAIS | IDEB_ANOSFINAIS | MATRICULAS_FUNDAMENTAL | MATRICULAS_MEDIO | DOCENTES_FUNDAMENTAL | DOCENTES_MEDIO | ESTABELECIMENTOS_FUNDAMENTAL | ESTABELECIMENTOS_MEDIO | PIB | PERCENTUAL_EXTERNAS | IDHM | TOTAL_RECEITAS | TOTAL_DESPESAS | MORTALIDADE | INTERNACOES_DIARREIA | ESTABELECIMENTO_SUS | AREA_URBANA | ESGOTO | ARBORIZACAO | URBANIZACAO | POPULAZAO_RISCO | BIOMA | SISTEMA_COSTEIRO | AREA_TERRITORIAL | REGIAO_INTERMEDIARIA | MESORREGIAO | MICRORREGIAO | CODIGO_MUNICIPIO | SVG_MAPA | LINK_IBGE | TEXTO_POPULACAO | TEXTO_TRABALHO | TEXTO_EDUCACAO | TEXTO_ECONOMIA | TEXTO_SAUDE | TEXTO_MEIO_AMBIENTE | TEXTO_TERRITORIO | _POSSUI_GD | _POSSUI_TOP100C15 | _POSSUI_TOP100C30 | _POSSUI_SITUACIONAL | CIDADE_CAGED | CAGED_MUNICIPIO | CAGED_TURISMO | CAGED_ESTOQUE_MUNICIPIO | CAGED_ESTOQUE_TURISMO | CERTIFICADO | CATEGORIA | Cidade_acento |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Assis Brasil | AC | 1200054.jpg | 8100 | 1,63 | 2,3 | 545 | 7,13 | 47,1 | 85,1 | 4,6 | nan | 2536 | 394 | 92 | 18 | 67 | 2 | 17507,67 | nan | 0,588 | 18177,08 | 17004,91 | 13,95 | 2,3 | 5 | 2,04 | 23,1 | 26,5 | 0 | nan | AmazÃ´nia | NÃ£o pertence | 4979,073 | Rio Branco | Vale do Acre | BrasilÃ©ia | 1200054 | https://lohmannesilva.blob.core.windows.net/$web/projeto/green_destinations/svg/1200054.svg | https://cidades.ibge.gov.br/municipio/1200054 | Em 2022, a 
-populaÃ§Ã£o era de 8.100 habitantes e a densidade demogrÃ¡fica era de 
-1,63 habitantes por quilÃ´metro quadrado. Na comparaÃ§Ã£o com outros 
-municÃ­pios do estado, ficava nas posiÃ§Ãµes 21 e 37 de 22. JÃ¡ na 
-comparaÃ§Ã£o com municÃ­pios de todo o paÃ­s, ficava nas posiÃ§Ãµes 3380
- e 10807 de 5570. | Em 2021, o 
-salÃ¡rio mÃ©dio mensal era de 2,3 salÃ¡rios mÃ­nimos. A proporÃ§Ã£o de 
-pessoas ocupadas em relaÃ§Ã£o Ã  populaÃ§Ã£o total era de 7,13%. Na 
-comparaÃ§Ã£o com os outros municÃ­pios do estado, ocupava as posiÃ§Ãµes 3
- de 22 e 9 de 22, respectivamente. JÃ¡ na comparaÃ§Ã£o com cidades do 
-paÃ­s todo, ficava na posiÃ§Ã£o 958 de 5570 e 4719 de 5570, 
-respectivamente. Considerando domicÃ­lios com rendimentos mensais de 
-atÃ© meio salÃ¡rio mÃ­nimo por pessoa, tinha 47,1% da populaÃ§Ã£o nessas
- condiÃ§Ãµes, o que o colocava na posiÃ§Ã£o 10 de 22 dentre as cidades 
-do estado e na posiÃ§Ã£o 1869 de 5570 dentre as cidades do Brasil. | Em 2010, a 
-taxa de escolarizaÃ§Ã£o de 6 a 14 anos de idade era de 85,1%. Na 
-comparaÃ§Ã£o com outros municÃ­pios do estado, ficava na posiÃ§Ã£o 18 de
- 22. JÃ¡ na comparaÃ§Ã£o com municÃ­pios de todo o paÃ­s, ficava na 
-posiÃ§Ã£o 5525 de 5570. Em relaÃ§Ã£o ao IDEB, no ano de 2021, o IDEB 
-para os anos iniciais do ensino fundamental na rede pÃºblica era 4,6 e 
-para os anos finais, de (nÃ£o hÃ¡ dados). Na comparaÃ§Ã£o com outros 
-municÃ­pios do estado, ficava nas posiÃ§Ãµes 16 e (nÃ£o hÃ¡ dados) de 
-22. JÃ¡ na comparaÃ§Ã£o com municÃ­pios de todo o paÃ­s, ficava nas 
-posiÃ§Ãµes 4347 e (nÃ£o hÃ¡ dados) de 5570. | nan | A taxa de 
-mortalidade infantil mÃ©dia na cidade Ã© de 13,95 para 1.000 nascidos 
-vivos. As internaÃ§Ãµes devido a diarreias sÃ£o de 2,3 para cada 1.000 
-habitantes. Comparado com todos os municÃ­pios do estado, fica nas 
-posiÃ§Ãµes 14 de 22 e 9 de 22, respectivamente. Quando comparado a 
-cidades do Brasil todo, essas posiÃ§Ãµes sÃ£o de 1866 de 5570 e 1400 de 
-5570, respectivamente. | Apresenta 
-23,1% de domicÃ­lios com esgotamento sanitÃ¡rio adequado, 26,5% de 
-domicÃ­lios urbanos em vias pÃºblicas com arborizaÃ§Ã£o e 0% de 
-domicÃ­lios urbanos em vias pÃºblicas com urbanizaÃ§Ã£o adequada 
-(presenÃ§a de bueiro, calÃ§ada, pavimentaÃ§Ã£o e meio-fio). Quando 
-comparado com os outros municÃ­pios do estado, fica na posiÃ§Ã£o 5 de 
-22, 9 de 22 e 21 de 22, respectivamente. JÃ¡ quando comparado a outras 
-cidades do Brasil, sua posiÃ§Ã£o Ã© 3464 de 5570, 4945 de 5570 e 4835 de
- 5570, respectivamente. | Em 2022, a 
-Ã¡rea do municÃ­pio era de 4.979,073 kmÂ², o que o coloca na posiÃ§Ã£o 
-13 de 22 entre os municÃ­pios do estado e 308 de 5570 entre todos os 
-municÃ­pios. | False | False | False | True | 120005 | 2 | 0 | 235 | 5 | nan | D | assis brasil |
-| Cruzeiro do Sul | AC | 1200203.jpg | 91888 | 10,46 | 1,8 | 11869 | 13,22 | 44,2 | 94,9 | 5,4 | 4,8 | 18823 | 5412 | 756 | 269 | 148 | 23 | 22934,82 | 88,1 | 0,664 | 139636,41 | 135990,85 | 10,64 | 1 | 40 | 26,91 | 12,7 | 37,9 | 3,7 | nan | AmazÃ´nia | NÃ£o pertence | 8783,47 | Cruzeiro do Sul | Vale do JuruÃ¡ | Cruzeiro do Sul | 1200203 | https://lohmannesilva.blob.core.windows.net/$web/projeto/green_destinations/svg/1200203.svg | https://cidades.ibge.gov.br/municipio/1200203 | Em 2022, a 
-populaÃ§Ã£o era de 91.888 habitantes e a densidade demogrÃ¡fica era de 
-10,46 habitantes por quilÃ´metro quadrado. Na comparaÃ§Ã£o com outros 
-municÃ­pios do estado, ficava nas posiÃ§Ãµes 2 e 5 de 22. JÃ¡ na 
-comparaÃ§Ã£o com municÃ­pios de todo o paÃ­s, ficava nas posiÃ§Ãµes 355 e
- 8571 de 5570. | Em 2021, o 
-salÃ¡rio mÃ©dio mensal era de 1,8 salÃ¡rios mÃ­nimos. A proporÃ§Ã£o de 
-pessoas ocupadas em relaÃ§Ã£o Ã  populaÃ§Ã£o total era de 13,22%. Na 
-comparaÃ§Ã£o com os outros municÃ­pios do estado, ocupava as posiÃ§Ãµes 
-13 de 22 e 3 de 22, respectivamente. JÃ¡ na comparaÃ§Ã£o com cidades do 
-paÃ­s todo, ficava na posiÃ§Ã£o 3288 de 5570 e 2851 de 5570, 
-respectivamente. Considerando domicÃ­lios com rendimentos mensais de 
-atÃ© meio salÃ¡rio mÃ­nimo por pessoa, tinha 44,2% da populaÃ§Ã£o nessas
- condiÃ§Ãµes, o que o colocava na posiÃ§Ã£o 19 de 22 dentre as cidades 
-do estado e na posiÃ§Ã£o 2237 de 5570 dentre as cidades do Brasil. | Em 2010, a 
-taxa de escolarizaÃ§Ã£o de 6 a 14 anos de idade era de 94,9%. Na 
-comparaÃ§Ã£o com outros municÃ­pios do estado, ficava na posiÃ§Ã£o 4 de 
-22. JÃ¡ na comparaÃ§Ã£o com municÃ­pios de todo o paÃ­s, ficava na 
-posiÃ§Ã£o 5043 de 5570. Em relaÃ§Ã£o ao IDEB, no ano de 2021, o IDEB 
-para os anos iniciais do ensino fundamental na rede pÃºblica era 5,4 e 
-para os anos finais, de 4,8. Na comparaÃ§Ã£o com outros municÃ­pios do 
-estado, ficava nas posiÃ§Ãµes 3 e 6 de 22. JÃ¡ na comparaÃ§Ã£o com 
-municÃ­pios de todo o paÃ­s, ficava nas posiÃ§Ãµes 2921 e 2559 de 5570. | Em 2021, o PIB
- per capita era de R$ 22.934,82. Na comparaÃ§Ã£o com outros municÃ­pios 
-do estado, ficava nas posiÃ§Ãµes 10 de 22 entre os municÃ­pios do estado
- e na 2846 de 5570 entre todos os municÃ­pios. JÃ¡ o percentual de 
-receitas externas em 2015 era de 88,1%, o que o colocava na posiÃ§Ã£o 10
- de 22 entre os municÃ­pios do estado e na 2605 de 5570. Em 2017, o 
-total de receitas realizadas foi de R$ 139.636,41 (x1000) e o total de 
-despesas empenhadas foi de R$ 135.990,85 (x1000). Isso deixa o 
-municÃ­pio nas posiÃ§Ãµes 2 e 2 de 22 entre os municÃ­pios do estado e 
-na 629 e 578 de 5570 entre todos os municÃ­pios. | A taxa de 
-mortalidade infantil mÃ©dia na cidade Ã© de 10,64 para 1.000 nascidos 
-vivos. As internaÃ§Ãµes devido a diarreias sÃ£o de 1 para cada 1.000 
-habitantes. Comparado com todos os municÃ­pios do estado, fica nas 
-posiÃ§Ãµes 18 de 22 e 14 de 22, respectivamente. Quando comparado a 
-cidades do Brasil todo, essas posiÃ§Ãµes sÃ£o de 2610 de 5570 e 2419 de 
-5570, respectivamente. | Apresenta 
-12,7% de domicÃ­lios com esgotamento sanitÃ¡rio adequado, 37,9% de 
-domicÃ­lios urbanos em vias pÃºblicas com arborizaÃ§Ã£o e 3,7% de 
-domicÃ­lios urbanos em vias pÃºblicas com urbanizaÃ§Ã£o adequada 
-(presenÃ§a de bueiro, calÃ§ada, pavimentaÃ§Ã£o e meio-fio). Quando 
-comparado com os outros municÃ­pios do estado, fica na posiÃ§Ã£o 11 de 
-22, 6 de 22 e 11 de 22, respectivamente. JÃ¡ quando comparado a outras 
-cidades do Brasil, sua posiÃ§Ã£o Ã© 4156 de 5570, 4604 de 5570 e 3719 de
- 5570, respectivamente. | Em 2022, a 
-Ã¡rea do municÃ­pio era de 8.783,47 kmÂ², o que o coloca na posiÃ§Ã£o 6 
-de 22 entre os municÃ­pios do estado e 151 de 5570 entre todos os 
-municÃ­pios. | False | False | False | True | 120020 | 61 | -4 | 7390 | 284 | nan | C | cruzeiro do sul |
-| EpitaciolÃ¢ndia | AC | 1200252.jpeg | 18757 | 11,35 | 1,7 | 2040 | 10,75 | 42,9 | 93,7 | 5,3 | 5,1 | 2749 | 663 | 98 | 24 | 17 | 2 | 33960,77 | nan | 0,653 | 31996,17 | 29191,83 | 17,06 | 0,2 | 8 | 4,93 | 21,4 | 39,1 | 11 | 4333.000000 | AmazÃ´nia | NÃ£o pertence | 1652,674 | Rio Branco | Vale do Acre | BrasilÃ©ia | 1200252 | https://lohmannesilva.blob.core.windows.net/$web/projeto/green_destinations/svg/1200252.svg | https://cidades.ibge.gov.br/municipio/1200252 | Em 2022, a 
-populaÃ§Ã£o era de 18.757 habitantes e a densidade demogrÃ¡fica era de 
-11,35 habitantes por quilÃ´metro quadrado. Na comparaÃ§Ã£o com outros 
-municÃ­pios do estado, ficava nas posiÃ§Ãµes 9 e 3 de 22. JÃ¡ na 
-comparaÃ§Ã£o com municÃ­pios de todo o paÃ­s, ficava nas posiÃ§Ãµes 1801
- e 8345 de 5570. | Em 2021, o 
-salÃ¡rio mÃ©dio mensal era de 1,7 salÃ¡rios mÃ­nimos. A proporÃ§Ã£o de 
-pessoas ocupadas em relaÃ§Ã£o Ã  populaÃ§Ã£o total era de 10,75%. Na 
-comparaÃ§Ã£o com os outros municÃ­pios do estado, ocupava as posiÃ§Ãµes 
-17 de 22 e 4 de 22, respectivamente. JÃ¡ na comparaÃ§Ã£o com cidades do 
-paÃ­s todo, ficava na posiÃ§Ã£o 3962 de 5570 e 3513 de 5570, 
-respectivamente. Considerando domicÃ­lios com rendimentos mensais de 
-atÃ© meio salÃ¡rio mÃ­nimo por pessoa, tinha 42,9% da populaÃ§Ã£o nessas
- condiÃ§Ãµes, o que o colocava na posiÃ§Ã£o 20 de 22 dentre as cidades 
-do estado e na posiÃ§Ã£o 2373 de 5570 dentre as cidades do Brasil. | Em 2010, a 
-taxa de escolarizaÃ§Ã£o de 6 a 14 anos de idade era de 93,7%. Na 
-comparaÃ§Ã£o com outros municÃ­pios do estado, ficava na posiÃ§Ã£o 7 de 
-22. JÃ¡ na comparaÃ§Ã£o com municÃ­pios de todo o paÃ­s, ficava na 
-posiÃ§Ã£o 5263 de 5570. Em relaÃ§Ã£o ao IDEB, no ano de 2021, o IDEB 
-para os anos iniciais do ensino fundamental na rede pÃºblica era 5,3 e 
-para os anos finais, de 5,1. Na comparaÃ§Ã£o com outros municÃ­pios do 
-estado, ficava nas posiÃ§Ãµes 5 e 1 de 22. JÃ¡ na comparaÃ§Ã£o com 
-municÃ­pios de todo o paÃ­s, ficava nas posiÃ§Ãµes 3133 e 1607 de 5570. | nan | A taxa de 
-mortalidade infantil mÃ©dia na cidade Ã© de 17,06 para 1.000 nascidos 
-vivos. As internaÃ§Ãµes devido a diarreias sÃ£o de 0,2 para cada 1.000 
-habitantes. Comparado com todos os municÃ­pios do estado, fica nas 
-posiÃ§Ãµes 10 de 22 e 17 de 22, respectivamente. Quando comparado a 
-cidades do Brasil todo, essas posiÃ§Ãµes sÃ£o de 1335 de 5570 e 4284 de 
-5570, respectivamente. | Apresenta 
-21,4% de domicÃ­lios com esgotamento sanitÃ¡rio adequado, 39,1% de 
-domicÃ­lios urbanos em vias pÃºblicas com arborizaÃ§Ã£o e 11% de 
-domicÃ­lios urbanos em vias pÃºblicas com urbanizaÃ§Ã£o adequada 
-(presenÃ§a de bueiro, calÃ§ada, pavimentaÃ§Ã£o e meio-fio). Quando 
-comparado com os outros municÃ­pios do estado, fica na posiÃ§Ã£o 7 de 
-22, 5 de 22 e 2 de 22, respectivamente. JÃ¡ quando comparado a outras 
-cidades do Brasil, sua posiÃ§Ã£o Ã© 3558 de 5570, 4548 de 5570 e 2685 de
- 5570, respectivamente. | Em 2022, a 
-Ã¡rea do municÃ­pio era de 1.652,674 kmÂ², o que o coloca na posiÃ§Ã£o 
-22 de 22 entre os municÃ­pios do estado e 893 de 5570 entre todos os 
-municÃ­pios. | False | False | False | True | 120025 | 105 | -1 | 2245 | 40 | nan | D | epitaciolandia |
-| Rio Branco | AC | 1200401.jpg | 364756 | 41,28 | 3,3 | 106966 | 25,5 | 36,4 | 95,1 | 5,7 | 4,8 | 56946 | 17052 | 2209 | 903 | 189 | 65 | 26119,02 | 64,8 | 0,727 | 884827,27 | 740733,11 | 14,97 | 0,2 | 95 | 87,42 | 56,7 | 13,8 | 20,4 | 33767.000000 | AmazÃ´nia | NÃ£o pertence | 8835,154 | Rio Branco | Vale do Acre | Rio Branco | 1200401 | https://lohmannesilva.blob.core.windows.net/$web/projeto/green_destinations/svg/1200401.svg | https://cidades.ibge.gov.br/municipio/1200401 | Em 2022, a 
-populaÃ§Ã£o era de 364.756 habitantes e a densidade demogrÃ¡fica era de 
-41,28 habitantes por quilÃ´metro quadrado. Na comparaÃ§Ã£o com outros 
-municÃ­pios do estado, ficava nas posiÃ§Ãµes 1 e 1 de 22. JÃ¡ na 
-comparaÃ§Ã£o com municÃ­pios de todo o paÃ­s, ficava nas posiÃ§Ãµes 70 e
- 3583 de 5570. | Em 2021, o 
-salÃ¡rio mÃ©dio mensal era de 3,3 salÃ¡rios mÃ­nimos. A proporÃ§Ã£o de 
-pessoas ocupadas em relaÃ§Ã£o Ã  populaÃ§Ã£o total era de 25,5%. Na 
-comparaÃ§Ã£o com os outros municÃ­pios do estado, ocupava as posiÃ§Ãµes 1
- de 22 e 1 de 22, respectivamente. JÃ¡ na comparaÃ§Ã£o com cidades do 
-paÃ­s todo, ficava na posiÃ§Ã£o 84 de 5570 e 950 de 5570, 
-respectivamente. Considerando domicÃ­lios com rendimentos mensais de 
-atÃ© meio salÃ¡rio mÃ­nimo por pessoa, tinha 36,4% da populaÃ§Ã£o nessas
- condiÃ§Ãµes, o que o colocava na posiÃ§Ã£o 22 de 22 dentre as cidades 
-do estado e na posiÃ§Ã£o 3272 de 5570 dentre as cidades do Brasil. | Em 2010, a 
-taxa de escolarizaÃ§Ã£o de 6 a 14 anos de idade era de 95,1%. Na 
-comparaÃ§Ã£o com outros municÃ­pios do estado, ficava na posiÃ§Ã£o 2 de 
-22. JÃ¡ na comparaÃ§Ã£o com municÃ­pios de todo o paÃ­s, ficava na 
-posiÃ§Ã£o 4980 de 5570. Em relaÃ§Ã£o ao IDEB, no ano de 2021, o IDEB 
-para os anos iniciais do ensino fundamental na rede pÃºblica era 5,7 e 
-para os anos finais, de 4,8. Na comparaÃ§Ã£o com outros municÃ­pios do 
-estado, ficava nas posiÃ§Ãµes 2 e 6 de 22. JÃ¡ na comparaÃ§Ã£o com 
-municÃ­pios de todo o paÃ­s, ficava nas posiÃ§Ãµes 2234 e 2559 de 5570. | Em 2021, o PIB
- per capita era de R$ 26.119,02. Na comparaÃ§Ã£o com outros municÃ­pios 
-do estado, ficava nas posiÃ§Ãµes 6 de 22 entre os municÃ­pios do estado e
- na 2484 de 5570 entre todos os municÃ­pios. JÃ¡ o percentual de 
-receitas externas em 2015 era de 64,8%, o que o colocava na posiÃ§Ã£o 11
- de 22 entre os municÃ­pios do estado e na 4710 de 5570. Em 2017, o 
-total de receitas realizadas foi de R$ 884.827,27 (x1000) e o total de 
-despesas empenhadas foi de R$ 740.733,11 (x1000). Isso deixa o 
-municÃ­pio nas posiÃ§Ãµes 1 e 1 de 22 entre os municÃ­pios do estado e 
-na 91 e 94 de 5570 entre todos os municÃ­pios. | A taxa de 
-mortalidade infantil mÃ©dia na cidade Ã© de 14,97 para 1.000 nascidos 
-vivos. As internaÃ§Ãµes devido a diarreias sÃ£o de 0,2 para cada 1.000 
-habitantes. Comparado com todos os municÃ­pios do estado, fica nas 
-posiÃ§Ãµes 11 de 22 e 17 de 22, respectivamente. Quando comparado a 
-cidades do Brasil todo, essas posiÃ§Ãµes sÃ£o de 1668 de 5570 e 4284 de 
-5570, respectivamente. | Apresenta 
-56,7% de domicÃ­lios com esgotamento sanitÃ¡rio adequado, 13,8% de 
-domicÃ­lios urbanos em vias pÃºblicas com arborizaÃ§Ã£o e 20,4% de 
-domicÃ­lios urbanos em vias pÃºblicas com urbanizaÃ§Ã£o adequada 
-(presenÃ§a de bueiro, calÃ§ada, pavimentaÃ§Ã£o e meio-fio). Quando 
-comparado com os outros municÃ­pios do estado, fica na posiÃ§Ã£o 1 de 
-22, 12 de 22 e 1 de 22, respectivamente. JÃ¡ quando comparado a outras 
-cidades do Brasil, sua posiÃ§Ã£o Ã© 1956 de 5570, 5302 de 5570 e 1826 de
- 5570, respectivamente. | Em 2022, a 
-Ã¡rea do municÃ­pio era de 8.835,154 kmÂ², o que o coloca na posiÃ§Ã£o 5
- de 22 entre os municÃ­pios do estado e 150 de 5570 entre todos os 
-municÃ­pios. | False | False | False | True | 120040 | 2988 | -11 | 67500 | 2557 | nan | D | rio branco |
-| Xapuri | AC | 1200708.jpeg | 18243 | 3,41 | 1,8 | 1091 | 5,49 | 45,9 | 87,7 | 5,1 | 5 | 2648 | 609 | 146 | 60 | 49 | 12 | 22902,48 | nan | 0,599 | 35332,64 | 28563,76 | 18,99 | 2,2 | 9 | 3,23 | 27,7 | 14,7 | 4,5 | 484.000000 | AmazÃ´nia | NÃ£o pertence | 5350,586 | Rio Branco | Vale do Acre | BrasilÃ©ia | 1200708 | https://lohmannesilva.blob.core.windows.net/$web/projeto/green_destinations/svg/1200708.svg | https://cidades.ibge.gov.br/municipio/1200708 | Em 2022, a 
-populaÃ§Ã£o era de 18.243 habitantes e a densidade demogrÃ¡fica era de 
-3,41 habitantes por quilÃ´metro quadrado. Na comparaÃ§Ã£o com outros 
-municÃ­pios do estado, ficava nas posiÃ§Ãµes 10 e 25 de 22. JÃ¡ na 
-comparaÃ§Ã£o com municÃ­pios de todo o paÃ­s, ficava nas posiÃ§Ãµes 1856
- e 10279 de 5570. | Em 2021, o 
-salÃ¡rio mÃ©dio mensal era de 1,8 salÃ¡rios mÃ­nimos. A proporÃ§Ã£o de 
-pessoas ocupadas em relaÃ§Ã£o Ã  populaÃ§Ã£o total era de 5,49%. Na 
-comparaÃ§Ã£o com os outros municÃ­pios do estado, ocupava as posiÃ§Ãµes 
-13 de 22 e 15 de 22, respectivamente. JÃ¡ na comparaÃ§Ã£o com cidades do
- paÃ­s todo, ficava na posiÃ§Ã£o 3288 de 5570 e 5243 de 5570, 
-respectivamente. Considerando domicÃ­lios com rendimentos mensais de 
-atÃ© meio salÃ¡rio mÃ­nimo por pessoa, tinha 45,9% da populaÃ§Ã£o nessas
- condiÃ§Ãµes, o que o colocava na posiÃ§Ã£o 13 de 22 dentre as cidades 
-do estado e na posiÃ§Ã£o 2047 de 5570 dentre as cidades do Brasil. | Em 2010, a 
-taxa de escolarizaÃ§Ã£o de 6 a 14 anos de idade era de 87,7%. Na 
-comparaÃ§Ã£o com outros municÃ­pios do estado, ficava na posiÃ§Ã£o 15 de
- 22. JÃ¡ na comparaÃ§Ã£o com municÃ­pios de todo o paÃ­s, ficava na 
-posiÃ§Ã£o 5499 de 5570. Em relaÃ§Ã£o ao IDEB, no ano de 2021, o IDEB 
-para os anos iniciais do ensino fundamental na rede pÃºblica era 5,1 e 
-para os anos finais, de 5. Na comparaÃ§Ã£o com outros municÃ­pios do 
-estado, ficava nas posiÃ§Ãµes 8 e 3 de 22. JÃ¡ na comparaÃ§Ã£o com 
-municÃ­pios de todo o paÃ­s, ficava nas posiÃ§Ãµes 3487 e 1937 de 5570. | nan | A taxa de 
-mortalidade infantil mÃ©dia na cidade Ã© de 18,99 para 1.000 nascidos 
-vivos. As internaÃ§Ãµes devido a diarreias sÃ£o de 2,2 para cada 1.000 
-habitantes. Comparado com todos os municÃ­pios do estado, fica nas 
-posiÃ§Ãµes 9 de 22 e 10 de 22, respectivamente. Quando comparado a 
-cidades do Brasil todo, essas posiÃ§Ãµes sÃ£o de 1090 de 5570 e 1442 de 
-5570, respectivamente. | Apresenta 
-27,7% de domicÃ­lios com esgotamento sanitÃ¡rio adequado, 14,7% de 
-domicÃ­lios urbanos em vias pÃºblicas com arborizaÃ§Ã£o e 4,5% de 
-domicÃ­lios urbanos em vias pÃºblicas com urbanizaÃ§Ã£o adequada 
-(presenÃ§a de bueiro, calÃ§ada, pavimentaÃ§Ã£o e meio-fio). Quando 
-comparado com os outros municÃ­pios do estado, fica na posiÃ§Ã£o 4 de 
-22, 11 de 22 e 8 de 22, respectivamente. JÃ¡ quando comparado a outras 
-cidades do Brasil, sua posiÃ§Ã£o Ã© 3224 de 5570, 5285 de 5570 e 3588 de
- 5570, respectivamente. | Em 2022, a 
-Ã¡rea do municÃ­pio era de 5.350,586 kmÂ², o que o coloca na posiÃ§Ã£o 
-12 de 22 entre os municÃ­pios do estado e 280 de 5570 entre todos os 
-municÃ­pios. | False | False | False | True | 120070 | 84 | 0 | 951 | 29 | nan | D | xapuri |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Assis Brasil | AC | 1200054.jpg | 8100 | 1,63 | 2,3 | 545 | 7,13 | 47,1 | 85,1 | 4,6 | nan | 2536 | 394 | 92 | 18 | 67 | 2 | 17507,67 | nan | 0,588 | 18177,08 | 17004,91 | 13,95 | 2,3 | 5 | 2,04 | 23,1 | 26,5 | 0 | nan | Amazônia | Não pertence | 4979,073 | Rio Branco | Vale do Acre | Brasiléia | 1200054 | [Link](https://lohmannesilva.blob.core.windows.net/$web/projeto/green_destinations/svg/1200054.svg) | [Link](https://cidades.ibge.gov.br/municipio/1200054) | Em 2022, a população era de 8.100 habitantes e a densidade demográfica era de 1,63 hab/km². | Em 2021, o salário médio mensal era de 2,3 salários mínimos. A proporção de pessoas ocupadas era de 7,13%. | Em 2010, a taxa de escolarização de 6 a 14 anos era de 85,1%. IDEB 2021 anos iniciais: 4,6. | nan | Mortalidade infantil: 13,95 por 1.000. Internações por diarreia: 2,3 por 1.000. | Esgotamento adequado: 23,1%. Arborização: 26,5%. Urbanização adequada: 0%. | Área de 4.979,073 km², posição 13 de 22 no estado. | False | False | False | True | 120005 | 2 | 0 | 235 | 5 | nan | D | assis brasil |
+| Cruzeiro do Sul | AC | 1200203.jpg | 91888 | 10,46 | 1,8 | 11869 | 13,22 | 44,2 | 94,9 | 5,4 | 4,8 | 18823 | 5412 | 756 | 269 | 148 | 23 | 22934,82 | 88,1 | 0,664 | 139636,41 | 135990,85 | 10,64 | 1 | 40 | 26,91 | 12,7 | 37,9 | 3,7 | nan | Amazônia | Não pertence | 8783,47 | Cruzeiro do Sul | Vale do Juruá | Cruzeiro do Sul | 1200203 | [Link](https://lohmannesilva.blob.core.windows.net/$web/projeto/green_destinations/svg/1200203.svg) | [Link](https://cidades.ibge.gov.br/municipio/1200203) | Em 2022, a população era de 91.888 habitantes e a densidade demográfica era de 10,46 hab/km². | Em 2021, o salário médio mensal era de 1,8 salários mínimos. A proporção de pessoas ocupadas era de 13,22%. | Em 2010, a taxa de escolarização era de 94,9%. IDEB 2021: 5,4 (iniciais) e 4,8 (finais). | PIB per capita (2021): R$ 22.934,82. Receitas externas (2015): 88,1%. | Mortalidade infantil: 10,64 por 1.000. Internações por diarreia: 1 por 1.000. | Esgotamento adequado: 12,7%. Arborização: 37,9%. Urbanização adequada: 3,7%. | Área de 8.783,47 km², posição 6 de 22 no estado. | False | False | False | True | 120020 | 61 | -4 | 7390 | 284 | nan | C | cruzeiro do sul |
+| Epitaciolândia | AC | 1200252.jpeg | 18757 | 11,35 | 1,7 | 2040 | 10,75 | 42,9 | 93,7 | 5,3 | 5,1 | 2749 | 663 | 98 | 24 | 17 | 2 | 33960,77 | nan | 0,653 | 31996,17 | 29191,83 | 17,06 | 0,2 | 8 | 4,93 | 21,4 | 39,1 | 11 | 4333 | Amazônia | Não pertence | 1652,674 | Rio Branco | Vale do Acre | Brasiléia | 1200252 | [Link](https://lohmannesilva.blob.core.windows.net/$web/projeto/green_destinations/svg/1200252.svg) | [Link](https://cidades.ibge.gov.br/municipio/1200252) | Em 2022, a população era de 18.757 habitantes e a densidade demográfica era de 11,35 hab/km². | Em 2021, o salário médio mensal era de 1,7 salários mínimos. A proporção de pessoas ocupadas era de 10,75%. | Em 2010, a taxa de escolarização era de 93,7%. IDEB 2021: 5,3 (iniciais) e 5,1 (finais). | nan | Mortalidade infantil: 17,06 por 1.000. Internações por diarreia: 0,2 por 1.000. | Esgotamento adequado: 21,4%. Arborização: 39,1%. Urbanização adequada: 11%. | Área de 1.652,674 km², posição 22 de 22 no estado. | False | False | False | True | 120025 | 105 | -1 | 2245 | 40 | nan | D | epitaciolandia |
+| Rio Branco | AC | 1200401.jpg | 364756 | 41,28 | 3,3 | 106966 | 25,5 | 36,4 | 95,1 | 5,7 | 4,8 | 56946 | 17052 | 2209 | 903 | 189 | 65 | 26119,02 | 64,8 | 0,727 | 884827,27 | 740733,11 | 14,97 | 0,2 | 95 | 87,42 | 56,7 | 13,8 | 20,4 | 33767 | Amazônia | Não pertence | 8835,154 | Rio Branco | Vale do Acre | Rio Branco | 1200401 | [Link](https://lohmannesilva.blob.core.windows.net/$web/projeto/green_destinations/svg/1200401.svg) | [Link](https://cidades.ibge.gov.br/municipio/1200401) | Em 2022, a população era de 364.756 habitantes e a densidade demográfica era de 41,28 hab/km². | Em 2021, o salário médio mensal era de 3,3 salários mínimos. A proporção de pessoas ocupadas era de 25,5%. | Em 2010, a taxa de escolarização era de 95,1%. IDEB 2021: 5,7 (iniciais) e 4,8 (finais). | PIB per capita (2021): R$ 26.119,02. Receitas externas (2015): 64,8%. | Mortalidade infantil: 14,97 por 1.000. Internações por diarreia: 0,2 por 1.000. | Esgotamento adequado: 56,7%. Arborização: 13,8%. Urbanização adequada: 20,4%. | Área de 8.835,154 km², capital do estado. | False | False | False | True | 120040 | 2988 | -11 | 67500 | 2557 | nan | D | rio branco |
+| Xapuri | AC | 1200708.jpeg | 18243 | 3,41 | 1,8 | 1091 | 5,49 | 45,9 | 87,7 | 5,1 | 5 | 2648 | 609 | 146 | 60 | 49 | 12 | 22902,48 | nan | 0,599 | 35332,64 | 28563,76 | 18,99 | 2,2 | 9 | 3,23 | 27,7 | 14,7 | 4,5 | 484 | Amazônia | Não pertence | 5350,586 | Rio Branco | Vale do Acre | Brasiléia | 1200708 | [Link](https://lohmannesilva.blob.core.windows.net/$web/projeto/green_destinations/svg/1200708.svg) | [Link](https://cidades.ibge.gov.br/municipio/1200708) | Em 2022, a população era de 18.243 habitantes e a densidade demográfica era de 3,41 hab/km². | Em 2021, o salário médio mensal era de 1,8 salários mínimos. A proporção de pessoas ocupadas era de 5,49%. | Em 2010, a taxa de escolarização era de 87,7%. IDEB 2021: 5,1 (iniciais) e 5 (finais). | nan | Mortalidade infantil: 18,99 por 1.000. Internações por diarreia: 2,2 por 1.000. | Esgotamento adequado: 27,7%. Arborização: 14,7%. Urbanização adequada: 4,5%. | Área de 5.350,586 km², posição 12 de 22 no estado. | False | False | False | True | 120070 | 84 | 0 | 951 | 29 | nan | D | xapuri |
 
 ### Explorando as colunas (as que achei mais importantes):
 
@@ -813,39 +434,12 @@ Esta base é uma pequena tabela de referência estrutural ou um dicionário de o
 Esta base funciona como um mapa de conexões estatísticas entre os diferentes critérios da certificação Green Destinations, não apenas listando os dados, mas mostrando como o sucesso de um indicador (como "Gestão de Resíduos") pode estar ligado ao desempenho em outro (como "Satisfação do Visitante").
 
 | CATEGORIA | IDENTITY_A | IDENTITY_B | COEFFICIENT | P_VALUE | RESULTADO | THEME_A | THEME_B | CRITERIO_A | CRITERIO_B | CHAVE_STATS | AREA | COR | ORDEM_RESULTADO | QUI2_RESULTADO | GRUPO_RESULTADO |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Green Destinations | 1.1 | 1.10 | nan | nan | NÃ£o Ã© possivel calcular a correlaÃ§Ã£o | Gerenciamento de destinos | Gerenciamento de destinos | Uma pessoa foi 
-designada com a responsabilidade e a autoridade para a implementaÃ§Ã£o 
-adequada e a comunicaÃ§Ã£o do gerenciamento de destinos sustentÃ¡veis. | As caracterÃ­sticas, o volume, as atividades e as preferÃªncias dos visitantes sÃ£o monitorados e relatados publicamente. | 1.1-1.10 | Gerenciamento de destinos | #FFFFFF | 0 | independentes | Outros Resultados |
-| Green Destinations | 1.1 | 1.11 | nan | nan | NÃ£o Ã© possivel calcular a correlaÃ§Ã£o | Gerenciamento de destinos | Gerenciamento de destinos | Uma pessoa foi 
-designada com a responsabilidade e a autoridade para a implementaÃ§Ã£o 
-adequada e a comunicaÃ§Ã£o do gerenciamento de destinos sustentÃ¡veis. | A satisfaÃ§Ã£o 
-dos visitantes com a qualidade e a sustentabilidade da experiÃªncia do 
-destino estÃ¡ sendo monitorada e divulgada publicamente. Se necessÃ¡rio,
- sÃ£o tomadas medidas em resposta. | 1.1-1.11 | Gerenciamento de destinos | #FFFFFF | 0 | independentes | Outros Resultados |
-| Green Destinations | 1.1 | 1.12 | nan | nan | NÃ£o Ã© possivel calcular a correlaÃ§Ã£o | Gerenciamento de destinos | Gerenciamento de destinos | Uma pessoa foi 
-designada com a responsabilidade e a autoridade para a implementaÃ§Ã£o 
-adequada e a comunicaÃ§Ã£o do gerenciamento de destinos sustentÃ¡veis. | O destino tem um
- sistema de gerenciamento de visitantes que Ã© revisado regularmente. 
-SÃ£o tomadas medidas para gerenciar o volume e as atividades dos 
-visitantes e para reduzi-los ou aumentÃ¡-los, conforme necessÃ¡rio, em 
-determinados momentos e locais, levando em conta e equilibrando as 
-necessidades da economia, da comunidade, das culturas e da cultura 
-locais. ambiente. | 1.1-1.12 | Gerenciamento de destinos | #FFFFFF | 0 | independentes | Outros Resultados |
-| Green Destinations | 1.1 | 1.13 | nan | nan | NÃ£o Ã© possivel calcular a correlaÃ§Ã£o | Gerenciamento de destinos | Gerenciamento de destinos | Uma pessoa foi 
-designada com a responsabilidade e a autoridade para a implementaÃ§Ã£o 
-adequada e a comunicaÃ§Ã£o do gerenciamento de destinos sustentÃ¡veis. | O gerenciamento 
-adequado dos visitantes e dos fluxos de visitantes Ã© aplicado para 
-otimizar os impactos do turismo dentro e ao redor dos ativos naturais e 
-socioculturais do destino. O sistema de gerenciamento refere-se Ã s 
-caracterÃ­sticas, Ã  capacidade e Ã  sensibilidade destes ativos. | 1.1-1.13 | Gerenciamento de destinos | #FFFFFF | 0 | independentes | Outros Resultados |
-| Green Destinations | 1.1 | 1.14 | nan | nan | NÃ£o Ã© possivel calcular a correlaÃ§Ã£o | Gerenciamento de destinos | Gerenciamento de destinos | Uma pessoa foi 
-designada com a responsabilidade e a autoridade para a implementaÃ§Ã£o 
-adequada e a comunicaÃ§Ã£o do gerenciamento de destinos sustentÃ¡veis. | Diretrizes para o
- comportamento adequado dos visitantes em eventos culturais e em locais 
-sensÃ­veis do ponto de vista cultural e natural sÃ£o desenvolvidas e 
-disponibilizadas aos visitantes, guias turÃ­sticos e outros 
-profissionais. | 1.1-1.14 | Gerenciamento de destinos | #FFFFFF | 0 | independentes | Outros Resultados |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Green Destinations | 1.1 | 1.10 | nan | nan | Não é possível calcular a correlação | Gerenciamento de destinos | Gerenciamento de destinos | Uma pessoa foi designada com a responsabilidade e a autoridade para a implementação adequada e a comunicação do gerenciamento de destinos sustentáveis. | As características, o volume, as atividades e as preferências dos visitantes são monitorados e relatados publicamente. | 1.1-1.10 | Gerenciamento de destinos | #FFFFFF | 0 | independentes | Outros Resultados |
+| Green Destinations | 1.1 | 1.11 | nan | nan | Não é possível calcular a correlação | Gerenciamento de destinos | Gerenciamento de destinos | Uma pessoa foi designada com a responsabilidade e a autoridade para a implementação adequada e a comunicação do gerenciamento de destinos sustentáveis. | A satisfação dos visitantes com a qualidade e a sustentabilidade da experiência do destino está sendo monitorada e divulgada publicamente. Se necessário, são tomadas medidas em resposta. | 1.1-1.11 | Gerenciamento de destinos | #FFFFFF | 0 | independentes | Outros Resultados |
+| Green Destinations | 1.1 | 1.12 | nan | nan | Não é possível calcular a correlação | Gerenciamento de destinos | Gerenciamento de destinos | Uma pessoa foi designada com a responsabilidade e a autoridade para a implementação adequada e a comunicação do gerenciamento de destinos sustentáveis. | O destino tem um sistema de gerenciamento de visitantes que é revisado regularmente. São tomadas medidas para gerenciar o volume e as atividades dos visitantes e para reduzi-los ou aumentá-los, conforme necessário, em determinados momentos e locais, levando em conta e equilibrando as necessidades da economia, da comunidade, das culturas e do cultura locais. ambiente. | 1.1-1.12 | Gerenciamento de destinos | #FFFFFF | 0 | independentes | Outros Resultados |
+| Green Destinations | 1.1 | 1.13 | nan | nan | Não é possível calcular a correlação | Gerenciamento de destinos | Gerenciamento de destinos | Uma pessoa foi designada com a responsabilidade e a autoridade para a implementação adequada e a comunicação do gerenciamento de destinos sustentáveis. | O gerenciamento adequado dos visitantes e dos fluxos de visitantes é aplicado para otimizar os impactos do turismo dentro e ao redor dos ativos naturais e socioculturais do destino. O sistema de gerenciamento refere-se às características, à capacidade e à sensibilidade destes ativos. | 1.1-1.13 | Gerenciamento de destinos | #FFFFFF | 0 | independentes | Outros Resultados |
+| Green Destinations | 1.1 | 1.14 | nan | nan | Não é possível calcular a correlação | Gerenciamento de destinos | Gerenciamento de destinos | Uma pessoa foi designada com a responsabilidade e a autoridade para a implementação adequada e a comunicação do gerenciamento de destinos sustentáveis. | Diretrizes para o comportamento adequado dos visitantes em eventos culturais e em locais sensíveis do ponto de vista cultural e natural são desenvolvidas e disponibilizadas aos visitantes, guias turísticos e outros profissionais. | 1.1-1.14 | Gerenciamento de destinos | #FFFFFF | 0 | independentes | Outros Resultados |
 
 ### Explorando as colunas:
 
