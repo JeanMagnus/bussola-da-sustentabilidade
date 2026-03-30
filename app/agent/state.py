@@ -6,3 +6,4 @@ from langgraph.graph import add_messages
 class AgentState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], add_messages]
     error_occurred: bool
+    dictionary_rules: str

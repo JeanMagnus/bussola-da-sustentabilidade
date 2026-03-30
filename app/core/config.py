@@ -24,6 +24,7 @@ class Settings:
 
     PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
     PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
+    PINECONE_INDEX_GUIDE = os.getenv("PINECONE_INDEX_GUIDE")
 
 settings = Settings()
 
