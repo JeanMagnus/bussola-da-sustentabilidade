@@ -7,3 +7,8 @@ class AgentState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], add_messages]
     error_occurred: bool
     dictionary_rules: str
+    is_dictionary_checked: bool
+    intent: str
+    dictionary_context: str
+
+    

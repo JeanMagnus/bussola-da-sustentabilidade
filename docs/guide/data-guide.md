@@ -42,7 +42,7 @@ Uma breve documentação acerca das bases de dados que são utilizadas no projet
 
 ## Entendendo as bases
 
-### 1 - CRITERIOS.csv
+## 1 - CRITERIOS.csv
 
 Esta base contém um conjunto detalhado de **diretrizes e critérios técnicos** voltados para a certificação de **destinos turísticos sustentáveis**. O conteúdo está estruturado em seis temas fundamentais: **gestão do destino**, proteção da **natureza e paisagem**, cuidado com o **meio ambiente e clima**, preservação da **cultura e tradição**, promoção do **bem-estar social** e práticas de **comunicação e negócios**.
 Cada item estabelece métricas para monitorar impactos ambientais, envolver comunidades locais e garantir a integridade dos ativos culturais e naturais. As informações são apresentadas em formato multilíngue, abrangendo **inglês, português e espanhol**, para facilitar a aplicação internacional das normas. Através de indicadores de sustentabilidade e transparência, o documento busca orientar administradores na criação de um turismo responsável e ético.
@@ -65,7 +65,7 @@ Cada item estabelece métricas para monitorar impactos ambientais, envolver comu
 - **CRITERIA_DESCRIPTION_US, _PT e _ES:** Fornecem a explicação detalhada e completa sobre o que o destino turístico precisa fazer para cumprir aquele critério, também traduzida para os três idiomas.
 - **ORDEM_1 e ORDEM_2:** São valores numéricos utilizados pelo sistema para classificar e determinar a sequência em que os critérios devem aparecer.
 
-### 2 - RAIS ESTABELECIMENTOS.csv
+## 2 - RAIS ESTABELECIMENTOS.csv
 
 Está base detalha a infraestrutura econômica dos municípios brsileiros, registrando quantos estabelecimentos (empresas ou unidades produtivas) existem em cada cidade, segmentados por sua atividade econômica específica.
 
@@ -83,7 +83,7 @@ Está base detalha a infraestrutura econômica dos municípios brsileiros, regis
 - **Categoria:** Descreve a **Atividade Econômica** do estabelecimento (baseada na CNAE - Classificação Nacional de Atividades Econômicas). Exemplo: "Alimentação", "Serviços de Arquitetura", "Fabricação de Veículos".
 - **Estabelecimentos:** Representa a **Quantidade Total** de empresas/unidades ativas para aquela categoria específica naquela cidade. É o dado numérico principal para cálculos de densidade econômica.
 
-### 3 - TOP100_30.csv
+## 3 - TOP100_30.csv
 
 Esta base contém os registros de avaliação de destinos turísticos com base em critérios específicos de sustentabilidade e gestão. Em resumo, é um **boletim de desempenho detalhado**, servindo para cruzar as exigências do programa de turismo sustentável com a nota alcançada pelo município, garantindo que as informações estejam traduzidas e padronizadas.
 
@@ -660,5 +660,3 @@ Esta base diz respeito ao mercado de trabalho, focando na força de trabalho ati
 - **Ano:** Indica o período ao qual o dado se refere.
 - **Atributo:** Detalha o setor econômico ou a classe da CNAE.
 - **PEA:** Representa o estoque de empregos formais ou a população ocupada no setor descrito. Valores zerados indicam a inexistência de atividade formal naquela categoria específica para o ano e local registrados.
-
-##

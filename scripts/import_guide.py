@@ -1,39 +1,76 @@
-import os
-from langchain_community.document_loaders import TextLoader
-from langchain_text_splitters import MarkdownHeaderTextSplitter
-from langchain_openai import OpenAIEmbeddings
+import re
+from langchain_core.documents import Document
 from langchain_pinecone import PineconeVectorStore
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from pinecone import Pinecone
 from app.core.config import settings, embeddings
 
-# 1. Carregar o arquivo enviado (data-guide.md)
-loader = TextLoader("docs/guide/data-guide.md")
-documento = loader.load()
-
-# 2. Definir a estratégia de divisão baseada nos cabeçalhos
-# Isso preserva a relação entre "Tabela X" e suas "Colunas"
-headers_to_split_on = [
-    ("#", "Header 1"),
-    ("##", "Header 2"),
-    ("###", "Header 3"), # Nível onde estão os nomes das tabelas (ex: 1 - CRITERIOS.csv)
-]
-
-splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers_to_split_on)
-chunks = splitter.split_text(documento[0].page_content)
-
-
-# 4. Enviar para o Pinecone
-index_name = settings.PINECONE_INDEX_GUIDE
-
-add_doc_vector_store = PineconeVectorStore.from_documents(
-    pinecone_api_key=settings.PINECONE_API_KEY,
-    documents=chunks,
-    embedding=embeddings,
-    index_name=index_name,
-    namespace="data_dictionary" # Opcional: use namespaces para organizar
+# Ajuste de tamanho para o limite do Pinecone
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=28000, 
+    chunk_overlap=500,
+    separators=["\n## ", "\n### ", "\n- ", "\n| "]
 )
 
-print(f"Sucesso! {len(chunks)} seções do dicionário foram indexadas.")
+def importar_dicionario_h2_correto():
+    pc = Pinecone(api_key=settings.PINECONE_API_KEY)
+    index = pc.Index(settings.PINECONE_INDEX_GUIDE)
+    
+    # 1. Limpeza Segura
+    print(f" Limpando namespace 'data_dictionary'...")
+    try:
+        index.delete(delete_all=True, namespace="data_dictionary")
+        print(" Limpo.")
+    except Exception:
+        print(" Namespace já estava vazio.")
 
+    # 2. Ler o arquivo completo
+    with open("docs/guide/data-guide.md", "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # 3. REGEX para Header 2 (##)
+    # Procura por '## [Número] - [Nome].csv' até o próximo '##'
+    # Esse padrão captura o nome, a descrição, a tabela markdown e as colunas (que são ###)
+    pattern = r"## (\d+ - .*?\.csv)(.*?)(?=\n## |$)"
+    matches = re.findall(pattern, content, re.DOTALL)
+
+    documents = []
+    for raw_title, body in matches:
+        # Normalização do nome para o SQL (ex: "1 - CRITERIOS.csv" -> "CRITERIOS")
+        table_name = raw_title.split("-")[-1].strip().replace(".csv", "").replace(" ", "_").lower()
+        
+        body_content = body.strip().lower()
+        # O corpo contém a descrição, a tabela e as colunas (Headers ###)
+        chunks = text_splitter.split_text(body_content)
+        
+        for i, chunk in enumerate(chunks):
+            full_text = f"TABELA REAL NO BANCO: {table_name}\n\n{chunk}"
+            
+            doc = Document(
+                page_content=full_text,
+                metadata={
+                    "table_name": table_name,
+                    "type": "dictionary",
+                    "part": i + 1
+                }
+            )
+            documents.append(doc)
+        print(f"Indexando: {table_name} ({len(chunks)} partes)")
+
+    # 4. Envio Final
+    if documents:
+        PineconeVectorStore.from_documents(
+            documents=documents,
+            embedding=embeddings,
+            index_name=settings.PINECONE_INDEX_GUIDE,
+            namespace="data_dictionary"
+        )
+        print(f"\n SUCESSO! {len(matches)} tabelas mapeadas com sucesso.")
+    else:
+        print(" Nenhuma seção '## ... .csv' foi encontrada.")
+
+if __name__ == "__main__":
+    importar_dicionario_h2_correto()
 
 # COMO RODAR NO DOCKER:
 # docker compose exec api uv run env PYTHONPATH=/app python scripts/import_guide.py

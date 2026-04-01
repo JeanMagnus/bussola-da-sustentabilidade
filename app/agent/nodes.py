@@ -4,6 +4,7 @@ from app.agent.state import AgentState
 from app.agent.prompt import SYSTEM_PROMPT
 from app.agent.tools import tools_agent
 from app.core.config import trimmer
+from app.agent.memory import vector_store, guide_vector_store
 from langgraph.graph import END
 from langchain.agents.middleware import before_model, after_model
 from langchain_core.messages import BaseMessage, AIMessage, SystemMessage, HumanMessage, RemoveMessage, ToolMessage
@@ -14,9 +15,6 @@ from openai import BadRequestError
 
 LIMITE_MENSAGENS_PARA_SUMARIZACAO = 10
 
-
-
-
 async def setup_node(state: AgentState, config: RunnableConfig) -> AgentState:
     print(" --- SETUP NODE ---")
     messages = state.get("messages", [])
@@ -24,7 +22,9 @@ async def setup_node(state: AgentState, config: RunnableConfig) -> AgentState:
     update = {
         "is_blocked": False,
         "error_occurred": False,
+        "is_dictionary_checked": False,
     }
+
     if not messages:
         return update
     
@@ -137,18 +137,35 @@ async def agent(state: AgentState, config: RunnableConfig):
 
         has_tool_results = any(isinstance(m, ToolMessage) for m in state["messages"][-5:])
 
-        prompt_with_mission = f"""{SYSTEM_PROMPT}
+        dictionary_context = state.get("dictionary_context", "")
+        dict_block = (
+            f"\n\nCONTEXTO DO DICIONÁRIO DE DADOS (use estes nomes exatos):\n{dictionary_context}\n"
+            if dictionary_context else ""
+        )
+        # prompt_with_mission = f"""{SYSTEM_PROMPT}
 
+        # MISSÃO ATUAL CRÍTICA:
+        # O usuário solicitou: "{actual_question}"
+        # Use os dados das tabelas fornecidos abaixo para responder especificamente a esta solicitação.
+
+        # INSTRUÇÃO DE FLUXO:
+        # { "Você já recebeu resultados de ferramentas. NÃO chame a mesma ferramenta novamente. Use os dados abaixo para finalizar sua resposta." if has_tool_results else "Se precisar de dados, use as ferramentas de SQL disponíveis." }
+        # """
+
+        prompt_with_mission = f"""{SYSTEM_PROMPT}
+        {dict_block}
         MISSÃO ATUAL CRÍTICA:
         O usuário solicitou: "{actual_question}"
-        Use os dados das tabelas fornecidos abaixo para responder especificamente a esta solicitação.
+        Use os dados das tabelas fornecidos acima para responder especificamente a esta solicitação.
 
         INSTRUÇÃO DE FLUXO:
-        { "Você já recebeu resultados de ferramentas. NÃO chame a mesma ferramenta novamente. Use os dados abaixo para finalizar sua resposta." if has_tool_results else "Se precisar de dados, use as ferramentas de SQL disponíveis." }
+        { "Você já recebeu resultados de ferramentas. NÃO chame a mesma ferramenta novamente. Use os dados abaixo para finalizar sua resposta."
+            if has_tool_results else
+            "Se precisar de dados, use as ferramentas de SQL disponíveis. O DICIONÁRIO ACIMA já indica as tabelas e colunas corretas — use-o." }
         """
 
         for i, m in enumerate(state["messages"]):
-            print(f"MSG {i} [{type(m).__name__}]: {str(m.content)[:50]}...")
+            print(f"MSG {i} [{type(m).__name__}]: {str(m.content)[:350]}...")
             if hasattr(m, 'tool_calls'):
                 print(f"   --- Possui tool_calls: {m.tool_calls}")
         messages_trim = [SystemMessage(content=prompt_with_mission)] + messages_trimmer
@@ -335,7 +352,132 @@ async def check_relevance(state: AgentState, config: RunnableConfig):
             "messages": [AIMessage(content="Ocorreu um erro inesperado. Por favor, tente novamente.")],
             "error_occurred": True
             }
+
+
+async def classify_intent(state: AgentState, config: RunnableConfig) -> AgentState:
+    """
+    Classifica a intenção do usuário:
+      - 'SQL'      → pergunta que exige consulta ao banco de dados
+      - 'CONVERSA' → saudação, apresentação, dúvida sobre o sistema,
+                     pergunta de memória pessoal, etc.
+ 
+    O resultado é guardado em state["intent"] e guia o roteamento
+    feito por route_classify_intent().
+    """
+    print("--- CLASSIFY INTENT ---")
+ 
+    last_msg = state["messages"][-1].content
+ 
+    CLASSIFY_PROMPT = f"""Você é um classificador de intenções. Leia a mensagem do usuário e responda
+APENAS com uma das duas palavras abaixo, sem nenhum texto adicional:
+ 
+  SQL       — se a resposta exige consultar tabelas de dados (rankings, médias,
+               contagens, comparações, análises, filtros por cidade/região/pilar etc.)
+  CONVERSA  — se é uma saudação, apresentação, pergunta sobre o próprio usuário,
+               dúvida sobre o sistema/agente, ou qualquer tema não relacionado a dados.
+ 
+Mensagem: "{last_msg}"
+ 
+Responda APENAS "SQL" ou "CONVERSA"."""
+ 
+    response = await model.ainvoke([CLASSIFY_PROMPT], config=config)
+    intent = "SQL" if "SQL" in response.content.upper() else "CONVERSA"
+    print(f"   Intent classificado: {intent}")
+    return {"intent": intent, "dictionary_context": ""}
+
+async def dictionary_retrieval(state: AgentState, config: RunnableConfig) -> AgentState:
+    """
+    Realiza busca semântica no dicionário de metadados do banco de dados
+    (guide_vector_store / PINECONE_INDEX_GUIDE).
+ 
+    O resultado é salvo em state["dictionary_context"] como um bloco
+    de texto formatado que será injetado no prompt do agente, informando
+    exatamente quais tabelas e colunas usar.
+    """
+    print("--- DICTIONARY RETRIEVAL ---")
+ 
+    last_msg = state["messages"][-1].content
+ 
+    try:
+        docs = guide_vector_store.similarity_search(query=last_msg, k=6)
+ 
+        if not docs:
+            context = (
+                "Nenhum metadado encontrado no dicionário para esta pergunta. "
+                "Use sql_db_list_tables e sql_db_schema para explorar o banco."
+            )
+        else:
+            trechos = []
+            for doc in docs:
+                fonte = doc.metadata.get("source", "dicionário")
+                trechos.append(f"[{fonte}]\n{doc.page_content}")
+            raw_context = "\n\n---\n\n".join(trechos)
+ 
+            # Pede ao modelo para transformar os trechos brutos num
+            # prompt estruturado que o agente vai receber.
+            STRUCTURE_PROMPT = f"""Você é um assistente que prepara instruções de SQL.
+Com base nos trechos do dicionário de metadados abaixo, crie um bloco de instrução
+conciso (máx. 200 palavras) para um agente SQL, informando:
+ 
+1. Quais tabelas são relevantes para responder: "{last_msg}"
+2. Quais colunas de cada tabela devem ser usadas (com os nomes EXATOS do dicionário).
+3. Se existir chave de junção entre as tabelas, informe-a.
+4. Qualquer filtro ou ordenação óbvio para a pergunta.
+ 
+NÃO invente nomes de tabelas ou colunas. Use APENAS o que está nos trechos abaixo.
+Se os trechos não forem suficientes, diga quais tabelas ainda precisam ser verificadas
+com sql_db_schema.
+ 
+TRECHOS DO DICIONÁRIO:
+{raw_context}
+"""
+            structured = await model.ainvoke([STRUCTURE_PROMPT], config=config)
+            context = structured.content
+ 
+        print(f"   Contexto do dicionário gerado ({len(context)} chars)")
+        return {"dictionary_context": context}
+ 
+    except Exception as e:
+        print(f"   Erro no dictionary_retrieval: {e}")
+        return {
+            "dictionary_context": (
+                "Erro ao acessar o dicionário de metadados. "
+                "Use sql_db_list_tables e sql_db_schema para explorar o banco manualmente."
+            )
+        }
+ 
+
+async def dictionary_lookup(state: AgentState, config: RunnableConfig):
+    print("--- DICTIONARY_LOOKUP ---")
+
+    try:
+        last_msg = state["messages"][-1]
+        user_question = [m.content for m in state["messages"] if isinstance(m, HumanMessage)][-1]
+        tool_call_id = last_msg.tool_calls[0]['id']
+        print(f"BUSCANDO NO PINECONE POR: {user_question}")
+
+        docs = guide_vector_store.similarity_search(query=user_question, k=10, namespace="data_dictionary", filter={"type": "dictionary"})
+        print(f"DOCUMENTOS ENCONTRADOS: {len(docs)}")
+
+        context_text = "\n\n".join([f"DOC: {d.page_content}" for d in docs])
+
+        dict_message = ToolMessage(
+            tool_call_id=tool_call_id,
+            content=f"DADOS DO DICIONÁRIO PARA ESTA QUERY:\n{context_text}\n"
+                "Ajuste a query SQL acima se necessário com base nestas colunas e amostras."
+        )
+        print(f"DEBUG PINECONE: Retornando para o agente -> {context_text[:200]}...")
+        return {"dictionary_rules": context_text, "messages": [dict_message], "is_dictionary_checked": True, "error_occurred": False}
     
+    except Exception as e:
+        print(f"Erro inesperado: {e}")
+        return {
+            "messages": [AIMessage(content="Ocorreu um erro inesperado. Por favor, tente novamente.")],
+            "error_occurred": True
+            }
+
+
+
 def verify_sql(state: AgentState):
     print("--- VERIFY_SQL ---")
 
@@ -481,10 +623,19 @@ def should_continue(state: AgentState):
     if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
         
         tool_name = last_msg.tool_calls[0]["name"]
+        # is_sql_tool = tool_name in ["sql_db_query", "sql_db_schema", "sql_db_list_tables", "sql_db_query_checker"]
+        # if is_sql_tool and not state.get("is_dictionary_checked"):
+        #     print(" --- REDIRECIONANDO PARA DICIONÁRIO ---")
+        #     return "dictionary_lookup"
+        
+        # if is_sql_tool:
+        #     print(" --- DICIONÁRIO JÁ CONSULTADO, VAI PARA VERIFICAÇÃO DE SQL ---")
+        #     return "verify_sql"
 
         if tool_name in ["sql_db_query", "sql_db_schema", "sql_db_list_tables", "sql_db_query_checker"]:
             print(" --- VAI PARA VERIFICAÇÃO DE SQL ---")
             return "verify_sql"
+        
         print(" --- NENHUMA FERRAMENTA DE SQL FOI CHAMADA, INDO PARA TOOLS ---")
         return "go_tools"
     
@@ -531,4 +682,16 @@ def route_guardrail_input(state: AgentState):
         return END
     
     print(" --- TUDO OK: SEGUINDO PARA O AGENTE ---")
+    return "classify_intent"
+
+
+def route_classify_intent(state: AgentState):
+    print("--- ROUTE CLASSIFY INTENT ---")
+    intent = state.get("intent", "CONVERSA")
+    if state.get("error_occurred"):
+        return END
+    if intent == "SQL":
+        print("   --- CONSULTANDO DICIONÁRIO ---")
+        return "dictionary_retrieval"
+    print("   --- CONVERSA DIRETA ---")
     return "agent"

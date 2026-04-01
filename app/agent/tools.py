@@ -5,7 +5,7 @@ from langchain_core.documents import Document
 from langchain_core.tools import tool
 from typing import Annotated, List, Literal
 from app.core.config import model, db_bussola
-from app.agent.memory import vector_store, Memory
+from app.agent.memory import vector_store, Memory, guide_vector_store
 
 
 @tool
@@ -116,8 +116,75 @@ async def retrieve_memories_tool(
         return f"Erro ao recuperar memórias: {str(e)}"
 
 
+# @tool
+# async def search_data_dictionary(
+#     query: Annotated[str, "Termos de busca para encontrar tabelas e colunas (ex: 'população', 'sustentabilidade', 'turismo')"],
+#     config: RunnableConfig
+# ) -> str:
+#     """
+#     Consulta o manual técnico do banco de dados (Dicionário de Dados).
+#     Use esta ferramenta SEMPRE que precisar saber:
+#     1. Qual o nome real de uma tabela no banco de dados.
+#     2. O significado de colunas específicas (ex: o que é Q01, Q02).
+#     3. Quais colunas podem ser usadas para unir (JOIN) duas tabelas.
+#     4. Ver uma amostra dos dados para entender o formato (ex: se o estado é 'SC' ou 'Santa Catarina').
+#     """
+#     print(f"--- CONSULTANDO DICIONÁRIO: {query} ---")
+    
+#     docs = guide_vector_store.similarity_search(
+#         query=query, 
+#         k=15, 
+#         filter={"type": "dictionary"}, 
+#         namespace="data_dictionary"
+#     )
+
+#     if not docs:
+#         return "Nenhuma tabela ou coluna correspondente encontrada no dicionário."
+
+#     # Formata a resposta para o Agente
+#     instrucoes = "RESULTADOS DO DICIONÁRIO DE DADOS:\n"
+#     for d in docs:
+#         instrucoes += f"\n========================================\n"
+#         instrucoes += f"CONTEÚDO: {d.page_content}\n"
+    
+#     return instrucoes
+
+@tool
+async def retrieve_dictionary_tool(
+        query: Annotated[str, "Pergunta do usuário para busca semântica no dicionário de dados"],
+        limit: Annotated[int, "Número de trechos do dicionário a recuperar (recomendado: 5-8)"] = 6,
+        config: RunnableConfig = None,
+) -> str:
+    """Busca no dicionário de metadados do banco de dados usando similaridade semântica.
+ 
+    Use esta ferramenta ANTES de qualquer consulta SQL quando a pergunta do usuário
+    envolver dados do banco. Ela retorna quais tabelas e colunas são relevantes para
+    a pergunta, evitando alucinações de nomes técnicos.
+ 
+    Retorna: trechos do dicionário com nomes exatos de tabelas, colunas e descrições.
+    """
+    print("--- RETRIEVE DICTIONARY TOOL ---")
+    try:
+        docs = guide_vector_store.similarity_search(query=query, k=limit)
+        if not docs:
+            return "Nenhum metadado encontrado no dicionário para esta consulta."
+        results = []
+        for doc in docs:
+            source = doc.metadata.get("source", "dicionário")
+            results.append(f"[{source}]\n{doc.page_content}")
+        return "\n\n---\n\n".join(results)
+    except Exception as e:
+        return f"Erro ao buscar no dicionário: {str(e)}"
+ 
+
+
 toolkit = SQLDatabaseToolkit(db=db_bussola, llm=model)
 
 db_tools = toolkit.get_tools()
-tools_agent = [store_memory_tool, retrieve_memories_tool] + db_tools
+# excluded_tool_names = ["sql_db_query_checker"]
+# db_tools_filtered = [
+#     tool for tool in db_tools 
+#     if tool.name not in excluded_tool_names
+# ]
+tools_agent = [store_memory_tool, retrieve_memories_tool, retrieve_dictionary_tool] + db_tools
 tool_node = ToolNode(tools=tools_agent)
