@@ -149,32 +149,32 @@ async def retrieve_memories_tool(
     
 #     return instrucoes
 
-@tool
-async def retrieve_dictionary_tool(
-        query: Annotated[str, "Pergunta do usuário para busca semântica no dicionário de dados"],
-        limit: Annotated[int, "Número de trechos do dicionário a recuperar (recomendado: 5-8)"] = 6,
-        config: RunnableConfig = None,
-) -> str:
-    """Busca no dicionário de metadados do banco de dados usando similaridade semântica.
+# @tool
+# async def retrieve_dictionary_tool(
+#         query: Annotated[str, "Pergunta do usuário para busca semântica no dicionário de dados"],
+#         limit: Annotated[int, "Número de trechos do dicionário a recuperar"] = 15,
+#         config: RunnableConfig = None,
+# ) -> str:
+#     """Busca no dicionário de metadados do banco de dados usando similaridade semântica.
  
-    Use esta ferramenta ANTES de qualquer consulta SQL quando a pergunta do usuário
-    envolver dados do banco. Ela retorna quais tabelas e colunas são relevantes para
-    a pergunta, evitando alucinações de nomes técnicos.
+#     Use esta ferramenta ANTES de qualquer consulta SQL quando a pergunta do usuário
+#     envolver dados do banco. Ela retorna quais tabelas e colunas são relevantes para
+#     a pergunta, evitando alucinações de nomes técnicos.
  
-    Retorna: trechos do dicionário com nomes exatos de tabelas, colunas e descrições.
-    """
-    print("--- RETRIEVE DICTIONARY TOOL ---")
-    try:
-        docs = guide_vector_store.similarity_search(query=query, k=limit)
-        if not docs:
-            return "Nenhum metadado encontrado no dicionário para esta consulta."
-        results = []
-        for doc in docs:
-            source = doc.metadata.get("source", "dicionário")
-            results.append(f"[{source}]\n{doc.page_content}")
-        return "\n\n---\n\n".join(results)
-    except Exception as e:
-        return f"Erro ao buscar no dicionário: {str(e)}"
+#     Retorna: trechos do dicionário com nomes exatos de tabelas, colunas e descrições.
+#     """
+#     print("--- RETRIEVE DICTIONARY TOOL ---")
+#     try:
+#         docs = guide_vector_store.similarity_search(query=query, k=limit)
+#         if not docs:
+#             return "Nenhum metadado encontrado no dicionário para esta consulta."
+#         results = []
+#         for doc in docs:
+#             source = doc.metadata.get("source", "dicionário")
+#             results.append(f"[{source}]\n{doc.page_content}")
+#         return "\n\n---\n\n".join(results)
+#     except Exception as e:
+#         return f"Erro ao buscar no dicionário: {str(e)}"
  
 
 
@@ -186,5 +186,5 @@ db_tools = toolkit.get_tools()
 #     tool for tool in db_tools 
 #     if tool.name not in excluded_tool_names
 # ]
-tools_agent = [store_memory_tool, retrieve_memories_tool, retrieve_dictionary_tool] + db_tools
+tools_agent = [store_memory_tool, retrieve_memories_tool] + db_tools
 tool_node = ToolNode(tools=tools_agent)

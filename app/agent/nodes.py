@@ -1,3 +1,5 @@
+import asyncio
+
 from app.core import config
 from app.core.config import model, db_bussola, summarizer_model, moderation_model
 from app.agent.state import AgentState
@@ -69,6 +71,8 @@ async def summarization_node(state: AgentState, config: RunnableConfig) -> Agent
     3. Anotar quaisquer perguntas pendentes ou tópicos que precisam de acompanhamento
     4. Ser conciso mas informativo
     5. Mensagens que foram bloqueadas por infrações do sistema não devem ser incluídas no resumo.
+    6. NUNCA inclua no resumo conclusões sobre ausência de dados (ex: "a base não contém X").
+       Resultados de consultas são temporários e podem mudar — não os eternize no resumo.
 
     REGRAS DE OURO:
     1. DELETE: Remova códigos SQL (SELECT, CREATE TABLE), nomes técnicos de colunas e IDs de ferramentas.
@@ -96,9 +100,13 @@ async def summarization_node(state: AgentState, config: RunnableConfig) -> Agent
     ], config=config)
 
     summary_message = SystemMessage(
-        content=f"Resumo da conversa até agora:\n\n{summary_response.content}\n\nContinue a conversa baseado neste resumo."
+        content=(
+            f"Contexto da conversa anterior (use apenas como referência histórica, "
+            f"NÃO como fonte de verdade sobre o banco de dados):\n\n"
+            f"{summary_response.content}\n\n"
+            f"Continue a conversa. Para qualquer pergunta sobre dados, consulte o banco diretamente."
+        )
     )
-
     # Remover todas as mensagens antigas e manter apenas o resumo + última mensagem do usuário
     remove_messages = [RemoveMessage(id=msg.id) for msg in messages if msg.id is not None]
 
@@ -132,6 +140,15 @@ async def agent(state: AgentState, config: RunnableConfig):
         # PRA USAR O TRIMMER: 
 
         messages_trimmer = trimmer.invoke(state["messages"], config=config)
+        system_msgs = [m for m in state["messages"] if isinstance(m, SystemMessage)]
+        non_system_msgs = [m for m in state["messages"] if not isinstance(m, SystemMessage)]
+
+        trimmed = trimmer.invoke(non_system_msgs, config=config)
+        messages_trimmer = system_msgs + trimmed
+
+        print(f"TRIMMER: {len(state['messages'])} → {len(messages_trimmer)} mensagens")
+        for i, m in enumerate(messages_trimmer):
+            print(f"  TRIM MSG {i} [{type(m).__name__}]: {str(m.content)[:60]}")
         user_messages = [m for m in state["messages"] if isinstance(m, HumanMessage)]
         actual_question = user_messages[-1].content if user_messages else "Analisar dados de sustentabilidade"
 
@@ -380,7 +397,7 @@ Mensagem: "{last_msg}"
  
 Responda APENAS "SQL" ou "CONVERSA"."""
  
-    response = await model.ainvoke([CLASSIFY_PROMPT], config=config)
+    response = await summarizer_model.ainvoke([CLASSIFY_PROMPT], config=config)
     intent = "SQL" if "SQL" in response.content.upper() else "CONVERSA"
     print(f"   Intent classificado: {intent}")
     return {"intent": intent, "dictionary_context": ""}
@@ -399,7 +416,15 @@ async def dictionary_retrieval(state: AgentState, config: RunnableConfig) -> Age
     last_msg = state["messages"][-1].content
  
     try:
-        docs = guide_vector_store.similarity_search(query=last_msg, k=6)
+        docs = await asyncio.wait_for(
+            asyncio.to_thread(
+                guide_vector_store.similarity_search,
+                query=last_msg,
+                k=6,
+                namespace="data_dictionary"
+            ),
+            timeout=10.0
+        )
  
         if not docs:
             context = (
@@ -445,6 +470,8 @@ TRECHOS DO DICIONÁRIO:
                 "Use sql_db_list_tables e sql_db_schema para explorar o banco manualmente."
             )
         }
+    except asyncio.TimeoutError:
+        return "Dicionário indisponível no momento. Prossiga com sql_db_list_tables."
  
 
 async def dictionary_lookup(state: AgentState, config: RunnableConfig):

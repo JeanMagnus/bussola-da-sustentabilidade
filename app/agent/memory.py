@@ -19,5 +19,6 @@ vector_store = PineconeVectorStore(
 guide_vector_store = PineconeVectorStore(
     index_name=settings.PINECONE_INDEX_GUIDE,
     embedding=embeddings,
-    pinecone_api_key=settings.PINECONE_API_KEY, 
+    pinecone_api_key=settings.PINECONE_API_KEY,
+    namespace="data_dictionary" 
 )
