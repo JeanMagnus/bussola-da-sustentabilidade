@@ -10,5 +10,4 @@ class AgentState(TypedDict):
     is_dictionary_checked: bool
     intent: str
     dictionary_context: str
-
-    
+    sql_plan: str

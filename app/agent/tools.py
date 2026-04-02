@@ -181,10 +181,10 @@ async def retrieve_memories_tool(
 toolkit = SQLDatabaseToolkit(db=db_bussola, llm=model)
 
 db_tools = toolkit.get_tools()
-# excluded_tool_names = ["sql_db_query_checker"]
-# db_tools_filtered = [
-#     tool for tool in db_tools 
-#     if tool.name not in excluded_tool_names
-# ]
-tools_agent = [store_memory_tool, retrieve_memories_tool] + db_tools
+excluded_tool_names = ["sql_db_query_checker"]
+db_tools_filtered = [
+    tool for tool in db_tools 
+    if tool.name not in excluded_tool_names
+]
+tools_agent = [store_memory_tool, retrieve_memories_tool] + db_tools_filtered
 tool_node = ToolNode(tools=tools_agent)

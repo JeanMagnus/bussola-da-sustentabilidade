@@ -116,6 +116,54 @@ async def summarization_node(state: AgentState, config: RunnableConfig) -> Agent
         messages[-1],  # Última mensagem (sempre HumanMessage nesse fluxo)
     ]}
 
+
+async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
+    print("--- RAG AGENT NODE ---")
+
+    user_messages = [m for m in state["messages"] if isinstance(m, HumanMessage)]
+    user_question = user_messages[-1].content if user_messages else ""
+
+    docs = guide_vector_store.similarity_search(
+        query=user_question,
+        k=8,
+        namespace="data_dictionary"
+    )
+    if not docs:
+        return{"sql_plan": "Nenhuma informação relevante encontrada no dicionário de dados."}
+    
+    dictionary_context = "\n".join([f"{doc.page_content}" for doc in docs])
+
+    RAG_PROMPT = f"""Você é um especialista em modelagem de dados. 
+    Analise a pergunta do usuário e o dicionário de dados abaixo, então crie um plano 
+    técnico descrevendo EXATAMENTE quais tabelas e colunas acessar para responder.
+
+    PERGUNTA DO USUÁRIO:
+    {user_question}
+
+    DICIONÁRIO DE DADOS (tabelas e colunas relevantes):
+    {dictionary_context}
+
+    Retorne um plano estruturado com:
+    1. TABELAS PRINCIPAIS: quais tabelas usar e por quê
+    2. COLUNAS NECESSÁRIAS: quais colunas de cada tabela
+    3. LÓGICA DE JOIN: como conectar as tabelas (via codigo_municipio)
+    4. FILTROS SUGERIDOS: condições WHERE baseadas na pergunta
+    5. ORDENAÇÃO: como ordenar os resultados para responder melhor
+
+    DIRETRIZES DE CAUTELA TÉCNICA:
+    1. TIPAGEM DE DADOS: Verifique se colunas que representam números (notas, valores, anos) estão descritas como TEXT ou VARCHAR no dicionário.
+    2. CASTING OBRIGATÓRIO: Se o dicionário indicar que uma coluna é texto, mas o usuário pede um cálculo (MÉDIA, SOMA, MAIOR QUE), seu plano DEVE instruir o Agente SQL a usar 'CAST(coluna AS NUMERIC)'.
+    3. TRATAMENTO DE NULOS: Para colunas de 'nota', sempre sugira filtrar 'IS NOT NULL'.
+
+    Seja específico com nomes reais de tabelas e colunas conforme o dicionário.
+    NÃO escreva SQL — apenas o plano em linguagem natural.
+    """
+
+    response = await model.ainvoke([SystemMessage(content=RAG_PROMPT)], config=config)
+
+    print(f"--- RAG AGENT: plano gerado ({len(response.content)} chars) ---")
+    return {"sql_plan": response.content}
+
 model_with_tools = model.bind_tools(tools_agent)
 async def agent(state: AgentState, config: RunnableConfig):
 
@@ -128,6 +176,15 @@ async def agent(state: AgentState, config: RunnableConfig):
 
         prompt = SYSTEM_PROMPT
 
+        sql_plan = state.get("sql_plan", "")
+        
+        plan_block = ""
+        if sql_plan:
+            plan_block = f"""
+            --- PLANO DE ACESSO AO BANCO DE DADOS (SIGA ESTE PLANO) ---
+            {sql_plan}
+            ---------------------------------------------------------
+            """
         # MÉOTODO SEM TRIMMER:
         # model_with_tools = model.bind_tools(tools_agent)
 
@@ -154,11 +211,11 @@ async def agent(state: AgentState, config: RunnableConfig):
 
         has_tool_results = any(isinstance(m, ToolMessage) for m in state["messages"][-5:])
 
-        dictionary_context = state.get("dictionary_context", "")
-        dict_block = (
-            f"\n\nCONTEXTO DO DICIONÁRIO DE DADOS (use estes nomes exatos):\n{dictionary_context}\n"
-            if dictionary_context else ""
-        )
+        # dictionary_context = state.get("dictionary_context", "")
+        # dict_block = (
+        #     f"\n\nCONTEXTO DO DICIONÁRIO DE DADOS (use estes nomes exatos):\n{dictionary_context}\n"
+        #     if dictionary_context else ""
+        # )
         # prompt_with_mission = f"""{SYSTEM_PROMPT}
 
         # MISSÃO ATUAL CRÍTICA:
@@ -170,17 +227,20 @@ async def agent(state: AgentState, config: RunnableConfig):
         # """
 
         prompt_with_mission = f"""{SYSTEM_PROMPT}
-        {dict_block}
+        {plan_block}
+
         MISSÃO ATUAL CRÍTICA:
         O usuário solicitou: "{actual_question}"
         Use os dados das tabelas fornecidos acima para responder especificamente a esta solicitação.
 
         INSTRUÇÃO DE FLUXO:
-        { "Você já recebeu resultados de ferramentas. NÃO chame a mesma ferramenta novamente. Use os dados abaixo para finalizar sua resposta."
+        { "- Utilize o PLANO DE ACESSO acima para identificar as tabelas e colunas corretas."
             if has_tool_results else
             "Se precisar de dados, use as ferramentas de SQL disponíveis. O DICIONÁRIO ACIMA já indica as tabelas e colunas corretas — use-o." }
         """
-
+        if "does not exist" in str(state["messages"][-1].content):
+            prompt_with_mission += "\n\nAVISO: A query anterior falhou devido a erro de tipo de dados. Verifique se colunas numéricas precisam de CAST para FLOAT ou NUMERIC."
+        
         for i, m in enumerate(state["messages"]):
             print(f"MSG {i} [{type(m).__name__}]: {str(m.content)[:350]}...")
             if hasattr(m, 'tool_calls'):
@@ -647,6 +707,15 @@ def should_continue(state: AgentState):
         print(" --- ERRO ENCONTRADO, BLOQUEANDO ---")
         return END
     
+
+    sql_tool_calls = 0
+    for msg in state["messages"]:
+        if isinstance(msg, AIMessage) and getattr(msg, "tool_calls", None):
+            for tool_call in msg.tool_calls:
+                if tool_call["name"] in ["sql_db_query", "sql_db_schema", "sql_db_list_tables"]:
+                    sql_tool_calls += 1
+
+
     if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
         
         tool_name = last_msg.tool_calls[0]["name"]
@@ -659,7 +728,12 @@ def should_continue(state: AgentState):
         #     print(" --- DICIONÁRIO JÁ CONSULTADO, VAI PARA VERIFICAÇÃO DE SQL ---")
         #     return "verify_sql"
 
-        if tool_name in ["sql_db_query", "sql_db_schema", "sql_db_list_tables", "sql_db_query_checker"]:
+        if sql_tool_calls >= 8 and tool_name in ["sql_db_query", "sql_db_schema", "sql_db_list_tables"]:
+            print(" --- LIMITE DE CHAMADAS SQL ATINGIDO, VAI PARA MODERAÇÃO DE SAÍDA ---")
+            return "moderation_output"
+
+        if tool_name in ["sql_db_query", "sql_db_schema", "sql_db_list_tables"]:
+        #if tool_name in ["sql_db_query", "sql_db_schema", "sql_db_list_tables", "sql_db_query_checker"]:
             print(" --- VAI PARA VERIFICAÇÃO DE SQL ---")
             return "verify_sql"
         
@@ -719,6 +793,6 @@ def route_classify_intent(state: AgentState):
         return END
     if intent == "SQL":
         print("   --- CONSULTANDO DICIONÁRIO ---")
-        return "dictionary_retrieval"
+        return "rag_agent"
     print("   --- CONVERSA DIRETA ---")
     return "agent"

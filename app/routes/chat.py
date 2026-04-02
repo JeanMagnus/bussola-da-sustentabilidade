@@ -10,7 +10,7 @@ router = APIRouter()
 async def chat_endpoint(request: ChatInput, req: Request):
     graph = req.app.state.graph
 
-    config = {"configurable": {"thread_id": request.thread_id, "user_id": request.user_id, "recursion_limit": 15}}
+    config = {"configurable": {"recursion_limit": 15,"thread_id": request.thread_id, "user_id": request.user_id}}
     inputs = {"messages": [HumanMessage(content=request.message)]}
 
     result = await graph.ainvoke(inputs, config)
