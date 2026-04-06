@@ -7,7 +7,7 @@ from app.core.config import settings, embeddings
 
 # Ajuste de tamanho para o limite do Pinecone
 text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=28000, 
+    chunk_size=2000, 
     chunk_overlap=500,
     separators=["\n## ", "\n### ", "\n- ", "\n| "]
 )
@@ -39,7 +39,7 @@ def importar_dicionario_h2_correto():
         # Normalização do nome para o SQL (ex: "1 - CRITERIOS.csv" -> "CRITERIOS")
         table_name = raw_title.split("-")[-1].strip().replace(".csv", "").replace(" ", "_").lower()
         
-        body_content = body.strip().lower()
+        body_content = body.strip()
         # O corpo contém a descrição, a tabela e as colunas (Headers ###)
         chunks = text_splitter.split_text(body_content)
         

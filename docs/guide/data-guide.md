@@ -47,7 +47,7 @@ Uma breve documentação acerca das bases de dados que são utilizadas no projet
 Esta base contém um conjunto detalhado de **diretrizes e critérios técnicos** voltados para a certificação de **destinos turísticos sustentáveis**. O conteúdo está estruturado em seis temas fundamentais: **gestão do destino**, proteção da **natureza e paisagem**, cuidado com o **meio ambiente e clima**, preservação da **cultura e tradição**, promoção do **bem-estar social** e práticas de **comunicação e negócios**.
 Cada item estabelece métricas para monitorar impactos ambientais, envolver comunidades locais e garantir a integridade dos ativos culturais e naturais. As informações são apresentadas em formato multilíngue, abrangendo **inglês, português e espanhol**, para facilitar a aplicação internacional das normas. Através de indicadores de sustentabilidade e transparência, o documento busca orientar administradores na criação de um turismo responsável e ético.
 
-| CRITERIO | THEMES | THEME_DESCRIPTION_US | THEME_DESCRIPTION_PT | THEME_DESCRIPTION_ES | TOPIC | TOPIC_DESCRIPTION_US | TOPIC_DESCRIPTION_PT | TOPIC_DESCRIPTION_ES | CRITERIA | CRITERIA_TYPE | CRITERIA_NAME_US | CRITERIA_NAME_PT | CRITERIA_NAME_ES | CRITERIA_DESCRIPTION_US | CRITERIA_DESCRIPTION_PT | CRITERIA_DESCRIPTION_ES | ORDEM_1 | ORDEM_2 |
+| criterio | themes | theme_description_en | theme_description_pt | theme_description_es | topic | topic_description_us | topic_description_pt | topic_description_es | criteria | criteria_type | criteria_name_us | criteria_name_pt | criteria_name_es | criteria_description_us | criteria_description_pt | criteria_description_es | ordem_1 | ordem_2 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | 1.1 | 1 | Destination Management | Gerenciamento de destinos | Gestión del destino | 1.1 | Commitment & Organisation | Compromisso e organização | Compromiso y organización | 1.1.01 | C15 | Sustainable destination coordinator | Coordenador de destinos sustentáveis | Coordinador de sostenibilidad | A person has been assigned the responsibility and authority for the adequate implementation and reporting of sustainable destination management. | Uma pessoa foi designada com a responsabilidade e a autoridade para a implementação adequada e a comunicação do gerenciamento de destinos sustentáveis. | Se ha asignado a una persona la responsabilidad y la autoridad para la adecuada implementación y reporte de la gestión sostenible del destino. | 11,01 | 1,01 |
 | 1.2 | 1 | Destination Management | Gerenciamento de destinos | Gestión del destino | 1.1 | Commitment & Organisation | Compromisso e organização | Compromiso y organización | 1.1.02 | nan | Management structure | Estrutura de gestão | Estructura de gestión | An adequately funded organisation or management structure is responsible for coordinating and promoting sustainable tourism development and management. | Uma organização ou estrutura de gerenciamento com financiamento adequado é responsável por coordenar e promover o desenvolvimento e o gerenciamento do turismo sustentável. | Una organización o estructura de gestión adecuadamente financiada se encarga de coordinar y promover el desarrollo y la gestión del turismo sostenible. | 11,02 | 1,02 |
@@ -57,37 +57,40 @@ Cada item estabelece métricas para monitorar impactos ambientais, envolver comu
 
 ### Explorando as colunas:
 
-- **CRITERIO, THEMES, TOPIC e CRITERIA:** São identificadores numéricos usados para organizar a hierarquia das informações, indo desde o número do tema mais amplo até o código exato de cada critério individual.
-- **THEME_DESCRIPTION_US, _PT e _ES:** Contêm os nomes dos temas principais (as categorias maiores, como "Gerenciamento de destinos") em Inglês, Português e Espanhol.
-- **TOPIC_DESCRIPTION_US, _PT e _ES:** Trazem os nomes dos tópicos (as subcategorias dentro de cada tema, como "Compromisso e organização") nos três idiomas.
-- **CRITERIA_TYPE:** Indica a classificação, o peso ou a obrigatoriedade do critério por meio de siglas específicas, como "C15", "C30", "O" ou "N/A".
-- **CRITERIA_NAME_US, _PT e _ES:** Apresentam o título ou o nome da ação específica que está sendo avaliada (ex: "Coordenador de destinos sustentáveis") em Inglês, Português e Espanhol.
-- **CRITERIA_DESCRIPTION_US, _PT e _ES:** Fornecem a explicação detalhada e completa sobre o que o destino turístico precisa fazer para cumprir aquele critério, também traduzida para os três idiomas.
-- **ORDEM_1 e ORDEM_2:** São valores numéricos utilizados pelo sistema para classificar e determinar a sequência em que os critérios devem aparecer.
+- **criterio, themes, topic e criteria:** São identificadores numéricos usados para organizar a hierarquia das informações, indo desde o número do tema mais amplo até o código exato de cada critério individual.
+- **theme_description_us, _pt e _es:** Contêm os nomes dos temas principais (as categorias maiores, como "Gerenciamento de destinos") em Inglês, Português e Espanhol.
+- **topic_description_us, _pt e _es:** Trazem os nomes dos tópicos (as subcategorias dentro de cada tema, como "Compromisso e organização") nos três idiomas.
+- **criteria_type:** Indica a classificação, o peso ou a obrigatoriedade do critério por meio de siglas específicas, como "C15", "C30", "O" ou "N/A".
+- **criteria_name_us, _pt e _es:** Apresentam o título ou o nome da ação específica que está sendo avaliada (ex: "Coordenador de destinos sustentáveis") em Inglês, Português e Espanhol.
+- **criteria_description_us, _pt e _es:** Fornecem a explicação detalhada e completa sobre o que o destino turístico precisa fazer para cumprir aquele critério, também traduzida para os três idiomas.
+- **ordem_1 e ordem_2:** São valores numéricos utilizados pelo sistema para classificar e determinar a sequência em que os critérios devem aparecer.
 
 ## 2 - RAIS ESTABELECIMENTOS.csv
 
 Está base detalha a infraestrutura econômica dos municípios brsileiros, registrando quantos estabelecimentos (empresas ou unidades produtivas) existem em cada cidade, segmentados por sua atividade econômica específica.
 
-| CODIGO | ESTADO | CIDADE | 00:Ignorado | Categoria | Estabelecimentos |
+| codigo | estado | cidade | 00:ignorado | categoria | estabelecimentos |
 | --- | --- | --- | --- | --- | --- |
 | 310010 | Mg | Abadia dos Dourados | 0 | 12:FabricaÃ§Ã£o de Produtos do Fumo | 0 |
 | 310020 | Mg | Abaete | 0 | 12:FabricaÃ§Ã£o de Produtos do Fumo | 0 |
 | 310030 | Mg | Abre Campo | 0 | 12:FabricaÃ§Ã£o de Produtos do Fumo | 0 |
 | 310040 | Mg | Acaiaca | 0 | 12:FabricaÃ§Ã£o de Produtos do Fumo | 0 |
 | 310050 | Mg | Acucena | 0 | 12:FabricaÃ§Ã£o de Produtos do Fumo | 0 |
-- **CÓDIGO:** Refere-se ao **Código IBGE do Município** (com 6 dígitos). É a chave de identificação única da cidade, essencial para realizar cruzamentos (JOINs) com outras tabelas, como as de PIB ou IDH.
-- **ESTADO:** Contém a sigla da Unidade Federativa (**UF**) à qual o município pertence (ex: "Mg" para Minas Gerais, "Sp" para São Paulo).
-- **CIDADE:** O nome oficial do **Município**. É a forma mais fácil de identificação humana, mas menos precisa para consultas automáticas que o código numérico.
-- **00:Ignorado:** Geralmente funciona como uma categoria para registros que não possuem uma classificação setorial definida ou como um marcador de controle da base (no seu arquivo, aparece frequentemente com valor "0").
-- **Categoria:** Descreve a **Atividade Econômica** do estabelecimento (baseada na CNAE - Classificação Nacional de Atividades Econômicas). Exemplo: "Alimentação", "Serviços de Arquitetura", "Fabricação de Veículos".
-- **Estabelecimentos:** Representa a **Quantidade Total** de empresas/unidades ativas para aquela categoria específica naquela cidade. É o dado numérico principal para cálculos de densidade econômica.
+
+### Explorando as colunas:
+
+- **codigo:** Refere-se ao **Código IBGE do Município** (com 6 dígitos). É a chave de identificação única da cidade, essencial para realizar cruzamentos (JOINs) com outras tabelas, como as de PIB ou IDH.
+- **estado:** Contém a sigla da Unidade Federativa (**UF**) à qual o município pertence (ex: "Mg" para Minas Gerais, "Sp" para São Paulo).
+- **cidade:** O nome oficial do **Município**. É a forma mais fácil de identificação humana, mas menos precisa para consultas automáticas que o código numérico.
+- **00:ignorado:** Geralmente funciona como uma categoria para registros que não possuem uma classificação setorial definida ou como um marcador de controle da base (no seu arquivo, aparece frequentemente com valor "0").
+- **categoria:** Descreve a **Atividade Econômica** do estabelecimento (baseada na CNAE - Classificação Nacional de Atividades Econômicas). Exemplo: "Alimentação", "Serviços de Arquitetura", "Fabricação de Veículos".
+- **estabelecimentos:** Representa a **Quantidade Total** de empresas/unidades ativas para aquela categoria específica naquela cidade. É o dado numérico principal para cálculos de densidade econômica.
 
 ## 3 - TOP100_30.csv
 
 Esta base contém os registros de avaliação de destinos turísticos com base em critérios específicos de sustentabilidade e gestão. Em resumo, é um **boletim de desempenho detalhado**, servindo para cruzar as exigências do programa de turismo sustentável com a nota alcançada pelo município, garantindo que as informações estejam traduzidas e padronizadas.
 
-| DESCRICAO | CRITERIO | NOTA | CIDADE | ANO | ESTADO | THEME | THEME_PT | THEME_US | CRITERIA_DESCRIPTION_PT | CRITERIA_DESCRIPTION_US | CRITERIA_NAME_PT | CRITERIA_NAME_US | ORDEM | CHAVE | CODIGO_MUNICIPIO | TOPIC | CRITERIA_DESCRIPTION_ES | CRITERIA_NAME_ES | THEME_ES |
+| descricao | criterio | nota | cidade | ano | estado | theme | theme_pt | theme_us | criteria_description_pt | criteria_description_us | criteria_name_pt | criteria_name_us | ordem | chave | codigo_municipio | topic | criteria_description_es | criteria_name_es | theme_es |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | Sustainable destination coordinator | 1.1 | 5 | Treze Tílias | 2022 | SC | 1 | Gerenciamento de destinos | Destination Management | Uma pessoa foi designada com a responsabilidade e a autoridade para a implementação adequada e a comunicação do gerenciamento de destinos sustentáveis. | A person has been assigned the responsibility and authority for the adequate implementation and reporting of sustainable destination management. | Coordenador de destinos sustentáveis | Sustainable destination coordinator | 1,01 | TREZE TÍLIAS-SC | 4218509 | 1.1 | Se ha asignado a una persona la responsabilidad y la autoridad para la adecuada implementación y reporte de la gestión sostenible del destino. | Coordinador de sostenibilidad | Gestión del destino |
 | Nature conservation | 2.1 | 5 | Treze Tílias | 2022 | SC | 2 | Natureza e cenário | Nature & Scenery | O destino tem um sistema para conservar ecossistemas, habitats e espécies. | The destination has a system to conserve ecosystems, habitats and species. | Conservação da natureza | Nature conservation | 2,01 | TREZE TÍLIAS-SC | 4218509 | 2.1 | El destino cuenta con un sistema de conservación de ecosistemas, hábitats y especies. | Conservación de la naturaleza | Naturaleza y paisaje |
@@ -97,24 +100,24 @@ Esta base contém os registros de avaliação de destinos turísticos com base e
 
 ### Explorando as colunas:
 
-- **DESCRICAO:** Nome curto ou título do critério avaliado, originalmente em inglês.
-- **CRITERIO:** Código numérico que identifica especificamente o critério (ex: "1.1", "3.8").
-- **NOTA:** A pontuação ou grau de sucesso que a cidade obteve na avaliação daquele critério específico.
-- **CIDADE:** Nome do município que está sendo avaliado.
-- **ANO:** O ano em que a avaliação do município ocorreu (ex: 2022, 2023).
-- **ESTADO:** Sigla do estado brasileiro em que a cidade se localiza.
-- **THEME:** Código numérico que indica o grande tema (categoria maior) ao qual o critério pertence.
-- **THEME_PT, THEME_US, THEME_ES:** O nome do tema principal traduzido para Português, Inglês e Espanhol (ex: "Gerenciamento de destinos").
-- **CRITERIA_DESCRIPTION_PT, CRITERIA_DESCRIPTION_US, CRITERIA_DESCRIPTION_ES:** A explicação textual completa e detalhada das exigências daquele critério, apresentada nos três idiomas.
-- **CRITERIA_NAME_PT, CRITERIA_NAME_US, CRITERIA_NAME_ES:** O título oficial do critério avaliado, também nos três idiomas (ex: "Coordenador de destinos sustentáveis").
-- **ORDEM:** Número decimal utilizado pelo sistema para garantir que os critérios sejam listados na sequência correta.
-- **CHAVE:** Um código de texto único para o município, formado pela junção do nome da cidade e seu estado (ex: "TREZE TÍLIAS-SC").
-- **CODIGO_MUNICIPIO:** Código numérico oficial de registro da cidade, equivalente ao código IBGE.
-- **TOPIC:** Código numérico correspondente ao tópico (a subcategoria) dentro do tema maior ao qual o critério se vincula.
+- **descricao:** Nome curto ou título do critério avaliado, originalmente em inglês.
+- **criterio:** Código numérico que identifica especificamente o critério (ex: "1.1", "3.8").
+- **nota:** A pontuação ou grau de sucesso que a cidade obteve na avaliação daquele critério específico.
+- **cidade:** Nome do município que está sendo avaliado.
+- **ano:** O ano em que a avaliação do município ocorreu (ex: 2022, 2023).
+- **estado:** Sigla do estado brasileiro em que a cidade se localiza.
+- **theme:** Código numérico que indica o grande tema (categoria maior) ao qual o critério pertence.
+- **theme_pt, theme_us, theme_es:** O nome do tema principal traduzido para Português, Inglês e Espanhol (ex: "Gerenciamento de destinos").
+- **criteria_description_pt, criteria_description_us, criteria_description_es:** A explicação textual completa e detalhada das exigências daquele critério, apresentada nos três idiomas.
+- **criteria_name_pt, criteria_name_us, criteria_name_es:** O título oficial do critério avaliado, também nos três idiomas (ex: "Coordenador de destinos sustentáveis").
+- **ordem:** Número decimal utilizado pelo sistema para garantir que os critérios sejam listados na sequência correta.
+- **chave:** Um código de texto único para o município, formado pela junção do nome da cidade e seu estado (ex: "TREZE TÍLIAS-SC").
+- **codigo_municipio:** Código numérico oficial de registro da cidade, equivalente ao código IBGE.
+- **topic:** Código numérico correspondente ao tópico (a subcategoria) dentro do tema maior ao qual o critério se vincula.
 
 ## 4 - TOP100_15.csv
 
-| DESCRICAO | CRITERIO | NOTA | CIDADE | ANO | ESTADO | THEME | THEME_PT | THEME_US | CRITERIA_NAME_PT | CRITERIA_NAME_US | CRITERIA_DESCRIPTION_PT | CRITERIA_DESCRIPTION_US | ORDEM | CHAVE | CODIGO_MUNICIPIO | TOPIC | CRITERIA_NAME_ES | CRITERIA_DESCRIPTION_ES | THEME_ES |
+| descricao | criterio | nota | cidade | ano | estado | theme | theme_pt | theme_us | criteria_name_pt | criteria_name_us | criteria_description_pt | criteria_description_us | ordem | chave | codigo_municipio | topic | criteria_name_es | criteria_description_es | theme_es |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | Sustainable destination coordinator | 1.1 | 5 | Urubici | 2023 | SC | 1 | Gerenciamento de destinos | Destination Management | Coordenador de destinos sustentáveis | Sustainable destination coordinator | Uma pessoa foi designada com a responsabilidade e a autoridade para a implementação adequada e a comunicação do gerenciamento de destinos sustentáveis. | A person has been assigned the responsibility and authority for the adequate implementation and reporting of sustainable destination management. | 1,01 | URUBICI-SC | 4218905 | 1.1 | Coordinador de sostenibilidad | Se ha asignado a una persona la responsabilidad y la autoridad para la adecuada implementación y reporte de la gestión sostenible del destino. | Gestión del destino |
 | Inventory of destination assets | 1.5 | 2,25 | Urubici | 2023 | SC | 1 | Gerenciamento de destinos | Destination Management | Inventário de ativos de destino | Inventory of destination assets | O destino tem um inventário de seus ativos e atrações voltados para o turismo incluindo locais naturais e culturais. | The destination has an inventory of its tourism-oriented assets and attractions including natural and cultural sites. | 1,05 | URUBICI-SC | 4218905 | 1.2 | Inventario de activos de destino | El destino cuenta con un inventario de sus activos y atracciones orientadas al turismo, incluidos los lugares naturales y culturales. | Gestión del destino |
@@ -126,7 +129,7 @@ Esta base contém os registros de avaliação de destinos turísticos com base e
 
 Esta base contém os registros da percepção, opiniões e avaliações dos respondentes locais em relação ao desenvolvimento do turismo na sua cidade. 
 
-| DATA | CODIGO_MUNICIPIO | CIDADE | ESTADO | Q01 | Q02 | Q03 | Q04 | Q05 | Q06 | Q07 | Q08 | Q09 | Q10 | Q11 | Q12 | Q13 | Q14 | Q15 | Q16 | Q17 | Q18 | Q19 | Q20 | Q21 | Q22 | Q23 | Q24 | Q25 | Q26 | Q27 | Q28 | Q29 | Q30 | Q31 | Q32 | Q33 | Q34 | Q35 | Q36 | Q37 | Q38 | Q39 | Q40 | Q41 | Q42 | Q43 |
+| data | codigo_municipio | cidade | estado | q01 | q02 | q03 | q04 | q05 | q06 | q07 | q08 | q09 | q10 | q11 | q12 | q13 | q14 | q15 | q16 | q17 | q18 | q19 | q20 | q21 | q22 | q23 | q24 | q25 | q26 | q27 | q28 | q29 | q30 | q31 | q32 | q33 | q34 | q35 | q36 | q37 | q38 | q39 | q40 | q41 | q42 | q43 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | 2020-08-04 | 4217402 | Schroeder | SC | 8 | 8 | Sim | 7 | 7 | 7 | nan | 8 | 9 | 8 | 7 | 10 | 8 | 8 | 8 | 8 | 7 | 8 | 8 | 4 | 9 | 8 | 7 | 7 | 9 | 9 | 8 | 9 | 8 | 7 | 8 | 8 | 8 | 7 | 7 | Parcialmente | Turista de aventura, ecológico, que cuida do município enquanto o conhece. | Morro pelado, Rio do Júlio. | Mais força para aprovação de projetos do turismo perante a prefeitura. Pessoas qualificadas para buscar recursos nessa área. (Estadual, federal, privado) | Próxima gestão do Executivo. | nan | nan | nan |
 | 2020-08-17 | 4205456 | Forquilhinha | SC | 5 | 8 | Sim | 6 | 7 | 5 | 7 | 3 | 6 | 5 | 4 | 7 | 9 | 5 | nan | 8 | 5 | 10 | 6 | 8 | 8 | 8 | 6 | 9 | 7 | 8 | 9 | 9 | 7 | 6 | nan | nan | nan | nan | 7 | Parcialmente | Turista que busca a experiência cultural, gastronômica, festiva, religiosa e lazer. | Apontaria o município como um todo, o conjunto da arquitetura alemã, o paisagismo, urbanismo e a mobilidade urbana e a cultura e educação do povo. | - Identidade cultural alemã; - Incentivos na infraestrutura e serviços; - Eventos culturais e gastronômicos; - Parque São Francisco de Assis; - Paisagismo e Sustentabilidade; - Dr. Zilda Arns e Dom Paulo Evaristo Arns; | A falta de planejamento direcionado a identidade turística alemã; A interação entre as três esferas; O mal planejamento e execução dos Planos e Códigos do município. | nan | nan | nan |
@@ -146,13 +149,16 @@ Esta base contém os registros da percepção, opiniões e avaliações dos resp
 
 Apresenta um levantamento de dados econômicos e de fluxo de visitantes para diversos municípios. O seu conteúdo serve para comparar a remuneração dos trabalhadores dedicados ao setor de turismo com a média salarial geral da cidade, além de quantificar o volume de turistas brasileiros e estrangeiros que cada destino recebe, permitindo analisar o impacto econômico e a atratividade turística de cada local.
 
-| Municipio | SalÃ¡rio MÃ©dio Turismo | SalÃ¡rio MÃ©dio Geral | Visitas Nacionais | Visitas Internacionais |
+| municipio | salã¡rio mÃ©dio turismo | salã¡rio mÃ©dio geral | visitas nacionais | visitas internacionais |
 | --- | --- | --- | --- | --- |
 | Amarante | 1372,83 | 3165,43 | 0.000000 | 0.000000 |
 | Apodi | 1552,01 | 2394,03 | 251.000000 | 0.000000 |
 | Aquidauana | 2044,48 | 2881,29 | 8629.000000 | 1021.000000 |
 | Arroio Trinta | nan | 3292,59 | nan | nan |
 | Assis Brasil | nan | 2101,8 | 82.000000 | 0.000000 |
+
+### Explorando as colunas:
+
 - **Municipio:** O nome da cidade ou destino turístico analisado.
 - **Salário Médio Turismo:** O valor numérico que representa a média salarial paga especificamente aos trabalhadores do setor de turismo naquele município.
 - **Salário Médio Geral:** O valor da média salarial de todos os trabalhadores da cidade, englobando todos os setores da economia local.
@@ -163,13 +169,16 @@ Apresenta um levantamento de dados econômicos e de fluxo de visitantes para div
 
 Esta base atua como uma **consolidação estatística** (focada na mediana/média) das respostas da pesquisa situacional aplicada aos municípios em 2023. Dessa forma, agrupando as informações para apresentar um **resultado único definitivo por cidade para cada pergunta**, calculando a nota central do município em uma questão específica e vinculando o resultado aos grande temas de sustentabilidade.
 
-| ANO | CODIGO_MUNICIPIO | THEME | TOPIC | CRITERIO | NOTA |
+| ano | codigo_municipio | theme | topic | criterio | nota |
 | --- | --- | --- | --- | --- | --- |
 | 2023 | 4205555 | 6 | 6 | Q28 | 8,25 |
 | 2023 | 4205555 | 6 | 6 | Q25 | 5,8888888888888893 |
 | 2023 | 4205555 | 6 | 6 | Q32 | 5,4390243902439028 |
 | 2023 | 4205555 | 6 | 6 | Q33 | 6,2 |
 | 2023 | 4205555 | 6 | 6 | Q27 | 9,0491803278688518 |
+
+### Explorando as colunas:
+
 - **ANO:** Indica o ano de referência em que a pesquisa e a avaliação foram realizadas (neste caso, 2023).
 - **CODIGO_MUNICIPIO:** É o código numérico oficial (padrão IBGE) que identifica exclusivamente a cidade avaliada (ex: "4205555" ou "2411205").
 - **THEME:** Um identificador numérico que mostra a qual "Tema" principal de sustentabilidade aquela questão pertence (ex: 6).
@@ -181,7 +190,7 @@ Esta base atua como uma **consolidação estatística** (focada na mediana/médi
 
 Esta base funciona como um **inventário e mapeamento do nível de desenvolvimento do turismo nos municípios brasileiros**, coletando uma variedade de dados de cada cidade, abrangendo desde a organização política e econômica, até a infraestrutura hoteleira, perfil dos turistas, e detalhamentos especificos sobre aproveitamento de recursos naturais e nauticos.
 
-| UF | Município | O Município possui Legislação relacionada ao Turismo? | Quais? | O Município participa de governanças regionais e estaduais de turismo? | Quais?_1 | Informar as principais parcerias, rede de cooperação, intercâmbios etc. | O Município participa ou é contemplado em programas ou projetos com o MTur? | Quais?_2 | Informe quais as principais atividades econômicas em seu Município | Outros, descreva | Há um Fundo Municipal de Turismo | Valor disponível | Nº da legislação vigente | O Município possui Plano Diretor Urbano que contemple o Setor de Turismo | Número da Lei | O Município possui Plano Municipal de Turismo e /ou Plano de Desenvolvimento Territorial do Turismo | Ano | O Município possui Plano de Marketing do Turismo ou outros similares? | Ano_3 | O Município possui programas, projetos e ações acerca da atividade turística? | Quais?_4 | Possui gestão adequada de Resíduos Sólidos? | Qual a receita tributária das atividades turísticas no município? | O municipio possui Inventário Turístico? | Ano da Utilização | Nº de hospedagem | Nº de Leitos | Outros, descreva_5 | Quais os meios de hospedagem mais utilizado pelo turista? | Outros, descreva_6 | Quantos meios de hospedagem possuem cadastro no sistema CADASTUR? | Qual o período de maior fluxo turístico? | Qual o meio de comunicação utilizado para divulgação do destino? | Outros, descreva: | Qual a média do número de empregos gerados no setor de hospedagem? | O Município possui cursos, programas e/ou ações de qualificação profissional para o turismo? | Quais?_7 | Já houve manifestação de interesse de investidores em empreender no setor de turismo no município? | Quais?_8 | Possui guias e/ou condutores de turismo? | Quantos | O Município possui locadoras de imóveis, automóveis, embarcações e aeronaves para temporadas? | Quais?_9 | Quantas agências bancárias o município possui? | Quantas casas de câmbio o município possui? | Quantos templos de manifestação de fé, igrejas o município possui? | O município possui abastecimento de água, serviços de esgoto, serviços de energia, serviços de coleta de lixo? | Quais?_10 | O município possui aeroporto? | Quais?_11 | Quais os tipos de sistema de Transporte? | Qual a principal forma de acesso ao(s) destino(s) turístico(s)? | Qual a situação do acesso aos Atrativos Turísticos do município? | Qual a situação atual da Sinalização Turística do município? | O Município faz parte de alguma rota turística? | Quais?_12 | Existe linha regular de transporte turístico que interligue os principais atrativos? | Descreva as rotas turísticas | Qual a qualidade da rede de telefonia celular do município? | Qual a qualidade do fornecimento de internet no município? | Quantos prontos socorros públicos existem? | Quantos prontos socorros privados existem? | Quais sistema de segurança e equipamentos que proporcionam à população e ao turista as garantias básicas do cidadão? | Outros, descreva_13 | Há delegacia de proteção ao turista? | Existem locais de embarque e desembarque sinalizados e com acesso em nível? | Existem espaços reservados para pessoa com deficiência ou mobilidade reduzida? | O município dispõe de profissionais capacitados para o atendimento de pessoas com deficiência? | O município possui acesso ao crédito do Fundo Geral de Turismo - FUNGETUR? | Qual? | Qual o número total de empresas formais do setor do turismo existentes no município? | Qual a média do número de empregos gerados no Setor de Turismo? | Há uma política de atração de investimentos privados para o setor? | Quem é o responsável? | Valor da arrecadação há dois anos (R$) | Alíquota média do ISS há dois anos (%) | Valor da arrecadação no ano anterior (R$) | Alíquota média do ISS no ano anterior (%) | Quais tipos de Patrimônio Natural? | Há unidades de conservação (federal, estadual e/ou municipal)? | Quais estão fechadas para uso público? | Quais tipos de Patrimônio Cultural? | Negócios e eventos | Sol e Praia | Turismo Cultural | Ecoturismo | Turismo de Aventura | Outros, descreva_14 | Negócios e eventos_15 | Sol e Praia_16 | Turismo Cultural_17 | Ecoturismo_18 | Turismo de Aventura_19 | Outros, descreva_20 | O Município possui | O Município possui águas termais? | O Município possui estudo sobre a profundidade desses rios, lagos ou lagoa? | No Município esses rios, lagos ou lagoas são navegáveis? | Cite o nome desse rio em potencial | O Município possui pontes sobre o(s) rio(s)? | Cite o nome da ponte, sua altura até o nível da água do rio? | O Município possuí marinas/garagens náuticas, guarda para barcos? | Informe a quantidade, quais são e sua localização? | Essas estruturas possuem Alvará? | Possui Licença Ambiental vigente? | O Município possui empresas de comercialização de produtos ou serviços náuticos? | O Município possui barcos para passeios turísticos? | Quantos? | O Município tem Lei que regulamenta a atividade náutica? | Qual?_21 | O Município tem algum projeto náutico? | O Município possui Turismo de Pesca? | Qual?_22 | O Município possui alguma atividade turística de mergulho? | Qual?_23 | O Município possui alguma atividade turística de vela? | Qual?_24 |
+| uf | municã­pio | o_municã­pio_possui_legislaã§ã£o_relacionada_ao_turismo? | quais? | o_municã­pio_participa_de_governanã§as_regionais_e_estaduais_de_turismo? | quais?_1 | informar_as_principais_parcerias,_rede_de_cooperaã§ã£o,_intercã¢mbios_etc_com_outros_municã­pios_e/ou_entidades_regionais,_nacionais_ou_internacionais_voltados_ao_desenvolvimento_do_turismo_ | o_municã­pio_participa_ou_ã©_contemplado_em_programas_ou_projetos_com_o_mtur? | quais?_2 | informe_quais_as_principais_atividades_econã´micas_em_seu_municã­pio | outros,_descreva | hã¡_um_fundo_municipal_de_turismo | valor_disponã­vel | nâº_da_legislaã§ã£o_vigente | o_municã­pio_possui_plano_diretor_urbano_que_contemple_o_setor_de_turismo | nãºmero_da_lei | o_municã­pio_possui_plano_municipal_de_turismo_e_/ou_plano_de_desenvolvimento_territorial_do_turismo | ano | o_municã­pio_possui_plano_de_marketing_do_turismo_ou_outros_similares? | ano_3 | o_municã­pio_possui_programas,_projetos_e_aã§ãµes_acerca_da_atividade_turã­stica? | quais?_4 | possui_gestã£o_adequada_de_resã­duos_sã³lidos?_(conforme_lei_nâº_12_305/2010)_ | qual_a_receita_tributã¡ria_das_atividades_turã­sticas_no_municã­pio? | o_municipio_possui_inventã¡rio_turã­stico? | ano_da_utilizaã§ã£o | nâº_de_hospedagem | nâº_de_leitos | outros,_descreva_5 | quais_os_meios_de_hospedagem_mais_utilizado_pelo_turista? | outros,_descreva_6 | quantos_meios_de_hospedagem_possuem_cadastro_no_sistema_cadastur?_(sitema_de_cadastro_de_pessoas_fã­sicas_e_jurã­dicas_que_atuam_no_setor_de_turismo)_ | qual_o_perã­odo_de_maior_fluxo_turã­stico?_(descreva_os_meses_de_jan-dez)_ | qual_o_meio_de_comunicaã§ã£o_utilizado_para_divulgaã§ã£o_do_destino? | outros,_descreva: | qual_a_mã©dia_do_nãºmero_de_empregos_gerados_no_setor_de_hospedagem? | o_municã­pio_possui_cursos,_programas_e/ou_aã§ãµes_de_qualificaã§ã£o_profissional_para_o_turismo? | quais?_7 | jã¡_houve_manifestaã§ã£o_de_interesse_de_investidores_em_empreender_no_setor_de_turismo_no_municã­pio? | quais?_8 | possui_guias_e/ou_condutores_de_turismo? | quantos | o_municã­pio_possui_locadoras_de_imã³veis,_automã³veis,_embarcaã§ãµes_e_aeronaves_para_temporadas? | quais?_9 | quantas_agãªncias_bancã¡rias_o_municã­pio_possui? | quantas_casas_de_cã¢mbio_o_municã­pio_possui? | quantos_templos_de_manifestaã§ã£o_de_fã©,_igrejas_o_municã­pio_possui? | o_municã­pio_possui_abastecimento_de_ã¡gua,_serviã§os_de_esgoto,_serviã§os_de_energia,_serviã§os_de_coleta_de_lixo? | quais?_10 | o_municã­pio_possui_aeroporto? | quais?_11 | quais_os_tipos_de_sistema_de_transporte? | qual_a_principal_forma_de_acesso_ao(s)_destino(s)_turã­stico(s)? | qual_a_situaã§ã£o_do_acesso_aos_atrativos_turã­sticos_do_municã­pio? | qual_a_situaã§ã£o_atual_da_sinalizaã§ã£o_turã­stica_do_municã­pio? | o_municã­pio_faz_parte_de_alguma_rota_turã­stica? | quais?_12 | existe_linha_regular_de_transporte_turã­stico_que_interligue_os_principais_atrativos? | descreva_as_rotas_turã­sticas | qual_a_qualidade_da_rede_de_telefonia_celular_do_municã­pio? | qual_a_qualidade_do_fornecimento_de_internet_no_municã­pio? | quantos_prontos_socorros_pãºblicos_existem? | quantos_prontos_socorros_privados_existem? | quais_sistema_de_seguranã§a_e_equipamentos_que_proporcionam_ã_populaã§ã£o_e_ao_turista_as_garantias_bã¡sicas_do_cidadã£o? | outros,_descreva_13 | hã¡_delegacia_de_proteã§ã£o_ao_turista? | existem_locais_de_embarque_e_desembarque_sinalizados_e_com_acesso_em_nã­vel? | existem_espaã§os_reservados_para_pessoa_com_deficiãªncia_ou_mobilidade_reduzida? | o_municã­pio_dispãµe_de_profissionais_capacitados_para_o_atendimento_de_pessoas_com_deficiãªncia?_(ex:_domã­nio_da_lã­ngua_brasileira_de_sinais_â_libras)_ | o_municã­pio_possui_acesso_ao_crã©dito_do_fundo_geral_de_turismo_-_fungetur? | qual? | qual_o_nãºmero_total_de_empresas_formais_do_setor_do_turismo_existentes_no_municã­pio? | qual_a_mã©dia_do_nãºmero_de_empregos_gerados_no_setor_de_turismo? | hã¡_uma_polã­tica_de_atraã§ã£o_de_investimentos_privados_para_o_setor? | quem_ã©_o_responsã¡vel? | valor_da_arrecadaã§ã£o_hã¡_dois_anos_(r$) | alã­quota_mã©dia_do_iss_hã¡_dois_anos_(%) | valor_da_arrecadaã§ã£o_no_ano_anterior_(r$) | alã­quota_mã©dia_do_iss_no_ano_anterior_(%) | quais_tipos_de_patrimã´nio_natural? | hã¡_unidades_de_conservaã§ã£o_(federal,_estadual_e/ou_municipal)? | quais_estã£o_fechadas_para_uso_pãºblico? | quais_tipos_de_patrimã´nio_cultural? | negã³cios_e_eventos | sol_e_praia | turismo_cultural | ecoturismo | turismo_de_aventura | outros,_descreva_14 | negã³cios_e_eventos_15 | sol_e_praia_16 | turismo_cultural_17 | ecoturismo_18 | turismo_de_aventura_19 | outros,_descreva_20 | o_municã­pio_possui | o_municã­pio_possui_ã¡guas_termais? | o_municã­pio_possui_estudo_sobre_a_profundidade_desses_rios,_lagos_ou_lagoa? | no_municã­pio_esses_rios,_lagos_ou_lagoas_sã£o_navegã¡veis,_que_possui_possibilidade_de_equipamentos_aquã¡ticos_como_(jet_ski,_lancha_ou_qualquer_outra_embarcaã§ã£o)_para_navegar_neles? | cite_o_nome_desse_rio_em_potencial | o_municã­pio_possui_pontes_sobre_o(s)_rio(s)? | cite_o_nome_da_ponte,_sua_altura_atã©_o_nã­vel_da_ã¡gua_do_rio? | o_municã­pio_possuã­_marinas/garagens_nã¡uticas,_guarda_para_barcos? | informe_a_quantidade,_quais_sã£o_e_sua_localizaã§ã£o? | essas_estruturas_possuem_alvarã¡? | possui_licenã§a_ambiental_vigente? | o_municã­pio_possui_empresas_de_comercializaã§ã£o_de_produtos_ou_serviã§os_nã¡uticos?_(stand_up,_caiaque,_surf,_pesca,_boias,_mergulho)_ | o_municã­pio_possui_barcos_para_passeios_turã­sticos? | quantos? | o_municã­pio_tem_lei_que_regulamenta_a_atividade_nã¡utica? | qual?_21 | o_municã­pio_tem_algum_projeto_nã¡utico? | o_municã­pio_possui_turismo_de_pesca? | qual?_22 | o_municã­pio_possui_alguma_atividade_turã­stica_de_mergulho? | qual?_23 | o_municã­pio_possui_alguma_atividade_turã­stica_de_vela? | qual?_24 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | RN | Almino Afonso | Sim | Lei nº 386/2011 e Lei nº 591/2025 | Sim | IGR Oeste Potiguar | Sebrae/RN | Não | nan | Agricultura e Pecuária, Comércio | nan | Sim | 0 | Lei nº 591/2025 | Não | nan | Não | nan | Não | nan | Não | nan | Não | R$ 50.000,00 | Não | nan | 2 | 23 | nan | Pousada, Casa de amigos/parentes | nan | 0 | Fevereiro/Março, Novembro E Dezembro. | Rede sociais, Internet | nan | 30 | Não | nan | Não | nan | Não | nan | Não | nan | 2 | 0 | 16 | Sim | Abastecimento de água, serviços de esgoto parcial, serviços de energia e coleta de lixo. | Não | nan | Rodoviário coletivo, táxi, locação | Rodovia | Regular | Não tem sinalização | Não | nan | Não | nan | Regular | Regular | 4 | 0 | Postos de saúde, Delegacias, Hospitais, Defesa civil | nan | Não | Não | Não | Sim | Não | nan | 10 | 30 | Não | nan | 314460.14 | 5 | 228206 | 5 | nan | Não | nan | Outros | 2 | 6 | 4 | 6 | 5 | nan | nan | nan | nan | nan | nan | nan | Rios | Não | Não | Não | nan | Sim | Sem informação | Não | nan | Não | Não | Não | Não | nan | Não | nan | Não | Não | nan | Não | nan | Não | nan |
 | RN | Alto do Rodrigues | Sim | Lei Municipal do Conselho | Sim | IGR Sertão para o Mar | Formalização da IGR | Não | nan | Serviços, Agricultura e Pecuária, Comércio | nan | Não | nan | nan | Não | nan | Não | nan | Não | nan | Sim | Ações de mídia, parcerias eventos | Não | 100 mil | Sim | 2025 | 11 | 326 | nan | Hotel, Casa de amigos, Pousada | nan | 04 | Março-Abril, Julho, Outubro | Rádio, TV, Redes sociais, Internet | nan | 50 | Não | nan | Sim | Alto folia | Não | nan | Sim | Imóveis, automóveis | 3 | 0 | 29 | Sim | Energia, água, lixo, esgoto | Não | nan | Rodoviário coletivo, táxi, locação | Rodovia | Boa | Não tem sinalização | Sim | Do sertão para o mar | Não | nan | Ótima | Ótima | 1 | 0 | Delegacias, Postos de saúde, Hospitais, Rodoviária | nan | Não | Não | Não | Não | Não | nan | 30 | 40 | Não | nan | 13522520.6 | 5 | 8827834.55 | 5 | nan | Não | nan | Histórico / Equipamentos | 1 | 6 | 3 | 6 | 6 | nan | nan | nan | nan | nan | nan | nan | Rios | Não | Não | Sim | Rio Piranhas-açu | Sim | Ponte do rio do Alto | Não | nan | Não | Não | Não | Não | nan | Não | nan | Não | Não | nan | Não | nan | Não | nan |
@@ -245,7 +254,7 @@ Esta base funciona como um **inventário e mapeamento do nível de desenvolvimen
 
 Esta base funciona como um **dicionário de dados ou tabela de referência estrutural** para o questionário situacional. Dessa forma, ela não possui os dados de resultados da pesquisa, mas sim um mapa da estrutura do questionário do sistema, definindo todas as opções de respostas possíveis para cada pergunta, qual peso numérico cada resposta tem e a qual tema da sustentabilidade a pergunta pertence, sendo responsável por traduzir as respostas cruas em métricas para visualização.
 
-| EIXO | ORDEM | ESCALA | QUESTAO | TEXTO | VALOR | GRUPO | GRUPO_ID |
+| eixo | ordem | escala | questao | texto | valor | grupo | grupo_id |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 0 | 0 | NUMERICA | Q01 | Nos Ãºltimos 5 anos como vocÃª avalia o turismo do municÃ­pio? | Nos Ãºltimos 5 anos como vocÃª avalia o turismo do municÃ­pio? | Perfil do Entrevistado | 0 |
 | 1 | 1 | NUMERICA | Q01 | Nos Ãºltimos 5 anos como vocÃª avalia o turismo do municÃ­pio? | Nos Ãºltimos 5 anos como vocÃª avalia o turismo do municÃ­pio? | Perfil do Entrevistado | 0 |
@@ -268,7 +277,7 @@ Esta base funciona como um **dicionário de dados ou tabela de referência estru
 
 Esta base contém **dados estatísticos e demográficos dos municipios** brasileiros, traçando um “raio-X” completo da realidade socioeconômica, educacional, ambiental e geográfica de cada cidade.
 
-| CIDADE | ESTADO | IMAGEM | POPULACAO | DENSIDADE_DEMOGRAFICA | SALARIO_MEDIO | PESSOAS_OCUPADA | POPULACAO_OCUPADA | PERCENTUAL_MEIO_MINIMO | TAXA_ESCOLARIDADE | IDEB_ANOSINICIAIS | IDEB_ANOSFINAIS | MATRICULAS_FUNDAMENTAL | MATRICULAS_MEDIO | DOCENTES_FUNDAMENTAL | DOCENTES_MEDIO | ESTABELECIMENTOS_FUNDAMENTAL | ESTABELECIMENTOS_MEDIO | PIB | PERCENTUAL_EXTERNAS | IDHM | TOTAL_RECEITAS | TOTAL_DESPESAS | MORTALIDADE | INTERNACOES_DIARREIA | ESTABELECIMENTO_SUS | AREA_URBANA | ESGOTO | ARBORIZACAO | URBANIZACAO | POPULAZAO_RISCO | BIOMA | SISTEMA_COSTEIRO | AREA_TERRITORIAL | REGIAO_INTERMEDIARIA | MESORREGIAO | MICRORREGIAO | CODIGO_MUNICIPIO | SVG_MAPA | LINK_IBGE | TEXTO_POPULACAO | TEXTO_TRABALHO | TEXTO_EDUCACAO | TEXTO_ECONOMIA | TEXTO_SAUDE | TEXTO_MEIO_AMBIENTE | TEXTO_TERRITORIO | _POSSUI_GD | _POSSUI_TOP100C15 | _POSSUI_TOP100C30 | _POSSUI_SITUACIONAL | CIDADE_CAGED | CAGED_MUNICIPIO | CAGED_TURISMO | CAGED_ESTOQUE_MUNICIPIO | CAGED_ESTOQUE_TURISMO | CERTIFICADO | CATEGORIA | Cidade_acento |
+| cidade | estado | imagem | populacao | densidade_demografica | salario_medio | pessoas_ocupada | populacao_ocupada | percentual_meio_minimo | taxa_escolaridade | ideb_anosiniciais | ideb_anosfinais | matriculas_fundamental | matriculas_medio | docentes_fundamental | docentes_medio | estabelecimentos_fundamental | estabelecimentos_medio | pib | percentual_externas | idhm | total_receitas | total_despesas | mortalidade | internacoes_diarreia | estabelecimento_sus | area_urbana | esgoto | arborizacao | urbanizacao | populazao_risco | bioma | sistema_costeiro | area_territorial | regiao_intermediaria | mesorregiao | microrregiao | codigo_municipio | svg_mapa | link_ibge | texto_populacao | texto_trabalho | texto_educacao | texto_economia | texto_saude | texto_meio_ambiente | texto_territorio | _possui_gd | _possui_top100c15 | _possui_top100c30 | _possui_situacional | cidade_caged | caged_municipio | caged_turismo | caged_estoque_municipio | caged_estoque_turismo | certificado | categoria | cidade_acento |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | Assis Brasil | AC | 1200054.jpg | 8100 | 1,63 | 2,3 | 545 | 7,13 | 47,1 | 85,1 | 4,6 | nan | 2536 | 394 | 92 | 18 | 67 | 2 | 17507,67 | nan | 0,588 | 18177,08 | 17004,91 | 13,95 | 2,3 | 5 | 2,04 | 23,1 | 26,5 | 0 | nan | Amazônia | Não pertence | 4979,073 | Rio Branco | Vale do Acre | Brasiléia | 1200054 | [Link](https://lohmannesilva.blob.core.windows.net/$web/projeto/green_destinations/svg/1200054.svg) | [Link](https://cidades.ibge.gov.br/municipio/1200054) | Em 2022, a população era de 8.100 habitantes e a densidade demográfica era de 1,63 hab/km². | Em 2021, o salário médio mensal era de 2,3 salários mínimos. A proporção de pessoas ocupadas era de 7,13%. | Em 2010, a taxa de escolarização de 6 a 14 anos era de 85,1%. IDEB 2021 anos iniciais: 4,6. | nan | Mortalidade infantil: 13,95 por 1.000. Internações por diarreia: 2,3 por 1.000. | Esgotamento adequado: 23,1%. Arborização: 26,5%. Urbanização adequada: 0%. | Área de 4.979,073 km², posição 13 de 22 no estado. | False | False | False | True | 120005 | 2 | 0 | 235 | 5 | nan | D | assis brasil |
 | Cruzeiro do Sul | AC | 1200203.jpg | 91888 | 10,46 | 1,8 | 11869 | 13,22 | 44,2 | 94,9 | 5,4 | 4,8 | 18823 | 5412 | 756 | 269 | 148 | 23 | 22934,82 | 88,1 | 0,664 | 139636,41 | 135990,85 | 10,64 | 1 | 40 | 26,91 | 12,7 | 37,9 | 3,7 | nan | Amazônia | Não pertence | 8783,47 | Cruzeiro do Sul | Vale do Juruá | Cruzeiro do Sul | 1200203 | [Link](https://lohmannesilva.blob.core.windows.net/$web/projeto/green_destinations/svg/1200203.svg) | [Link](https://cidades.ibge.gov.br/municipio/1200203) | Em 2022, a população era de 91.888 habitantes e a densidade demográfica era de 10,46 hab/km². | Em 2021, o salário médio mensal era de 1,8 salários mínimos. A proporção de pessoas ocupadas era de 13,22%. | Em 2010, a taxa de escolarização era de 94,9%. IDEB 2021: 5,4 (iniciais) e 4,8 (finais). | PIB per capita (2021): R$ 22.934,82. Receitas externas (2015): 88,1%. | Mortalidade infantil: 10,64 por 1.000. Internações por diarreia: 1 por 1.000. | Esgotamento adequado: 12,7%. Arborização: 37,9%. Urbanização adequada: 3,7%. | Área de 8.783,47 km², posição 6 de 22 no estado. | False | False | False | True | 120020 | 61 | -4 | 7390 | 284 | nan | C | cruzeiro do sul |
@@ -294,7 +303,7 @@ Esta base contém **dados estatísticos e demográficos dos municipios** brasile
 
 Esta base funciona como um **boletim de avaliação detalhado dos destinos turísticos brasileiros** para o ano de 2023, consolidando o nível de conformidade das cidades em relação a um conjunto de critérios de sustentabilidade e gestão. Para cada exigência, a tabela registra se o município cumpriu ou não o requisito.
 
-| CIDADE | ESTADO | PAIS | ANO | CRITERIO | AVALIACAO | ORDEM | THEME | TOPIC | CRITERIA | TOPIC_PT | TOPIC_US | THEME_PT | THEME_US | CHAVE | CODIGO_MUNICIPIO | CRITERIO_US | CRITERIO_PT | THEME_ES | TOPIC_ES | CRITERIO_ES |
+| cidade | estado | pais | ano | criterio | avaliacao | ordem | theme | topic | criteria | topic_pt | topic_us | theme_pt | theme_us | chave | codigo_municipio | criterio_us | criterio_pt | theme_es | topic_es | criterio_es |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Bombinhas | SC | BRASIL | 2023 | 1.100000 | 2.000000 | 1,01 | 1 | 1.100000 | 1.1.01 | Compromisso e organizaÃ§Ã£o | Commitment & Organisation | Gerenciamento de destinos | Destination Management | BOMBINHAS-SC | 4202453 | Sustainable destination coordinator | Coordenador de destinos sustentÃ¡veis | GestiÃ³n del destino | Compromiso y organizaciÃ³n | Coordinador de sostenibilidad |
 | Bombinhas | SC | BRASIL | 2023 | 1.200000 | 2.000000 | 1,02 | 1 | 1.100000 | 1.1.02 | Compromisso e organizaÃ§Ã£o | Commitment & Organisation | Gerenciamento de destinos | Destination Management | BOMBINHAS-SC | 4202453 | Management structure | Estrutura de gestÃ£o | GestiÃ³n del destino | Compromiso y organizaciÃ³n | Estructura de gestiÃ³n |
@@ -332,7 +341,7 @@ Esta base funciona como um **boletim de avaliação detalhado dos destinos turí
 
 Esta base atua como um histórico de desempenho geral dos destinos turísticos ao longo do tempo, consolidando o resultado final das avaliações das cidades, mostrando de forma resumida quantos pontos o município fez, quantos critérios foram avaliados e sua taxa de sucesso.
 
-| TOTAL | NUMERO_CRITERIOS | APROVEITAMENTO | EIXO | ORDEM | ANO | CODIGO_MUNICIPIO | ORIGEM | CHAVE |
+| total | numero_criterios | aproveitamento | eixo | ordem | ano | codigo_municipio | origem | chave |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 126 | 84 | 0,75 | 2023.100000 | 202301 | 2023 | 4202453 | GD | 2023.1-4202453 |
 | 122 | 84 | 0,72619047619047616 | 2023.100000 | 202301 | 2023 | 4208005 | GD | 2023.1-4208005 |
@@ -356,7 +365,7 @@ Esta base atua como um histórico de desempenho geral dos destinos turísticos a
 
 Esta base contém os dados de validação estatística do sistema, resultados de Testes Qui-Quadrado, uma fórmula matemática utilizada para descobrir se existe alguma relação de dependência ou não entre duas variáveis diferentes. Sendo assim, utilizado para cruzar pares de perguntas do questionário situacional (por exemplo, testando a "Q02" contra a "Q08") ou pares de critérios de certificação (como o critério "3.18" contra o "1.1"). O objetivo é provar estatisticamente se a resposta ou o desempenho do municipio em um determinado questio afeta o seu resultado em outro.
 
-| CATEGORIA | IDENTITY_A | IDENTITY_B | CHI2 | P_VALUE | GRAU_LIBERDADE | AREA_CAUDA_SUPERIOR | COEFICIENTE_CONTIGENCIA | RESULTADO | CHAVE_STATS |
+| categoria | identity_a | identity_b | chi2 | p_value | grau_liberdade | area_cauda_superior | coeficiente_contigencia | resultado | chave_stats |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Green Destinations | 3.18 | 1.1 | 0 | 1 | 0.000000 | nan | 0 | independentes | 3.18-1.1 |
 | Green Destinations | 3.18 | 1.10 | 0 | 1 | 0.000000 | nan | 0 | independentes | 3.18-1.10 |
@@ -381,7 +390,7 @@ Esta base contém os dados de validação estatística do sistema, resultados de
 
 Esta base lista diversos municipios brasileiros e os classifica de acordo com o seu perfil ou vocação turística, funcionando como um mapeamento que define o papel de cada cidadeno cenário do turismo nacional, dividindo-as em locais com oferta complementar, polos turísticos principais ou bases de apoio logístico.
 
-| Municipio | Categoria |
+| municipio | categoria |
 | --- | --- |
 | AbaetÃ© | Municipio Com Oferta TurÃ­stica Complementar |
 | Abaetetuba | Municipio Com Oferta TurÃ­stica Complementar |
@@ -401,7 +410,7 @@ Esta base lista diversos municipios brasileiros e os classifica de acordo com o 
 
 Esta base funciona como um banco de links de imagens, associando os destinos turísticos a um selo ou distintivo visual de certificação.
 
-| HAVE | SELO |
+| chave | selo |
 | --- | --- |
 | BOMBINHAS-SC | https://lohmannesilva.blob.core.windows.net/$web/projeto/green_destinations/image/GD-115x115.png |
 | ITÃ-SC | https://lohmannesilva.blob.core.windows.net/$web/projeto/green_destinations/image/GD-115x115.png |
@@ -418,7 +427,7 @@ Esta base funciona como um banco de links de imagens, associando os destinos tur
 
 Esta base é uma pequena tabela de referência estrutural ou um dicionário de ordenação para o sistema, definindo uma hierarquia e a ordem lógica das etapas do processo de certificação de sustentabilidade.
 
-| ETAPA | ORDEM |
+| etapa | ordem |
 | --- | --- |
 | 15 CritÃ©rios | 1 |
 | 30 CritÃ©rios | 2 |
@@ -433,7 +442,7 @@ Esta base é uma pequena tabela de referência estrutural ou um dicionário de o
 
 Esta base funciona como um mapa de conexões estatísticas entre os diferentes critérios da certificação Green Destinations, não apenas listando os dados, mas mostrando como o sucesso de um indicador (como "Gestão de Resíduos") pode estar ligado ao desempenho em outro (como "Satisfação do Visitante").
 
-| CATEGORIA | IDENTITY_A | IDENTITY_B | COEFFICIENT | P_VALUE | RESULTADO | THEME_A | THEME_B | CRITERIO_A | CRITERIO_B | CHAVE_STATS | AREA | COR | ORDEM_RESULTADO | QUI2_RESULTADO | GRUPO_RESULTADO |
+| categoria | identity_a | identity_b | coefficient | p_value | resultado | theme_a | theme_b | criterio_a | criterio_b | chave_stats | area | cor | ordem_resultado | qui2_resultado | grupo_resultado |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | Green Destinations | 1.1 | 1.10 | nan | nan | Não é possível calcular a correlação | Gerenciamento de destinos | Gerenciamento de destinos | Uma pessoa foi designada com a responsabilidade e a autoridade para a implementação adequada e a comunicação do gerenciamento de destinos sustentáveis. | As características, o volume, as atividades e as preferências dos visitantes são monitorados e relatados publicamente. | 1.1-1.10 | Gerenciamento de destinos | #FFFFFF | 0 | independentes | Outros Resultados |
 | Green Destinations | 1.1 | 1.11 | nan | nan | Não é possível calcular a correlação | Gerenciamento de destinos | Gerenciamento de destinos | Uma pessoa foi designada com a responsabilidade e a autoridade para a implementação adequada e a comunicação do gerenciamento de destinos sustentáveis. | A satisfação dos visitantes com a qualidade e a sustentabilidade da experiência do destino está sendo monitorada e divulgada publicamente. Se necessário, são tomadas medidas em resposta. | 1.1-1.11 | Gerenciamento de destinos | #FFFFFF | 0 | independentes | Outros Resultados |
@@ -464,7 +473,7 @@ Esta base funciona como um mapa de conexões estatísticas entre os diferentes c
 
 Esta base funciona como uma pequena tabela de referência ou dicionário de configuração para o sistema, definindo quais são os idiomas oficiais suportados pela plataforma de dados.
 
-| LAN | UA | E |
+| lan | ua | e |
 | --- | --- | --- |
 | PT-BR | nan | nan |
 | US-EN | nan | nan |
@@ -478,7 +487,7 @@ Esta base funciona como uma pequena tabela de referência ou dicionário de conf
 
 Esta base funciona como um dicionário de tradução e estruturação de interface para os painéis de avaliação do programa Top 100, possuindo a configuração de como os cabeçalhos e rótulos das tabelas devem ser exibidos no sistema.
 
-| ORDEM | TITULO | LANGUAGE | GRUPO |
+| ordem | titulo | language | grupo |
 | --- | --- | --- | --- |
 | 1 | CritÃ©rio | PT-BR | 1 |
 | 2 | 2021 | PT-BR | 2 |
@@ -497,7 +506,7 @@ Esta base funciona como um dicionário de tradução e estruturação de interfa
 
 Esta base fnciona como um **dicionário de tradução e estruturação de interfae** para os painéis de avaliação da certificação completa do programa Green Destinations.
 
-| ORDEM | TITULO | LANGUAGE | GRUPO | COLUNA |
+| ordem | titulo | language | grupo | coluna |
 | --- | --- | --- | --- | --- |
 | 0 | TÃ³pico | PT-BR | 1 | TÃ³pico |
 | 1 | % Performace | PT-BR | 2 | % Performace |
@@ -517,7 +526,7 @@ Esta base fnciona como um **dicionário de tradução e estruturação de interf
 
 Esta base atua como um dicionário de tradução e estruturação de interface, mas diferente do PIVOT_TOPC15 e PIVOT_GD ele é voltado especificamente para os painéis de avaliação do programa Top 100 referentes ao corte de 30 critérios.
 
-| ORDEM | TITULO | LANGUAGE | GRUPO |
+| ordem | titulo | language | grupo |
 | --- | --- | --- | --- |
 | 1 | Nome | PT-BR | 1 |
 | 2 | 2021 | PT-BR | 2 |
@@ -536,7 +545,7 @@ Esta base atua como um dicionário de tradução e estruturação de interface, 
 
 Esta base funciona como o **dicionário de dados e mapa estrutural do questionário da pesquisa situacional** aplicada aos municípios.
 
-| QUESTAO | GRUPO | CODIGO_ORIGINAL | TEXTO | ESCALA | GRUPO_ID | ORDEM_2 |
+| questao | grupo | codigo_original | texto | escala | grupo_id | ordem_2 |
 | --- | --- | --- | --- | --- | --- | --- |
 | Q01 | Perfil do Entrevistado | 0.800000 | Nos Ãºltimos 5 anos como vocÃª avalia o turismo do municÃ­pio? | NUMERICA | 0 | 1 |
 | Q02 | Perfil do Entrevistado | 0.900000 | Na sua percepÃ§Ã£o nos prÃ³ximos 5 anos como vocÃª avalia o turismo do municÃ­pio? | NUMERICA | 0 | 2 |
@@ -558,7 +567,7 @@ Esta base funciona como o **dicionário de dados e mapa estrutural do questioná
 
 Esta base contém os dados de histórico extremamente detalhado sobre o desempenho de cada município avaliado. Dessa forma, mostrando o resultado do município pergunta por pergunta, ou critério por critério. Ela consolida as notas de diferentes programas, como pesquisa situacional local (IDEL) e os diferentes níveis da certificação internacional (Top 100 e Green Destinations), trazendo também as descrições literais dessas regras traduzidas em diferentes idiomas.
 
-| TOTAL | NUMERO_CRITERIOS | APROVEITAMENTO | EIXO | ORDEM | ORIGEM | CHAVE | CRITERIO_ | THEME_NOME | TOPIC_NOME | LANGUAGE | CRITERIO_NOME | ANO | CODIGO_MUNICIPIO | THEME | TOPIC | CRITERIO |
+| total | numero_criterios | aproveitamento | eixo | ordem | origem | chave | criterio_ | theme_nome | topic_nome | language | criterio_nome | ano | codigo_municipio | theme | topic | criterio |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 6,7166666666666668 | 32 | 0,020989583333333332 | 2023.400000 | 202304 | IDEL | 2023.4-4205555 | Q04 | AnÃ¡lise Situacional | Gerenciamento de destinos | PT-BR | A estrutura organizacional  (Secretaria/Pasta de Turismo) atende as necessidades do municÃ­pio? | 2023 | 4205555 | 1 | 1.000000 | Q04 |
 | 7,1159420289855069 | 32 | 0,022237318840579709 | 2023.400000 | 202304 | IDEL | 2023.4-2411205 | Q04 | AnÃ¡lise Situacional | Gerenciamento de destinos | PT-BR | A estrutura organizacional  (Secretaria/Pasta de Turismo) atende as necessidades do municÃ­pio? | 2023 | 2411205 | 1 | 1.000000 | Q04 |
@@ -598,7 +607,7 @@ Esta base contém os dados de histórico extremamente detalhado sobre o desempen
 
 Esta base contém as **respostas reais e detalhadas** da pesquisa situacional aplicada aos municípios, trazendo os resultados das avaliações.
 
-| DATA | CODIGO_MUNICIPIO | CIDADE | ESTADO | QUESTAO | RESPOSTA | GRUPO_ID | ANO | NOTA | THEME | TOPIC | CRITERIO | ESCALA |
+| data | codigo_municipio | cidade | estado | questao | resposta | grupo_id | ano | nota | theme | topic | criterio | escala |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 2020-09-16 00:00:00,000 | 4217402 | Schroeder | SC | Q02 | 8 | 0 | 2020 | 8.000000 | 0 | 0 | Q02 | NUMERICA |
 | 2020-09-16 00:00:00,000 | 4217402 | Schroeder | SC | Q19 | 8 | 3 | 2020 | 8.000000 | 3 | 3 | Q19 | NUMERICA |
@@ -626,7 +635,7 @@ Esta base contém as **respostas reais e detalhadas** da pesquisa situacional ap
 
 Esta base complementa a análise do mercado de trabalho, focando não no número de pessoas, mas na massa salairal gerada por cada setor.
 
-| CODIGO | ESTADO | CIDADE | Ano | Atributo | RemuneracaoTotal |
+| codigo | estado | cidade | ano | atributo | remuneracaototal |
 | --- | --- | --- | --- | --- | --- |
 | 310010 | MG | ABADIA DOS DOURADOS | 2023 | 06:EXTRAÃÃO DE PETRÃLEO E GÃS NATURAL | 0 |
 | 310020 | MG | ABAETE | 2023 | 06:EXTRAÃÃO DE PETRÃLEO E GÃS NATURAL | 0 |
@@ -647,13 +656,16 @@ Esta base complementa a análise do mercado de trabalho, focando não no número
 
 Esta base diz respeito ao mercado de trabalho, focando na força de trabalho ativa (as pessoas).
 
-| CODIGO | ESTADO | CIDADE | Ano | Atributo | PEA |
+| codigo | estado | cidade | ano | atributo | pea |
 | --- | --- | --- | --- | --- | --- |
 | 310010 | MG | ABADIA DOS DOURADOS | 2024 | 51:TRANSPORTE AÃREO | 0 |
 | 310020 | MG | ABAETE | 2024 | 51:TRANSPORTE AÃREO | 0 |
 | 310030 | MG | ABRE CAMPO | 2024 | 51:TRANSPORTE AÃREO | 0 |
 | 310040 | MG | ACAIACA | 2024 | 51:TRANSPORTE AÃREO | 0 |
 | 310050 | MG | ACUCENA | 2024 | 51:TRANSPORTE AÃREO | 0 |
+
+### Explorando as colunas:
+
 - **CODIGO:** Corresponde ao código identificador do IBGE para o município.
 - **ESTADO:** Indica a sigla da Unidade Federativa onde o município está localizado.
 - **CIDADE:** Apresenta o nome completo do município, geralmente padronizado em letras maiúsculas para facilitar a leitura.

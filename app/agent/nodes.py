@@ -125,7 +125,7 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
 
     docs = guide_vector_store.similarity_search(
         query=user_question,
-        k=8,
+        k=6,
         namespace="data_dictionary"
     )
     if not docs:
@@ -133,30 +133,29 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
     
     dictionary_context = "\n".join([f"{doc.page_content}" for doc in docs])
 
-    RAG_PROMPT = f"""Você é um especialista em modelagem de dados. 
-    Analise a pergunta do usuário e o dicionário de dados abaixo, então crie um plano 
-    técnico descrevendo EXATAMENTE quais tabelas e colunas acessar para responder.
+    RAG_PROMPT = f"""Você é um Arquiteto de Dados focado em extração técnica.
+    Sua missão é ler o dicionário e entregar um PLANO MINIMALISTA para um Agente SQL.
 
-    PERGUNTA DO USUÁRIO:
-    {user_question}
+    PERGUNTA: {user_question}
+    DICIONÁRIO: {dictionary_context}
 
-    DICIONÁRIO DE DADOS (tabelas e colunas relevantes):
-    {dictionary_context}
+    --- REGRAS DE OURO ---
+    1. SEJA CONCISO: Use listas e termos técnicos. Proibido explicações longas ou textos introdutórios.
+    2. FOCO EM TIPAGEM: Se uma coluna for TEXT/VARCHAR e houver cálculo (AVG, SUM, >, <), escreva em negrito: "REQUER CAST(coluna AS NUMERIC)".
+    - TRATAMENTO DE NÚMEROS: As notas no banco usam VÍRGULA (ex: '3,5'). 
+    - Para calcular a média, você DEVE usar: AVG(CAST(REPLACE(nota, ',', '.') AS NUMERIC)).
+    3. NOMES EXATOS: Use apenas os nomes de tabelas e colunas do dicionário.
 
-    Retorne um plano estruturado com:
-    1. TABELAS PRINCIPAIS: quais tabelas usar e por quê
-    2. COLUNAS NECESSÁRIAS: quais colunas de cada tabela
-    3. LÓGICA DE JOIN: como conectar as tabelas (via codigo_municipio)
-    4. FILTROS SUGERIDOS: condições WHERE baseadas na pergunta
-    5. ORDENAÇÃO: como ordenar os resultados para responder melhor
+    --- FORMATO DO PLANO (OBRIGATÓRIO) ---
+    - TABELAS: [Nome exato e versão]
+    - COLUNAS/CASTS: [Nome da coluna] -> [Tipo no DB] -> [Ação: manter ou CAST]
+    - JOIN: [Tabela A] + [Tabela B] ON [coluna_comum]
+    - FILTROS: [Coluna] [Condição] (Ex: nota IS NOT NULL)
+    - ORDER: [Coluna] [Sentido]
 
-    DIRETRIZES DE CAUTELA TÉCNICA:
-    1. TIPAGEM DE DADOS: Verifique se colunas que representam números (notas, valores, anos) estão descritas como TEXT ou VARCHAR no dicionário.
-    2. CASTING OBRIGATÓRIO: Se o dicionário indicar que uma coluna é texto, mas o usuário pede um cálculo (MÉDIA, SOMA, MAIOR QUE), seu plano DEVE instruir o Agente SQL a usar 'CAST(coluna AS NUMERIC)'.
-    3. TRATAMENTO DE NULOS: Para colunas de 'nota', sempre sugira filtrar 'IS NOT NULL'.
+    SINTAXE POSTGRES: Se usar SELECT DISTINCT, lembre-se que todas as colunas do ORDER BY devem estar no SELECT. Se precisar ordenar por uma nota convertida, inclua essa conversão no SELECT também.
 
-    Seja específico com nomes reais de tabelas e colunas conforme o dicionário.
-    NÃO escreva SQL — apenas o plano em linguagem natural.
+    NÃO escreva código SQL. NÃO descreva o significado dos dados. Apenas o roteiro técnico.
     """
 
     response = await model.ainvoke([SystemMessage(content=RAG_PROMPT)], config=config)
@@ -237,6 +236,11 @@ async def agent(state: AgentState, config: RunnableConfig):
         { "- Utilize o PLANO DE ACESSO acima para identificar as tabelas e colunas corretas."
             if has_tool_results else
             "Se precisar de dados, use as ferramentas de SQL disponíveis. O DICIONÁRIO ACIMA já indica as tabelas e colunas corretas — use-o." }
+
+        --- REGRAS DE EXECUÇÃO ---
+        1. Se o resultado da ferramenta SQL vier VAZIO ([]), NÃO repita a mesma query. 
+        2. Se vier vazio, tente uma query mais simples ou informe ao usuário que os dados não foram encontrados.
+        3. É PROIBIDO chamar a mesma ferramenta com os mesmos argumentos mais de uma vez.
         """
         if "does not exist" in str(state["messages"][-1].content):
             prompt_with_mission += "\n\nAVISO: A query anterior falhou devido a erro de tipo de dados. Verifique se colunas numéricas precisam de CAST para FLOAT ou NUMERIC."
@@ -443,9 +447,35 @@ async def classify_intent(state: AgentState, config: RunnableConfig) -> AgentSta
     """
     print("--- CLASSIFY INTENT ---")
  
-    last_msg = state["messages"][-1].content
+    last_msg = state["messages"][-1].content    
+    
+    user_text = last_msg.lower().strip()
+
+    sql_keywords = [
+        "banco", "base de dados", "dados", "tabela", "coluna", "sql",
+        "listar", "ranking", "média", "media", "soma", "total", "contagem",
+        "quantos", "comparar", "comparação", "filtrar", "top", "maior", "menor",
+        "cidade", "município", "destino", "ibge", "rais", "indicador", "critério",
+        "criterio", "selo", "turismo", "sustentabilidade", "correlação", "correlacao", "GD"
+    ]
+
+    conversa_keywords = [
+        "oi", "olá", "ola", "bom dia", "boa tarde", "boa noite", "quem é você",
+        "quem e voce", "como você está", "como voce esta", "obrigado", "valeu",
+        "meu nome é", "meu nome e", "quem sou eu", "lembra de mim"
+    ]
+
+    if any(k in user_text for k in sql_keywords):
+        print("   Intent heurístico: SQL")
+        return {"intent": "SQL", "dictionary_context": ""}
+
+    if any(k in user_text for k in conversa_keywords):
+        print("   Intent heurístico: CONVERSA")
+        return {"intent": "CONVERSA", "dictionary_context": ""}
  
-    CLASSIFY_PROMPT = f"""Você é um classificador de intenções. Leia a mensagem do usuário e responda
+    else:
+        
+        CLASSIFY_PROMPT = f"""Você é um classificador de intenções. Leia a mensagem do usuário e responda
 APENAS com uma das duas palavras abaixo, sem nenhum texto adicional:
  
   SQL       — se a resposta exige consultar tabelas de dados (rankings, médias,
