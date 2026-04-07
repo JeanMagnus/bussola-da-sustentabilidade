@@ -11,3 +11,6 @@ class AgentState(TypedDict):
     intent: str
     dictionary_context: str
     sql_plan: str
+    total_tokens: int
+    input_tokens: int
+    output_tokens: int

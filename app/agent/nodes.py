@@ -7,6 +7,7 @@ from app.agent.prompt import SYSTEM_PROMPT
 from app.agent.tools import tools_agent, tools_chat
 from app.core.config import trimmer
 from app.agent.memory import vector_store, guide_vector_store
+from app.agent.utils import token_count, token_count_total
 from langgraph.graph import END
 from langchain.agents.middleware import before_model, after_model
 from langchain_core.messages import BaseMessage, AIMessage, SystemMessage, HumanMessage, RemoveMessage, ToolMessage
@@ -99,6 +100,10 @@ async def summarization_node(state: AgentState, config: RunnableConfig) -> Agent
         HumanMessage(content=f"Por favor, resuma esta conversa:\n\n{message_content}"),
     ], config=config)
 
+    # VISUALIZANDO TOKENS
+    token_count(summary_response, "SUMMARIZATION_NODE")
+    usage = token_count_total(state, summary_response)
+
     summary_message = SystemMessage(
         content=(
             f"Contexto da conversa anterior (use apenas como referência histórica, "
@@ -107,6 +112,7 @@ async def summarization_node(state: AgentState, config: RunnableConfig) -> Agent
             f"Continue a conversa. Para qualquer pergunta sobre dados, consulte o banco diretamente."
         )
     )
+
     # Remover todas as mensagens antigas e manter apenas o resumo + última mensagem do usuário
     remove_messages = [RemoveMessage(id=msg.id) for msg in messages if msg.id is not None]
 
@@ -114,7 +120,7 @@ async def summarization_node(state: AgentState, config: RunnableConfig) -> Agent
         *remove_messages,  # desempacotando uma lista dentro de outra
         summary_message,  # Ficará só o SystemMessage com resumo
         messages[-1],  # Última mensagem (sempre HumanMessage nesse fluxo)
-    ]}
+    ], **usage}
 
 
 async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
@@ -160,8 +166,12 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
 
     response = await model.ainvoke([SystemMessage(content=RAG_PROMPT)], config=config)
 
+    # VISUALIZANDO TOKENS
+    token_count(response, "RAG_AGENT")
+    usage = token_count_total(state, response)
+
     print(f"--- RAG AGENT: plano gerado ({len(response.content)} chars) ---")
-    return {"sql_plan": response.content}
+    return {"sql_plan": response.content, **usage}
 
 #model_with_tools = model.bind_tools(tools_agent)
 async def agent(state: AgentState, config: RunnableConfig):
@@ -274,29 +284,25 @@ async def agent(state: AgentState, config: RunnableConfig):
 
 
         # VISUALIZANDO TOKENS
+        token_count(response, "AGENT")
+        usage = token_count_total(state, response)
 
-        if hasattr(response, "usage_metadata") and response.usage_metadata:
-            #print(f"Tokens usados: {response.usage_metadata.total_tokens}")
-            usage = response.usage_metadata
-            print(f"TOKENS USADOS NO NÓ AGENT")
-            print(f"   |-- Entrada (Prompt): {usage.get('input_tokens')}")
-            print(f"   |-- Saída (Geração): {usage.get('output_tokens')}")
-            print(f"   |-- Total da etapa: {usage.get('total_tokens')}")
-    
-        return {"messages": [response], "error_occurred": False}
-    
+        return {"messages": [response], "error_occurred": False, **usage}
+
     except BadRequestError as e:
         print(f"Erro de conteúdo: {e}")
         return {
             "messages": [AIMessage(content="Sinto muito, essa mensagem acionou os filtros de segurança.")],
-            "error_occurred": True
+            "error_occurred": True,
+            **usage
             }
     
     except Exception as e:
         print(f"Erro inesperado: {e}")
         return {
             "messages": [AIMessage(content="Ocorreu um erro inesperado. Por favor, tente novamente.")],
-            "error_occurred": True
+            "error_occurred": True,
+            **usage
             }
 
 # def should_continue(state: AgentState):
@@ -329,28 +335,32 @@ async def guardrail_input(state: AgentState, config: RunnableConfig):
         """
         response = await moderation_model.ainvoke([GUARD_PROMPT], config=config)
 
+        # VISUALIZANDO TOKENS
+        token_count(response, "GUARDRAIL_INPUT")
+        usage = token_count_total(state, response)
+
         if "BLOQUEAR1" in response.content:
-            return {"messages": [AIMessage(content="Desculpa, sua mensagem viola nossas diretrizes de uso.")], "error_occurred": False }
+            return {"messages": [AIMessage(content="Desculpa, sua mensagem viola nossas diretrizes de uso.")], "error_occurred": False, **usage}
         if "BLOQUEAR2" in response.content:
-            return {"messages": [AIMessage(content="Desculpa, nosso sistema não é capaz de responder perguntas fora do escopo do tema. Refaça sua pergunta no contexto desse sistema.")], "error_occurred": False }
-    
-        return {"is_blocked": False, "error_occurred": False}
-    
+            return {"messages": [AIMessage(content="Desculpa, nosso sistema não é capaz de responder perguntas fora do escopo do tema. Refaça sua pergunta no contexto desse sistema.")], "error_occurred": False, **usage}
+
+        return {"is_blocked": False, "error_occurred": False, **usage}
+
     except BadRequestError as e:
         print(f"Erro de conteúdo: {e}")
         return {
             "messages": [AIMessage(content="Sinto muito, essa mensagem acionou os filtros de segurança.")],
-            "error_occurred": True 
+            "error_occurred": True,
+            **usage
             }
     
     except Exception as e:
         print(f"Erro inesperado: {e}")
         return {
             "messages": [AIMessage(content="Ocorreu um erro inesperado. Por favor, tente novamente.")],
-            "error_occurred": True
+            "error_occurred": True,
+            **usage
             }
-
-
 
 async def moderation_input(state: AgentState, config: RunnableConfig):
     print("--- MODERATION_INPUT ---")
@@ -501,9 +511,14 @@ Mensagem: "{last_msg}"
 Responda APENAS "SQL" ou "CONVERSA"."""
  
     response = await summarizer_model.ainvoke([CLASSIFY_PROMPT], config=config)
+
+    # VISUALIZANDO TOKENS
+    token_count(response, "CLASSIFY_INTENT")
+    usage = token_count_total(state, response)
+
     intent = "SQL" if "SQL" in response.content.upper() else "CONVERSA"
     print(f"   Intent classificado: {intent}")
-    return {"intent": intent, "dictionary_context": ""}
+    return {"intent": intent, "dictionary_context": "", **usage}
 
 async def dictionary_retrieval(state: AgentState, config: RunnableConfig) -> AgentState:
     """
@@ -668,6 +683,13 @@ async def moderation_output(state: AgentState, config: RunnableConfig):
         """
 
         response = await moderation_model.ainvoke([MOD_PROMPT], config=config)
+
+
+        # VISUALIZANDO TOKENS
+        token_count(response, "MODERATION_OUTPUT")
+        usage = token_count_total(state, response)
+
+
         decision = response.content.strip().upper()
 
         if "BLOQUEAR" in decision:
@@ -684,28 +706,21 @@ async def moderation_output(state: AgentState, config: RunnableConfig):
                     f"A resposta a ser reescrita é: '{last_msg}'"
                 )
             )
-            return {"messages": [msg_feedback], "error_occurred": False }
+            return {"messages": [msg_feedback], "error_occurred": False, **usage }
         
         #return Command(goto=END)
 
-        # VISUALIZANDO TOKENS
 
-        if hasattr(response, "usage_metadata") and response.usage_metadata:
-            #print(f"Tokens usados: {response.usage_metadata.total_tokens}")
-            usage = response.usage_metadata
-            print(f"TOKENS USADOS NO NÓ MODERATION_OUTPUT")
-            print(f"   |-- Entrada (Prompt): {usage.get('input_tokens')}")
-            print(f"   |-- Saída (Geração): {usage.get('output_tokens')}")
-            print(f"   |-- Total da etapa: {usage.get('total_tokens')}")
 
-        return {"messages": [], "error_occurred": False}
+        return {"messages": [], "error_occurred": False, **usage }
 
     except Exception as e:
         print(f"Erro inesperado: {e}")
         return {
             "messages": [AIMessage(content="Ocorreu um erro inesperado. Por favor, tente novamente.")],
-            "error_occurred": True 
-            }
+            "error_occurred": True,
+            **usage
+        }
 
 
 # def should_continue(state: AgentState):
