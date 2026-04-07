@@ -2,6 +2,7 @@ import pandas as pd
 import os
 from sqlalchemy import create_engine
 from dotenv import load_dotenv
+import unicodedata
 
 load_dotenv()
 
@@ -43,6 +44,22 @@ tabelas_mapeadas = {
     "dicionario": "dicionario_dados_agente.csv"
 }
 
+
+def remover_acentos_e_limpar(text):
+    """
+    Remove acentos, converte para caixa alta e remove caracteres invisíveis.
+    Transforma 'ITÁ-SC' em 'ITA-SC'.
+    """
+    if not isinstance(text, str):
+        return text
+    
+    # Normaliza para remover acentos (NFD separa o caractere da acentuação)
+    text = unicodedata.normalize('NFD', text)
+    text = text.encode('ascii', 'ignore').decode('utf-8')
+    
+    # Limpeza final: caixa alta e remove espaços extras
+    return text.strip().upper()
+
 def importar_dados():
     if not URI_DATABASE_BUSSOLA:
         print("Erro: URI_DATABASE_BUSSOLA não encontrada nas variáveis de ambiente.")
@@ -61,6 +78,11 @@ def importar_dados():
                 # Normalização de nomes de colunas 
                 # Remove espaços e pontos que quebram queries SQL automáticas
                 df.columns = [c.strip().replace(' ', '_').replace('.', '_').lower() for c in df.columns]
+                
+                # Identifica colunas de texto (object) e aplica a higienização
+                colunas_texto = df.select_dtypes(include=['object']).columns
+                for col in colunas_texto:
+                    df[col] = df[col].apply(remover_acentos_e_limpar)
                 
                 # Enviando para o Postgres
                 df.to_sql(tabela, engine, if_exists='replace', index=False)
