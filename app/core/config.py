@@ -29,10 +29,24 @@ class Settings:
 
     GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
+    AZURE_DEEPSEEK_API_KEY = os.getenv("AZURE_DEEPSEEK_API_KEY")
+    AZURE_DEEPSEEK_ENDPOINT = os.getenv("AZURE_DEEPSEEK_ENDPOINT")
+    AZURE_DEEPSEEK_API_VERSION = os.getenv("AZURE_DEEPSEEK_API_VERSION")
+    AZURE_DEEPSEEK_DEPLOYMENT = os.getenv("AZURE_DEEPSEEK_DEPLOYMENT")
+
 settings = Settings()
 
 db_bussola = SQLDatabase.from_uri(settings.URI_DATABASE_BUSSOLA)
 
+
+rag_model = AzureChatOpenAI(
+    model = "gpt-5-nano",
+    azure_deployment = settings.AZURE_OPENAI_DEPLOYMENT,
+    api_version = settings.AZURE_OPENAI_API_VERSION,
+    azure_endpoint = settings.AZURE_OPENAI_ENDPOINT,
+    api_key = settings.AZURE_OPENAI_API_KEY,
+    temperature = 0,
+)
 
 model = AzureChatOpenAI(
     model = "gpt-5-nano",
@@ -41,7 +55,15 @@ model = AzureChatOpenAI(
     azure_endpoint = settings.AZURE_OPENAI_ENDPOINT,
     api_key = settings.AZURE_OPENAI_API_KEY,
     temperature = 0,
+)
 
+deepseek_model = AzureChatOpenAI(
+    model = "deepseek-v3.2",
+    azure_deployment = settings.AZURE_DEEPSEEK_DEPLOYMENT,
+    api_version = settings.AZURE_DEEPSEEK_API_VERSION,
+    azure_endpoint = settings.AZURE_DEEPSEEK_ENDPOINT,
+    api_key = settings.AZURE_DEEPSEEK_API_KEY,
+    temperature = 0,
 )
 
 # summarizer_model = AzureChatOpenAI(

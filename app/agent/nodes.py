@@ -1,7 +1,7 @@
 import asyncio
 
 from app.core import config
-from app.core.config import model, db_bussola, summarizer_model, moderation_model
+from app.core.config import model, db_bussola, summarizer_model, moderation_model, deepseek_model, rag_model
 from app.agent.state import AgentState
 from app.agent.prompt import SYSTEM_PROMPT
 from app.agent.tools import tools_agent, tools_chat
@@ -139,32 +139,22 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
     
     dictionary_context = "\n".join([f"{doc.page_content}" for doc in docs])
 
-    RAG_PROMPT = f"""Você é um Arquiteto de Dados focado em extração técnica.
-    Sua missão é ler o dicionário e entregar um PLANO MINIMALISTA para um Agente SQL.
+    print("--- DICIONÁRIO RECUPERADO ---")
 
-    PERGUNTA: {user_question}
+    RAG_PROMPT = f"""Extraia do dicionário apenas os metadados necessários para responder: "{user_question}".
+
     DICIONÁRIO: {dictionary_context}
 
-    --- REGRAS DE OURO ---
-    1. SEJA CONCISO: Use listas e termos técnicos. Proibido explicações longas ou textos introdutórios.
-    2. FOCO EM TIPAGEM: Se uma coluna for TEXT/VARCHAR e houver cálculo (AVG, SUM, >, <), escreva em negrito: "REQUER CAST(coluna AS NUMERIC)".
-    - TRATAMENTO DE NÚMEROS: As notas no banco usam VÍRGULA (ex: '3,5'). 
-    - Para calcular a média, você DEVE usar: AVG(CAST(REPLACE(nota, ',', '.') AS NUMERIC)).
-    3. NOMES EXATOS: Use apenas os nomes de tabelas e colunas do dicionário.
+    --- FORMATO DE SAÍDA ---
+    TABELAS: [nome]
+    COLUNAS: [nome] -> [tipo] -> [Ação: manter ou CAST]
+    NOTA_SQL: Para médias de nota, use obrigatoriamente: AVG(CAST(REPLACE(nota, ',', '.') AS NUMERIC))
+    JOIN: [A] + [B] ON [coluna]
+    FILTROS: [coluna] [condição]
 
-    --- FORMATO DO PLANO (OBRIGATÓRIO) ---
-    - TABELAS: [Nome exato e versão]
-    - COLUNAS/CASTS: [Nome da coluna] -> [Tipo no DB] -> [Ação: manter ou CAST]
-    - JOIN: [Tabela A] + [Tabela B] ON [coluna_comum]
-    - FILTROS: [Coluna] [Condição] (Ex: nota IS NOT NULL)
-    - ORDER: [Coluna] [Sentido]
+    Responda apenas com os dados técnicos, sem introduções."""
 
-    SINTAXE POSTGRES: Se usar SELECT DISTINCT, lembre-se que todas as colunas do ORDER BY devem estar no SELECT. Se precisar ordenar por uma nota convertida, inclua essa conversão no SELECT também.
-
-    NÃO escreva código SQL. NÃO descreva o significado dos dados. Apenas o roteiro técnico.
-    """
-
-    response = await model.ainvoke([SystemMessage(content=RAG_PROMPT)], config=config)
+    response = await rag_model.ainvoke([SystemMessage(content=RAG_PROMPT)], config=config)
 
     # VISUALIZANDO TOKENS
     token_count(response, "RAG_AGENT")
