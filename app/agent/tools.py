@@ -187,4 +187,5 @@ db_tools_filtered = [
     if tool.name not in excluded_tool_names
 ]
 tools_agent = [store_memory_tool, retrieve_memories_tool] + db_tools_filtered
+tools_chat = [store_memory_tool, retrieve_memories_tool]
 tool_node = ToolNode(tools=tools_agent)

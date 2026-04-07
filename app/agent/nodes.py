@@ -4,7 +4,7 @@ from app.core import config
 from app.core.config import model, db_bussola, summarizer_model, moderation_model
 from app.agent.state import AgentState
 from app.agent.prompt import SYSTEM_PROMPT
-from app.agent.tools import tools_agent
+from app.agent.tools import tools_agent, tools_chat
 from app.core.config import trimmer
 from app.agent.memory import vector_store, guide_vector_store
 from langgraph.graph import END
@@ -163,7 +163,7 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
     print(f"--- RAG AGENT: plano gerado ({len(response.content)} chars) ---")
     return {"sql_plan": response.content}
 
-model_with_tools = model.bind_tools(tools_agent)
+#model_with_tools = model.bind_tools(tools_agent)
 async def agent(state: AgentState, config: RunnableConfig):
 
     print("--- AGENT NODE ---")
@@ -250,6 +250,19 @@ async def agent(state: AgentState, config: RunnableConfig):
             if hasattr(m, 'tool_calls'):
                 print(f"   --- Possui tool_calls: {m.tool_calls}")
         messages_trim = [SystemMessage(content=prompt_with_mission)] + messages_trimmer
+
+        if state.get("intent") == "CONVERSA":
+            print(" ROTEANDO MODELO DE CONVERSA")
+            current_tools = tools_chat
+        else:
+            print(" ROTEANDO MODELO DE AGENTE COM FERRAMENTAS SQL")
+            current_tools = tools_agent
+        
+        if current_tools:
+            model_with_tools = model.bind_tools(current_tools)
+        else:
+            model_with_tools = model
+
         response = await model_with_tools.ainvoke(messages_trim, config=config)
 
         if response.tool_calls:
