@@ -1,4 +1,7 @@
 
+import time
+from contextlib import contextmanager
+
 # FUNÇÃO PARA CONTAGEM DE TOKENS POR NÓ
 def token_count(response, node_name: str):
     if hasattr(response, "usage_metadata") and response.usage_metadata:
@@ -22,3 +25,10 @@ def token_count_total(state, response):
             "output_tokens": current_output + usage.get("output_tokens", 0)
         }
     return { "total_tokens": current_total, "input_tokens": current_input, "output_tokens": current_output }
+
+@contextmanager
+def timer(node_name):
+    start = time.perf_counter()
+    yield
+    end = time.perf_counter()
+    print(f"LATÊNCIA DO NÓ [{node_name}]: {end - start:.2f}s")
