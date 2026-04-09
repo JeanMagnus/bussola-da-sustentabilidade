@@ -14,3 +14,7 @@ class AgentState(TypedDict):
     total_tokens: int
     input_tokens: int
     output_tokens: int
+    last_msg_ai: str
+
+    
+

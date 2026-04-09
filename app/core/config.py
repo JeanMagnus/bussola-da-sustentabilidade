@@ -23,9 +23,16 @@ class Settings:
     AZURE_OPENAI_EMBEDDING_ENDPOINT = os.getenv("AZURE_OPENAI_EMBEDDING_ENDPOINT")
     AZURE_OPENAI_EMBEDDING_API_KEY = os.getenv("AZURE_OPENAI_EMBEDDING_API_KEY")
 
+    AZURE_OPENAI_EMBEDDING_LARGE_DEPLOYMENT = os.getenv("AZURE_OPENAI_EMBEDDING_LARGE_DEPLOYMENT")
+    AZURE_OPENAI_EMBEDDING_LARGE_API_VERSION = os.getenv("AZURE_OPENAI_EMBEDDING_LARGE_API_VERSION")
+    AZURE_OPENAI_EMBEDDING_LARGE_ENDPOINT = os.getenv("AZURE_OPENAI_EMBEDDING_LARGE_ENDPOINT")
+    AZURE_OPENAI_EMBEDDING_LARGE_API_KEY = os.getenv("AZURE_OPENAI_EMBEDDING_LARGE_API_KEY")
+
+
     PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
     PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
     PINECONE_INDEX_GUIDE = os.getenv("PINECONE_INDEX_GUIDE")
+    PINECONE_INDEX_GUIDE_LARGE = os.getenv("PINECONE_INDEX_GUIDE_LARGE")
 
     GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
@@ -38,16 +45,6 @@ settings = Settings()
 
 db_bussola = SQLDatabase.from_uri(settings.URI_DATABASE_BUSSOLA)
 
-
-rag_model = AzureChatOpenAI(
-    model = "gpt-5-nano",
-    azure_deployment = settings.AZURE_OPENAI_DEPLOYMENT,
-    api_version = settings.AZURE_OPENAI_API_VERSION,
-    azure_endpoint = settings.AZURE_OPENAI_ENDPOINT,
-    api_key = settings.AZURE_OPENAI_API_KEY,
-    temperature = 0,
-    max_tokens = 1500,
-)
 
 model = AzureChatOpenAI(
     model = "gpt-5-nano",
@@ -89,6 +86,12 @@ moderation_model = ChatGroq(
     temperature = 0
 )
 
+rag_model = ChatGroq (
+    model = "groq/compound",
+    groq_api_key = settings.GROQ_API_KEY,
+    temperature = 0
+)
+
 # Fallback model para garantir que o agente continue funcionando mesmo se o modelo principal tiver problemas.
 # backup_model = AzureChatOpenAI(
 #     model = "gpt-5-mini",
@@ -105,6 +108,14 @@ embeddings = AzureOpenAIEmbeddings(
     api_version = settings.AZURE_OPENAI_EMBEDDING_API_VERSION,
     azure_endpoint = settings.AZURE_OPENAI_EMBEDDING_ENDPOINT,
     api_key = settings.AZURE_OPENAI_EMBEDDING_API_KEY,
+)
+
+embeddings_large = AzureOpenAIEmbeddings(
+    model = "text-embedding-3-large",
+    azure_deployment = settings.AZURE_OPENAI_EMBEDDING_LARGE_DEPLOYMENT,
+    api_version = settings.AZURE_OPENAI_EMBEDDING_LARGE_API_VERSION,
+    azure_endpoint = settings.AZURE_OPENAI_EMBEDDING_LARGE_ENDPOINT,
+    api_key = settings.AZURE_OPENAI_EMBEDDING_LARGE_API_KEY,
 )
 
 trimmer = trim_messages(

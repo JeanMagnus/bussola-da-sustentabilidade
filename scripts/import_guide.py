@@ -3,7 +3,7 @@ from langchain_core.documents import Document
 from langchain_pinecone import PineconeVectorStore
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pinecone import Pinecone
-from app.core.config import settings, embeddings
+from app.core.config import settings, embeddings, embeddings_large
 
 # Ajuste de tamanho para o limite do Pinecone
 text_splitter = RecursiveCharacterTextSplitter(
@@ -14,7 +14,7 @@ text_splitter = RecursiveCharacterTextSplitter(
 
 def importar_dicionario_h2_correto():
     pc = Pinecone(api_key=settings.PINECONE_API_KEY)
-    index = pc.Index(settings.PINECONE_INDEX_GUIDE)
+    index = pc.Index(settings.PINECONE_INDEX_GUIDE_LARGE)
     
     # 1. Limpeza Segura
     print(f" Limpando namespace 'data_dictionary'...")
@@ -61,8 +61,8 @@ def importar_dicionario_h2_correto():
     if documents:
         PineconeVectorStore.from_documents(
             documents=documents,
-            embedding=embeddings,
-            index_name=settings.PINECONE_INDEX_GUIDE,
+            embedding=embeddings_large,
+            index_name=settings.PINECONE_INDEX_GUIDE_LARGE,
             namespace="data_dictionary"
         )
         print(f"\n SUCESSO! {len(matches)} tabelas mapeadas com sucesso.")
