@@ -8,6 +8,7 @@ from app.agent.tools import tools_agent, tools_chat
 from app.core.config import trimmer
 from app.agent.memory import vector_store, guide_vector_store
 from app.agent.utils import timer, token_count, token_count_total
+from app.schemas.chat import IntentRouter
 from langgraph.graph import END
 from langchain.agents.middleware import before_model, after_model
 from langchain_core.messages import BaseMessage, AIMessage, SystemMessage, HumanMessage, RemoveMessage, ToolMessage
@@ -486,17 +487,18 @@ async def classify_intent(state: AgentState, config: RunnableConfig) -> AgentSta
         user_text = last_msg.lower().strip()
 
 
-        conversa_keywords = [
-            "oi", "olá", "ola", "bom dia", "boa tarde", "boa noite", "quem é você",
-            "quem e voce", "como você está", "como voce esta", "obrigado", "valeu",
-            "meu nome é", "meu nome e", "quem sou eu", "lembra de mim",  "qual o meu nome",
-            "qual meu nome"
+        sql_keywords = [
+            r"\bbanco\b", r"\bbase de dados\b", r"\bdados\b", r"\btabela\b", r"\bcoluna\b", r"\bsql\b",
+            r"\blistar\b", r"\branking\b", r"\bmédia\b", r"\bmedia\b", r"\bsoma\b", r"\btotal\b", 
+            r"\bcontagem\b", r"\bquantos\b", r"\bcomparar\b", r"\bcomparação\b", r"\bfiltrar\b", 
+            r"\btop\b", r"\bmaior\b", r"\bmenor\b", r"\bcidade\b", r"\bmunicípio\b", r"\bdestino\b", 
+            r"\bibge\b", r"\brais\b", r"\bindicador\b", r"\bcritério\b", r"\bcriterio\b", r"\bselo\b", 
+            r"\bturismo\b", r"\bsustentabilidade\b", r"\bcorrelação\b", r"\bcorrelacao\b", r"\bgd\b"
         ]
 
-        if any(k in user_text for k in conversa_keywords):
-            print("   Intent heurístico: CONVERSA")
-            return {"intent": "CONVERSA", "dictionary_context": ""}
-
+        if any(k in user_text for k in sql_keywords):
+            print("   Intent heurístico: SQL")
+            return {"intent": "SQL", "dictionary_context": ""}
 
         sql_keywords = [
             "banco", "base de dados", "dados", "tabela", "coluna", "sql",
@@ -506,33 +508,34 @@ async def classify_intent(state: AgentState, config: RunnableConfig) -> AgentSta
             "criterio", "selo", "turismo", "sustentabilidade", "correlação", "correlacao", "GD"
         ]
 
-        if any(k in user_text for k in sql_keywords):
-            print("   Intent heurístico: SQL")
-            return {"intent": "SQL", "dictionary_context": ""}
-    
-        else:
-            
-            CLASSIFY_PROMPT = f"""Você é um classificador de intenções. Leia a mensagem do usuário e responda
-    APENAS com uma das duas palavras abaixo, sem nenhum texto adicional:
-    
-    SQL       — se a resposta exige consultar tabelas de dados (rankings, médias,
-                contagens, comparações, análises, filtros por cidade/região/pilar etc.)
-    CONVERSA  — se é uma saudação, apresentação, pergunta sobre o próprio usuário,
-                dúvida sobre o sistema/agente, ou qualquer tema não relacionado a dados.
-    
-    Mensagem: "{last_msg}"
-    
-    Responda APENAS "SQL" ou "CONVERSA"."""
-    
-        response = await summarizer_model.ainvoke([HumanMessage(content=CLASSIFY_PROMPT)], config=config)
+        conversa_keywords = [
+            r"\boi\b", r"\bolá\b", r"\bola\b", r"\bbom dia\b", r"\bboa tarde\b", r"\bboa noite\b", 
+            r"\bquem é você\b", r"\bquem e voce\b", r"\bcomo você está\b", r"\bcomo voce esta\b", 
+            r"\bobrigado\b", r"\bvaleu\b", r"\bmeu nome é\b", r"\bmeu nome e\b", r"\bquem sou eu\b", 
+            r"\blembra de mim\b", r"\bqual o meu nome\b", r"\bqual meu nome\b"
+        ]
+        
+        if any(k in user_text for k in conversa_keywords):
+            print("   Intent heurístico: CONVERSA")
+            return {"intent": "CONVERSA", "dictionary_context": ""}
 
-        # VISUALIZANDO TOKENS
-        token_count(response, "CLASSIFY_INTENT")
-        usage = token_count_total(state, response)
+        CLASSIFY_PROMPT = f"""Você é um roteador inteligente.
+        Analise a mensagem do usuário e decida a rota.
+        - Rota SQL: O usuário quer métricas, informações de cidades, sustentabilidade, turismo, comparar dados, etc.
+        - Rota CONVERSA: Saudações (oi, tudo bem), perguntas sobre quem você é, ou dúvidas genéricas que não exigem tabela."""
+        
+        structured_model = summarizer_model.with_structured_output(IntentRouter)
+        response = await structured_model.ainvoke([SystemMessage(content=CLASSIFY_PROMPT), HumanMessage(content=last_msg)], config=config)
 
-        intent = "SQL" if "SQL" in response.content.upper() else "CONVERSA"
+        # # VISUALIZANDO TOKENS
+        # token_count(response, "CLASSIFY_INTENT")
+        # usage = token_count_total(state, response)
+
+        intent = response.intent
+        print(f"   Raciocínio: {response.reasoning}")
         print(f"   Intent classificado: {intent}")
-        return {"intent": intent, "dictionary_context": "", **usage}
+
+        return {"intent": intent, "dictionary_context": ""}
 
 async def dictionary_retrieval(state: AgentState, config: RunnableConfig) -> AgentState:
     """
