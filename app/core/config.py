@@ -79,6 +79,12 @@ summarizer_model = ChatGroq(
     temperature = 0
 )
 
+classify_model = ChatGroq(
+    model = "llama-3.3-70b-versatile",
+    groq_api_key = settings.GROQ_API_KEY,
+    temperature = 0
+)
+    
 
 moderation_model = ChatGroq(
     model = "openai/gpt-oss-safeguard-20b",

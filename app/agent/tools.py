@@ -1,5 +1,6 @@
+from app.agent.state import AgentState
 from langchain_community.agent_toolkits import SQLDatabaseToolkit
-from langgraph.prebuilt import ToolNode
+from langgraph.prebuilt import ToolNode, InjectedState
 from langchain_core.runnables import RunnableConfig
 from langchain_core.documents import Document
 from langchain_core.tools import tool
@@ -116,6 +117,38 @@ async def retrieve_memories_tool(
         return f"Erro ao recuperar memórias: {str(e)}"
 
 
+@tool
+async def retrieve_last_ai_message_tool(state: Annotated[AgentState, InjectedState], config: RunnableConfig) -> str:
+    """Recupera a última mensagem gerada pela IA na conversa atual.
+
+    Esta ferramenta é útil para acessar o conteúdo da última resposta da IA, seja para referência
+    em mensagens futuras ou para depuração. Ela retorna apenas o texto da última mensagem da IA.
+
+    Utilize essa ferramenta em caso de necessidade de referenciar ou reutilizar a última resposta da IA, ou para verificar o que foi dito antes de tomar uma ação baseada nessa resposta.
+    Quando o usuário informar que não entendeu ou pedir para repetir algo, esta ferramenta pode ser usada para recuperar a última mensagem da IA e reformulá-la ou explicá-la de maneira diferente.
+    Quando precisar conectar dados de respostas anteriores da IA com ações ou decisões atuais, esta ferramenta pode fornecer o contexto necessário.
+
+    Args:
+        state: O estado atual do agente, contendo o histórico de mensagens e outras informações relevantes.
+        config: Configuração de execução (não utilizada nesta ferramenta, mas incluída para consistência).
+
+    Returns:
+        String contendo o texto da última mensagem gerada pela IA, ou uma mensagem indicando que não há mensagens disponíveis.
+    """
+    print("--- RETRIEVE LAST AI MESSAGE TOOL ---")
+    
+    try:
+        last_ai_message = state.get("last_msg_ai", None)
+        if last_ai_message:
+            return f"A última mensagem que você enviou foi: {last_ai_message}"
+        else:
+            return "Nenhuma mensagem da IA encontrada no estado atual."
+    except Exception as e:
+        return f"Erro ao recuperar a última mensagem da IA: {str(e)}"
+
+
+
+
 # @tool
 # async def search_data_dictionary(
 #     query: Annotated[str, "Termos de busca para encontrar tabelas e colunas (ex: 'população', 'sustentabilidade', 'turismo')"],
@@ -181,11 +214,12 @@ async def retrieve_memories_tool(
 toolkit = SQLDatabaseToolkit(db=db_bussola, llm=model)
 
 db_tools = toolkit.get_tools()
-excluded_tool_names = ["sql_db_query_checker"]
+# , "sql_db_schema", "sql_db_list_tables"
+excluded_tool_names = ["sql_db_query_checker"]  # Exclui ferramentas de consulta direta para forçar o uso do dicionário
 db_tools_filtered = [
     tool for tool in db_tools 
     if tool.name not in excluded_tool_names
 ]
-tools_agent = [store_memory_tool, retrieve_memories_tool] + db_tools_filtered
-tools_chat = [store_memory_tool, retrieve_memories_tool]
+tools_agent = [store_memory_tool, retrieve_memories_tool, retrieve_last_ai_message_tool] + db_tools_filtered
+tools_chat = [store_memory_tool, retrieve_memories_tool, retrieve_last_ai_message_tool]
 tool_node = ToolNode(tools=tools_agent)

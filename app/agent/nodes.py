@@ -1,7 +1,8 @@
 import asyncio
+from pyexpat.errors import messages
 
 from app.core import config
-from app.core.config import model, db_bussola, summarizer_model, moderation_model, deepseek_model, rag_model
+from app.core.config import model, db_bussola, summarizer_model, moderation_model, deepseek_model, rag_model, classify_model
 from app.agent.state import AgentState
 from app.agent.prompt import SYSTEM_PROMPT
 from app.agent.tools import tools_agent, tools_chat
@@ -141,7 +142,7 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
         with timer("RAG_AGENT - BUSCA VETORIAL"):
             docs = guide_vector_store_large.similarity_search(
                 query=user_question,
-                k=3,
+                k=5,
                 namespace="data_dictionary"
             )
             if not docs:
@@ -169,7 +170,7 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
 
         Responda apenas com os dados técnicos."""
 
-        response = await model.ainvoke([HumanMessage(content=RAG_PROMPT)], config=config, reasoning_effort="low", max_completion_tokens=3000)
+        response = await deepseek_model.ainvoke([HumanMessage(content=RAG_PROMPT)], config=config, reasoning_effort="low", max_completion_tokens=3000)
 
      
         print("--- RESPOSTA DO RAG (DEBUG PROFUNDO) ---")
@@ -212,6 +213,8 @@ async def agent(state: AgentState, config: RunnableConfig):
                 {last_msg_memory}
                 Utilize este contexto para responder perguntas interligadas. Siga esse contexto como sendo uma ponte para responder perguntas relacionadas, mas lembre-se: o banco de dados é a fonte definitiva para qualquer informação técnica. Use o contexto apenas como referência histórica para manter a coerência da conversa, não como verdade absoluta sobre os dados.
                 Se o usuário pedir nomes, códigos ou detalhes desses mesmos elementos, use a lógica SQL que gerou a resposta acima, aplicado ao novo contexto.
+
+                CASO CONTRÁRIO IGNORE ESTE CONTEXTO E CONTINUE SEM ELE.
                 -------------------------
                 """
 
@@ -225,18 +228,58 @@ async def agent(state: AgentState, config: RunnableConfig):
                 ---------------------------------------------------------
                 """
 
+            # last_user = next(
+            #     (m for m in reversed(messages) if isinstance(m, HumanMessage)),
+            #     None
+            # )
+
+            # valid_context = []
+            # pending_tool_calls = set()
+
+            # WINDOW = 4
+            # recent_msgs = messages[-WINDOW:]
+
+            # for m in recent_msgs:
+            #     if isinstance(m, AIMessage) and getattr(m, "tool_calls", None):
+            #         valid_context.append(m)
+            #         for tc in m.tool_calls:
+            #             pending_tool_calls.add(tc["id"])
+
+            #     elif isinstance(m, ToolMessage):
+            #         if m.tool_call_id in pending_tool_calls:
+            #             valid_context.append(m)
+            #             pending_tool_calls.remove(m.tool_call_id)
+
+            #     elif isinstance(m, AIMessage):
+            #         # AI normal (sem tool)
+            #         valid_context.append(m)
+
+            # final_msgs = []
+            # if last_user:
+            #     final_msgs.append(last_user)
+
+            # final_msgs.extend(valid_context)
+
             last_user = next(
                 (m for m in reversed(messages) if isinstance(m, HumanMessage)),
                 None
             )
 
+            # Encontra o índice da última mensagem do usuário
+            last_user_idx = 0
+            for i in range(len(messages) - 1, -1, -1):
+                if isinstance(messages[i], HumanMessage):
+                    last_user_idx = i
+                    break
+            
+            # Pegamos APENAS as mensagens a partir da última pergunta do usuário.
+            recent_msgs = messages[last_user_idx + 1:] 
+
             valid_context = []
             pending_tool_calls = set()
 
-            WINDOW = 10
-            recent_msgs = messages[-WINDOW:]
-
             for m in recent_msgs:
+                # Mantém toda a cadeia lógica de pensamento do agente INTACTA para a pergunta atual
                 if isinstance(m, AIMessage) and getattr(m, "tool_calls", None):
                     valid_context.append(m)
                     for tc in m.tool_calls:
@@ -244,11 +287,18 @@ async def agent(state: AgentState, config: RunnableConfig):
 
                 elif isinstance(m, ToolMessage):
                     if m.tool_call_id in pending_tool_calls:
-                        valid_context.append(m)
+                        # Se for um retorno gigante de SQL, aplica um limite de caracteres de segurança
+                        if len(str(m.content)) > 800:
+                            m_truncado = ToolMessage(
+                                tool_call_id=m.tool_call_id,
+                                content=str(m.content)[:800] + "\n...[DADOS TRUNCADOS PARA ECONOMIA. USE LIMIT NA SUA QUERY SE PRECISAR DE MAIS DADOS]."
+                            )
+                            valid_context.append(m_truncado)
+                        else:
+                            valid_context.append(m)
                         pending_tool_calls.remove(m.tool_call_id)
 
                 elif isinstance(m, AIMessage):
-                    # AI normal (sem tool)
                     valid_context.append(m)
 
             final_msgs = []
@@ -296,9 +346,9 @@ async def agent(state: AgentState, config: RunnableConfig):
             else:
                 current_tools = tools_agent
 
-            model_with_tools = model.bind_tools(current_tools) if current_tools else model
+            model_with_tools = deepseek_model.bind_tools(current_tools) if current_tools else model
 
-            response = await model_with_tools.ainvoke(messages_trim, config=config, reasoning_effort="medium", max_completion_tokens=5000)
+            response = await model_with_tools.ainvoke(messages_trim, config=config)
 
             if response.tool_calls:
                 print(" --- FERRAMENTAS CHAMADAS ---")
@@ -537,7 +587,7 @@ async def classify_intent(state: AgentState, config: RunnableConfig) -> AgentSta
         - Rota SQL: O usuário quer métricas, informações de cidades, sustentabilidade, turismo, comparar dados, etc.
         - Rota CONVERSA: Saudações (oi, tudo bem), perguntas sobre quem você é, ou dúvidas genéricas que não exigem tabela."""
         
-        structured_model = summarizer_model.with_structured_output(IntentRouter)
+        structured_model = classify_model.with_structured_output(IntentRouter)
         response = await structured_model.ainvoke([SystemMessage(content=CLASSIFY_PROMPT), HumanMessage(content=last_msg)], config=config)
 
         # # VISUALIZANDO TOKENS

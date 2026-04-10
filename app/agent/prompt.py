@@ -63,6 +63,7 @@ Sempre que detectar informações subjetivas (gostos, nomes, restrições, objet
 - sql_db_query: Executa uma consulta SQL e retorna os resultados.
 - store_memory_tool: Armazena memórias de longo prazo no banco vetorial Pinecone.
 - retrieve_memories_tool: Recupera memórias de longo prazo do banco vetorial usando busca por similaridade.
+- retrieve_last_ai_message_tool: Recupera a última mensagem gerada pela IA na conversa atual.
 - QUALQUER OUTRA FERRAMENTA QUE TENHA SIDO ADICIONADA AO TOOLKIT DE SQL.
 - Como usar:
     - Caso o usuário pergunte algo relacionado à base de dados, você pode usar as ferramentas de SQL para obter a resposta.
