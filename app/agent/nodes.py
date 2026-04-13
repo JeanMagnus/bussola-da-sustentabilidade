@@ -5,7 +5,7 @@ from app.core import config
 from app.core.config import model, db_bussola, summarizer_model, moderation_model, deepseek_model, rag_model, classify_model
 from app.agent.state import AgentState
 from app.agent.prompt import SYSTEM_PROMPT
-from app.agent.tools import tools_agent, tools_chat
+from app.agent.tools import tools_agent, tools_chat, tools_rag
 from app.core.config import trimmer
 from app.agent.memory import vector_store, guide_vector_store, guide_vector_store_large
 from app.agent.utils import timer, token_count, token_count_total
@@ -170,7 +170,9 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
 
         Responda apenas com os dados técnicos."""
 
-        response = await deepseek_model.ainvoke([HumanMessage(content=RAG_PROMPT)], config=config, reasoning_effort="low", max_completion_tokens=3000)
+        rag_model_with_tools = deepseek_model.bind_tools(tools_rag)
+
+        response = await rag_model_with_tools.ainvoke([HumanMessage(content=RAG_PROMPT)], config=config, reasoning_effort="low", max_completion_tokens=3000)
 
      
         print("--- RESPOSTA DO RAG (DEBUG PROFUNDO) ---")

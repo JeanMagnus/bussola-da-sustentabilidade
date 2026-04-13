@@ -215,11 +215,12 @@ toolkit = SQLDatabaseToolkit(db=db_bussola, llm=model)
 
 db_tools = toolkit.get_tools()
 # , "sql_db_schema", "sql_db_list_tables"
-excluded_tool_names = ["sql_db_query_checker"]  # Exclui ferramentas de consulta direta para forçar o uso do dicionário
+excluded_tool_names = ["sql_db_query_checker" , "sql_db_schema", "sql_db_list_tables"]   # Exclui ferramentas de consulta direta para forçar o uso do dicionário
 db_tools_filtered = [
     tool for tool in db_tools 
     if tool.name not in excluded_tool_names
 ]
 tools_agent = [store_memory_tool, retrieve_memories_tool, retrieve_last_ai_message_tool] + db_tools_filtered
 tools_chat = [store_memory_tool, retrieve_memories_tool, retrieve_last_ai_message_tool]
+tools_rag = [retrieve_last_ai_message_tool]
 tool_node = ToolNode(tools=tools_agent)
