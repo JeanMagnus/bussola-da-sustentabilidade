@@ -575,7 +575,9 @@ async def classify_intent(state: AgentState, config: RunnableConfig) -> AgentSta
             r"\boi\b", r"\bolá\b", r"\bola\b", r"\bbom dia\b", r"\bboa tarde\b", r"\bboa noite\b", 
             r"\bquem é você\b", r"\bquem e voce\b", r"\bcomo você está\b", r"\bcomo voce esta\b", 
             r"\bobrigado\b", r"\bvaleu\b", r"\bmeu nome é\b", r"\bmeu nome e\b", r"\bquem sou eu\b", 
-            r"\blembra de mim\b", r"\bqual o meu nome\b", r"\bqual meu nome\b"
+            r"\blembra de mim\b", r"\bqual o meu nome\b", r"\bqual meu nome\b", r"\bapresente-se\b", 
+            r"\bapresente se\b", r"\bdúvida sobre o projeto\b", r"\bdúvida sobre o agente\b",
+            r"\bfale sobre você\b", r"\bfale sobre o projeto\b", r"\bdúvida\b", r"\bapresente-se\b",
         ]
         
         if any(k in user_text for k in conversa_keywords):
