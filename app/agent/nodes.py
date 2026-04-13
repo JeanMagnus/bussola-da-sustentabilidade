@@ -176,11 +176,9 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
         print("--- RESPOSTA DO RAG (DEBUG PROFUNDO) ---")
         print(f"Content: {repr(response.content)}") 
         
-        # O dict de resposta costuma ter o metadata de uso
         if hasattr(response, 'response_metadata'):
             print(f"Metadados: {response.response_metadata}")
             
-        # O dict usage_metadata (se existir)
         if hasattr(response, 'usage_metadata'):
             print(f"Tokens Reportados: {response.usage_metadata}")
         print(response.content)
@@ -227,39 +225,6 @@ async def agent(state: AgentState, config: RunnableConfig):
                 {sql_plan}
                 ---------------------------------------------------------
                 """
-
-            # last_user = next(
-            #     (m for m in reversed(messages) if isinstance(m, HumanMessage)),
-            #     None
-            # )
-
-            # valid_context = []
-            # pending_tool_calls = set()
-
-            # WINDOW = 4
-            # recent_msgs = messages[-WINDOW:]
-
-            # for m in recent_msgs:
-            #     if isinstance(m, AIMessage) and getattr(m, "tool_calls", None):
-            #         valid_context.append(m)
-            #         for tc in m.tool_calls:
-            #             pending_tool_calls.add(tc["id"])
-
-            #     elif isinstance(m, ToolMessage):
-            #         if m.tool_call_id in pending_tool_calls:
-            #             valid_context.append(m)
-            #             pending_tool_calls.remove(m.tool_call_id)
-
-            #     elif isinstance(m, AIMessage):
-            #         # AI normal (sem tool)
-            #         valid_context.append(m)
-
-            # final_msgs = []
-            # if last_user:
-            #     final_msgs.append(last_user)
-
-            # final_msgs.extend(valid_context)
-
             last_user = next(
                 (m for m in reversed(messages) if isinstance(m, HumanMessage)),
                 None
@@ -279,7 +244,6 @@ async def agent(state: AgentState, config: RunnableConfig):
             pending_tool_calls = set()
 
             for m in recent_msgs:
-                # Mantém toda a cadeia lógica de pensamento do agente INTACTA para a pergunta atual
                 if isinstance(m, AIMessage) and getattr(m, "tool_calls", None):
                     valid_context.append(m)
                     for tc in m.tool_calls:
@@ -287,7 +251,6 @@ async def agent(state: AgentState, config: RunnableConfig):
 
                 elif isinstance(m, ToolMessage):
                     if m.tool_call_id in pending_tool_calls:
-                        # Se for um retorno gigante de SQL, aplica um limite de caracteres de segurança
                         if len(str(m.content)) > 800:
                             m_truncado = ToolMessage(
                                 tool_call_id=m.tool_call_id,
@@ -378,14 +341,6 @@ async def agent(state: AgentState, config: RunnableConfig):
                 **usage
             }
 
-# def should_continue(state: AgentState):
-#     last_msg = state["messages"][-1]
-#     if last_msg.tool_calls:
-#         return "go_tools"
-#     return END
-
-
-
 async def guardrail_input(state: AgentState, config: RunnableConfig):
     with timer("GUARDRAIL_INPUT"):
         print("--- GUARDRAIL_INPUT ---")
@@ -435,102 +390,6 @@ async def guardrail_input(state: AgentState, config: RunnableConfig):
                 "error_occurred": True,
                 **usage
                 }
-
-async def moderation_input(state: AgentState, config: RunnableConfig):
-    print("--- MODERATION_INPUT ---")
-
-    try:
-        last_msg = state["messages"][-1].content
-        MOD_PROMPT = f"""Analise a mensagem do usuário. 
-        Se a mensagem contiver discurso de ódio explícito, racismo, LGBTfobia ou intenção criminosa contra o sistema, responda 'BLOQUEAR'.
-        
-        Mensagem: {last_msg}
-        Responda APENAS 'PASSAR' ou 'BLOQUEAR'.""" 
-
-        response = await model.ainvoke([MOD_PROMPT], config=config)
-
-        if "BLOQUEAR" in response.content:
-            # return Command(
-            #     goto=END,
-            #     update={"messages": [AIMessage(content="Desculpa, sua mensagem viola nossas diretrizes de uso.")]}
-            # )
-            return {"messages": [AIMessage(content="Desculpa, sua mensagem viola nossas diretrizes de uso.")], "error_occurred": False }
-
-        #return Command(goto="check_relevance")
-
-        # VISUALIZANDO TOKENS
-
-        if hasattr(response, "usage_metadata") and response.usage_metadata:
-            #print(f"Tokens usados: {response.usage_metadata.total_tokens}")
-            usage = response.usage_metadata
-            print(f"TOKENS USADOS NO NÓ MODERATION_INPUT")
-            print(f"   |-- Entrada (Prompt): {usage.get('input_tokens')}")
-            print(f"   |-- Saída (Geração): {usage.get('output_tokens')}")
-            print(f"   |-- Total da etapa: {usage.get('total_tokens')}")
-
-        return {"messages": [], "error_occurred": False}
-    
-    except BadRequestError as e:
-        print(f"Erro de conteúdo: {e}")
-        return {
-            "messages": [AIMessage(content="Sinto muito, essa mensagem acionou os filtros de segurança.")],
-            "error_occurred": True 
-            }
-    
-    except Exception as e:
-        print(f"Erro inesperado: {e}")
-        return {
-            "messages": [AIMessage(content="Ocorreu um erro inesperado. Por favor, tente novamente.")],
-            "error_occurred": True
-            }
-
-async def check_relevance(state: AgentState, config: RunnableConfig):
-    print("--- CHECK_RELEVANCE ---")
-
-    try:
-        last_msg = state["messages"][-1].content
-        RELEVANCE_PROMPT = f"""Analise a mensagem do usuário. Ela deve estar dentro do contexto do sistema, onde ele só pode discorrer sobre o conteúdo da base de dados.
-        Não devendo fugir do tema: Análise de dados para o projeto Bússola da Sustentabilidade, onde o objetivo é apenas analisar os dados da base de dados sobre turísmo
-        sustentável e trazer insights sobre esse mesmo tema. Qualquer assunto relacionado a cidades, sustentabilidade, turismo, economia local, cultura, meio ambiente e temas relacionados são permitidos.
-
-        Perguntas sobre o nome do usuário, se o modelo reconhece o usuário, apresentação do usário ou dúvidas sobre o projeto e agente são permitidas.
-        
-        Caso o usuário estiver fugindo do tema com sua mensagem, responda 'BLOQUEAR'. Caso contrário, responda 'PASSAR'.
-
-        Mensagem: {last_msg}
-        Responda APENAS 'PASSAR' ou 'BLOQUEAR'."""
-        
-        response = await model.ainvoke([RELEVANCE_PROMPT], config=config)
-
-        if "BLOQUEAR" in response.content:
-            # return Command(
-            #     goto=END,
-            #     update= {"messages": [AIMessage(content="Desculpa, nosso sistema não é capaz de responder perguntas fora do escopo do tema. Refaça sua pergunta no contexto desse sistema.")]}
-            # )
-            return {"messages": [AIMessage(content="Desculpa, nosso sistema não é capaz de responder perguntas fora do escopo do tema. Refaça sua pergunta no contexto desse sistema.")], "error_occurred": False }
-        
-        #return Command(goto="agent")
-
-        # VISUALIZANDO TOKENS
-
-        if hasattr(response, "usage_metadata") and response.usage_metadata:
-            #print(f"Tokens usados: {response.usage_metadata.total_tokens}")
-            usage = response.usage_metadata
-            print(f"TOKENS USADOS NO NÓ CHECK_RELEVANCE")
-            print(f"   |-- Entrada (Prompt): {usage.get('input_tokens')}")
-            print(f"   |-- Saída (Geração): {usage.get('output_tokens')}")
-            print(f"   |-- Total da etapa: {usage.get('total_tokens')}")
-
-
-        return {"messages": [], "error_occurred": False}
-
-    except Exception as e:
-        print(f"Erro inesperado: {e}")
-        return {
-            "messages": [AIMessage(content="Ocorreu um erro inesperado. Por favor, tente novamente.")],
-            "error_occurred": True
-            }
-
 
 async def classify_intent(state: AgentState, config: RunnableConfig) -> AgentState:
     """
@@ -592,117 +451,11 @@ async def classify_intent(state: AgentState, config: RunnableConfig) -> AgentSta
         structured_model = classify_model.with_structured_output(IntentRouter)
         response = await structured_model.ainvoke([SystemMessage(content=CLASSIFY_PROMPT), HumanMessage(content=last_msg)], config=config)
 
-        # # VISUALIZANDO TOKENS
-        # token_count(response, "CLASSIFY_INTENT")
-        # usage = token_count_total(state, response)
-
         intent = response.intent
         print(f"   Raciocínio: {response.reasoning}")
         print(f"   Intent classificado: {intent}")
 
         return {"intent": intent, "dictionary_context": ""}
-
-async def dictionary_retrieval(state: AgentState, config: RunnableConfig) -> AgentState:
-    """
-    Realiza busca semântica no dicionário de metadados do banco de dados
-    (guide_vector_store / PINECONE_INDEX_GUIDE).
- 
-    O resultado é salvo em state["dictionary_context"] como um bloco
-    de texto formatado que será injetado no prompt do agente, informando
-    exatamente quais tabelas e colunas usar.
-    """
-    print("--- DICTIONARY RETRIEVAL ---")
- 
-    last_msg = state["messages"][-1].content
- 
-    try:
-        docs = await asyncio.wait_for(
-            asyncio.to_thread(
-                guide_vector_store.similarity_search,
-                query=last_msg,
-                k=6,
-                namespace="data_dictionary"
-            ),
-            timeout=10.0
-        )
- 
-        if not docs:
-            context = (
-                "Nenhum metadado encontrado no dicionário para esta pergunta. "
-                "Use sql_db_list_tables e sql_db_schema para explorar o banco."
-            )
-        else:
-            trechos = []
-            for doc in docs:
-                fonte = doc.metadata.get("source", "dicionário")
-                trechos.append(f"[{fonte}]\n{doc.page_content}")
-            raw_context = "\n\n---\n\n".join(trechos)
- 
-            # Pede ao modelo para transformar os trechos brutos num
-            # prompt estruturado que o agente vai receber.
-            STRUCTURE_PROMPT = f"""Você é um assistente que prepara instruções de SQL.
-Com base nos trechos do dicionário de metadados abaixo, crie um bloco de instrução
-conciso (máx. 200 palavras) para um agente SQL, informando:
- 
-1. Quais tabelas são relevantes para responder: "{last_msg}"
-2. Quais colunas de cada tabela devem ser usadas (com os nomes EXATOS do dicionário).
-3. Se existir chave de junção entre as tabelas, informe-a.
-4. Qualquer filtro ou ordenação óbvio para a pergunta.
- 
-NÃO invente nomes de tabelas ou colunas. Use APENAS o que está nos trechos abaixo.
-Se os trechos não forem suficientes, diga quais tabelas ainda precisam ser verificadas
-com sql_db_schema.
- 
-TRECHOS DO DICIONÁRIO:
-{raw_context}
-"""
-            structured = await model.ainvoke([STRUCTURE_PROMPT], config=config)
-            context = structured.content
- 
-        print(f"   Contexto do dicionário gerado ({len(context)} chars)")
-        return {"dictionary_context": context}
- 
-    except Exception as e:
-        print(f"   Erro no dictionary_retrieval: {e}")
-        return {
-            "dictionary_context": (
-                "Erro ao acessar o dicionário de metadados. "
-                "Use sql_db_list_tables e sql_db_schema para explorar o banco manualmente."
-            )
-        }
-    except asyncio.TimeoutError:
-        return "Dicionário indisponível no momento. Prossiga com sql_db_list_tables."
- 
-
-async def dictionary_lookup(state: AgentState, config: RunnableConfig):
-    print("--- DICTIONARY_LOOKUP ---")
-
-    try:
-        last_msg = state["messages"][-1]
-        user_question = [m.content for m in state["messages"] if isinstance(m, HumanMessage)][-1]
-        tool_call_id = last_msg.tool_calls[0]['id']
-        print(f"BUSCANDO NO PINECONE POR: {user_question}")
-
-        docs = guide_vector_store.similarity_search(query=user_question, k=10, namespace="data_dictionary", filter={"type": "dictionary"})
-        print(f"DOCUMENTOS ENCONTRADOS: {len(docs)}")
-
-        context_text = "\n\n".join([f"DOC: {d.page_content}" for d in docs])
-
-        dict_message = ToolMessage(
-            tool_call_id=tool_call_id,
-            content=f"DADOS DO DICIONÁRIO PARA ESTA QUERY:\n{context_text}\n"
-                "Ajuste a query SQL acima se necessário com base nestas colunas e amostras."
-        )
-        print(f"DEBUG PINECONE: Retornando para o agente -> {context_text[:200]}...")
-        return {"dictionary_rules": context_text, "messages": [dict_message], "is_dictionary_checked": True, "error_occurred": False}
-    
-    except Exception as e:
-        print(f"Erro inesperado: {e}")
-        return {
-            "messages": [AIMessage(content="Ocorreu um erro inesperado. Por favor, tente novamente.")],
-            "error_occurred": True
-            }
-
 
 
 def verify_sql(state: AgentState):
@@ -777,10 +530,6 @@ async def moderation_output(state: AgentState, config: RunnableConfig):
             decision = response.content.strip().upper()
 
             if "BLOQUEAR" in decision:
-                # return Command(
-                #     goto=END,
-                #     update={"messages": [AIMessage(content="A resposta detalhada foi retida por razões de segurança de dados. Por favor, reformule a pergunta.")] }
-                # )
                 msg_feedback = HumanMessage (
                     content = ("Alerta: Sua resposta anterior vazou informações "
                         "de infraestrutura (como nomes de tabelas, IDs técnicos ou código SQL explícito). "
@@ -791,10 +540,6 @@ async def moderation_output(state: AgentState, config: RunnableConfig):
                     )
                 )
                 return {"messages": [msg_feedback], "error_occurred": False, **usage }
-            
-            #return Command(goto=END)
-
-
 
             return {"messages": [], "error_occurred": False, **usage }
 
@@ -806,21 +551,12 @@ async def moderation_output(state: AgentState, config: RunnableConfig):
                 **usage
             }
 
-
-# def should_continue(state: AgentState):
-#     last_msg = state["messages"][-1]
-#     if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
-#         return "verify_sql"
-#     return "moderation_output"
-
-
 def route_moderation_input(state: AgentState):
     print("--- DECIDINDO ROTA APÓS MODERATION INPUT ---")
     last_msg = state["messages"][-1]
 
     if state.get("error_occurred"):
         print(" --- ERRO DE MODERAÇÃO, BLOQUEANDO ---")
-        #state["error_occurred"] = False
         return END
     if isinstance(last_msg, AIMessage) and "Desculpa" in last_msg.content:
         print(" --- BLOQUEADO ---")
@@ -861,21 +597,11 @@ def should_continue(state: AgentState):
     if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
         
         tool_name = last_msg.tool_calls[0]["name"]
-        # is_sql_tool = tool_name in ["sql_db_query", "sql_db_schema", "sql_db_list_tables", "sql_db_query_checker"]
-        # if is_sql_tool and not state.get("is_dictionary_checked"):
-        #     print(" --- REDIRECIONANDO PARA DICIONÁRIO ---")
-        #     return "dictionary_lookup"
-        
-        # if is_sql_tool:
-        #     print(" --- DICIONÁRIO JÁ CONSULTADO, VAI PARA VERIFICAÇÃO DE SQL ---")
-        #     return "verify_sql"
-
         if sql_tool_calls >= 8 and tool_name in ["sql_db_query", "sql_db_schema", "sql_db_list_tables"]:
             print(" --- LIMITE DE CHAMADAS SQL ATINGIDO, VAI PARA MODERAÇÃO DE SAÍDA ---")
             return "moderation_output"
 
         if tool_name in ["sql_db_query", "sql_db_schema", "sql_db_list_tables"]:
-        #if tool_name in ["sql_db_query", "sql_db_schema", "sql_db_list_tables", "sql_db_query_checker"]:
             print(" --- VAI PARA VERIFICAÇÃO DE SQL ---")
             return "verify_sql"
         
