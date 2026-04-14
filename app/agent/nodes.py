@@ -139,9 +139,17 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
         user_messages = [m for m in state["messages"] if isinstance(m, HumanMessage)]
         user_question = user_messages[-1].content if user_messages else ""
 
+        last_ai_msg = state.get("last_msg_ai", "")
+
+        search_query = user_question
+        context_memory = ""
+        if last_ai_msg:
+            search_query = f"Contexto anterior: {last_ai_msg}. Pergunta atual: {user_question}"
+            context_memory = f"A MENSAGEM ANTERIOR DA IA FOI: '{last_ai_msg}'\nUse isso para entender sobre o que o usuário está falando agora."
+
         with timer("RAG_AGENT - BUSCA VETORIAL"):
             docs = guide_vector_store_large.similarity_search(
-                query=user_question,
+                query=search_query,
                 k=5,
                 namespace="data_dictionary"
             )
@@ -153,6 +161,8 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
             print("--- DICIONÁRIO RECUPERADO ---")
 
         RAG_PROMPT = f"""Extraia do dicionário apenas os metadados necessários para responder: "{user_question}".
+
+        CONTEXTO: {context_memory}
 
         DICIONÁRIO: {dictionary_context}
 
@@ -170,9 +180,7 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
 
         Responda apenas com os dados técnicos."""
 
-        rag_model_with_tools = deepseek_model.bind_tools(tools_rag)
-
-        response = await rag_model_with_tools.ainvoke([HumanMessage(content=RAG_PROMPT)], config=config, reasoning_effort="low", max_completion_tokens=3000)
+        response = await deepseek_model.ainvoke([HumanMessage(content=RAG_PROMPT)], config=config, reasoning_effort="low", max_completion_tokens=3000)
 
      
         print("--- RESPOSTA DO RAG (DEBUG PROFUNDO) ---")
@@ -546,63 +554,83 @@ async def classify_intent(state: AgentState, config: RunnableConfig) -> AgentSta
     """
     with timer("CLASSIFY_INTENT"):
         print("--- CLASSIFY INTENT ---")
+
     
         last_msg = state["messages"][-1].content    
-        
+        last_msg_ai = state.get("last_msg_ai", "")
+
         user_text = last_msg.lower().strip()
 
+        context = ""
+        if last_msg_ai:
+            context = f"\nMensagem anterior da IA (Contexto): '{last_msg_ai}'"
 
-        sql_keywords = [
-            r"\bbanco\b", r"\bbase de dados\b", r"\bdados\b", r"\btabela\b", r"\bcoluna\b", r"\bsql\b",
-            r"\blistar\b", r"\branking\b", r"\bmédia\b", r"\bmedia\b", r"\bsoma\b", r"\btotal\b", 
-            r"\bcontagem\b", r"\bquantos\b", r"\bcomparar\b", r"\bcomparação\b", r"\bfiltrar\b", 
-            r"\btop\b", r"\bmaior\b", r"\bmenor\b", r"\bcidade\b", r"\bmunicípio\b", r"\bdestino\b", 
-            r"\bibge\b", r"\brais\b", r"\bindicador\b", r"\bcritério\b", r"\bcriterio\b", r"\bselo\b", 
-            r"\bturismo\b", r"\bsustentabilidade\b", r"\bcorrelação\b", r"\bcorrelacao\b", r"\bgd\b"
-        ]
+        # sql_keywords = [
+        #     r"\bbanco\b", r"\bbase de dados\b", r"\bdados\b", r"\btabela\b", r"\bcoluna\b", r"\bsql\b",
+        #     r"\blistar\b", r"\branking\b", r"\bmédia\b", r"\bmedia\b", r"\bsoma\b", r"\btotal\b", 
+        #     r"\bcontagem\b", r"\bquantos\b", r"\bcomparar\b", r"\bcomparação\b", r"\bfiltrar\b", 
+        #     r"\btop\b", r"\bmaior\b", r"\bmenor\b", r"\bcidade\b", r"\bmunicípio\b", r"\bdestino\b", 
+        #     r"\bibge\b", r"\brais\b", r"\bindicador\b", r"\bcritério\b", r"\bcriterio\b", r"\bselo\b", 
+        #     r"\bturismo\b", r"\bsustentabilidade\b", r"\bcorrelação\b", r"\bcorrelacao\b", r"\bgd\b"
+        # ]
 
-        if any(k in user_text for k in sql_keywords):
-            print("   Intent heurístico: SQL")
-            return {"intent": "SQL", "dictionary_context": ""}
+        # if any(k in user_text for k in sql_keywords):
+        #     print("   Intent heurístico: SQL")
+        #     return {"intent": "SQL", "dictionary_context": ""}
 
-        sql_keywords = [
-            "banco", "base de dados", "dados", "tabela", "coluna", "sql",
-            "listar", "ranking", "média", "media", "soma", "total", "contagem",
-            "quantos", "comparar", "comparação", "filtrar", "top", "maior", "menor",
-            "cidade", "município", "destino", "ibge", "rais", "indicador", "critério",
-            "criterio", "selo", "turismo", "sustentabilidade", "correlação", "correlacao", "GD"
-        ]
+        # sql_keywords = [
+        #     "banco", "base de dados", "dados", "tabela", "coluna", "sql",
+        #     "listar", "ranking", "média", "media", "soma", "total", "contagem",
+        #     "quantos", "comparar", "comparação", "filtrar", "top", "maior", "menor",
+        #     "cidade", "município", "destino", "ibge", "rais", "indicador", "critério",
+        #     "criterio", "selo", "turismo", "sustentabilidade", "correlação", "correlacao", "GD"
+        # ]
 
-        conversa_keywords = [
-            r"\boi\b", r"\bolá\b", r"\bola\b", r"\bbom dia\b", r"\bboa tarde\b", r"\bboa noite\b", 
-            r"\bquem é você\b", r"\bquem e voce\b", r"\bcomo você está\b", r"\bcomo voce esta\b", 
-            r"\bobrigado\b", r"\bvaleu\b", r"\bmeu nome é\b", r"\bmeu nome e\b", r"\bquem sou eu\b", 
-            r"\blembra de mim\b", r"\bqual o meu nome\b", r"\bqual meu nome\b", r"\bapresente-se\b", 
-            r"\bapresente se\b", r"\bdúvida sobre o projeto\b", r"\bdúvida sobre o agente\b",
-            r"\bfale sobre você\b", r"\bfale sobre o projeto\b", r"\bdúvida\b", r"\bapresente-se\b",
-        ]
+        # conversa_keywords = [
+        #     r"\boi\b", r"\bolá\b", r"\bola\b", r"\bbom dia\b", r"\bboa tarde\b", r"\bboa noite\b", 
+        #     r"\bquem é você\b", r"\bquem e voce\b", r"\bcomo você está\b", r"\bcomo voce esta\b", 
+        #     r"\bobrigado\b", r"\bvaleu\b", r"\bmeu nome é\b", r"\bmeu nome e\b", r"\bquem sou eu\b", 
+        #     r"\blembra de mim\b", r"\bqual o meu nome\b", r"\bqual meu nome\b", r"\bapresente-se\b", 
+        #     r"\bapresente se\b", r"\bdúvida sobre o projeto\b", r"\bdúvida sobre o agente\b",
+        #     r"\bfale sobre você\b", r"\bfale sobre o projeto\b", r"\bdúvida\b", r"\bapresente-se\b",
+        # ]
         
-        if any(k in user_text for k in conversa_keywords):
-            print("   Intent heurístico: CONVERSA")
-            return {"intent": "CONVERSA", "dictionary_context": ""}
+        # if any(k in user_text for k in conversa_keywords):
+        #     print("   Intent heurístico: CONVERSA")
+        #     return {"intent": "CONVERSA", "dictionary_context": ""}
 
         CLASSIFY_PROMPT = f"""Você é um roteador inteligente.
-        Analise a mensagem do usuário e decida a rota.
-        - Rota SQL: O usuário quer métricas, informações de cidades, sustentabilidade, turismo, comparar dados, etc.
-        - Rota CONVERSA: Saudações (oi, tudo bem), perguntas sobre quem você é, ou dúvidas genéricas que não exigem tabela."""
+        Sua tarefa é analisar a mensagem atual do usuário e, usando o Contexto anterior (se existir), decidir a rota.
+
+        Pergunta atual: "{user_text}"{context}
+        - Rota SQL: Responda SQL se o usuário quer métricas, informações de cidades, sustentabilidade, turismo, comparar dados, etc.
+        - Rota SQL (Pronomes): Responda SQL se o usuário estiver fazendo uma PERGUNTA DE CONTINUAÇÃO (ex: "quais são elas?", "liste as cidades", "e no estado X?") que dependa dos dados do Contexto anterior.
+        - Rota CONVERSA: Responda CONVERSA se for saudações (oi, tudo bem), perguntas sobre quem você é, ou dúvidas genéricas que não exigem tabela.
+        - Apenas responda com SQL ou CONVERSA, sem explicações.
+        Atenção: Na dúvida entre SQL e CONVERSA em perguntas de continuação, escolha SQL."""
         
-        structured_model = classify_model.with_structured_output(IntentRouter)
-        response = await structured_model.ainvoke([SystemMessage(content=CLASSIFY_PROMPT), HumanMessage(content=last_msg)], config=config)
+        try:
+            structured_model = classify_model.with_structured_output(IntentRouter)
+            response = await structured_model.ainvoke([SystemMessage(content=CLASSIFY_PROMPT), HumanMessage(content=last_msg)], config=config)
 
-        # # VISUALIZANDO TOKENS
-        # token_count(response, "CLASSIFY_INTENT")
-        # usage = token_count_total(state, response)
+            # # VISUALIZANDO TOKENS
+            # token_count(response, "CLASSIFY_INTENT")
+            # usage = token_count_total(state, response)
 
-        intent = response.intent
-        print(f"   Raciocínio: {response.reasoning}")
-        print(f"   Intent classificado: {intent}")
+            intent = response.intent
 
-        return {"intent": intent, "dictionary_context": ""}
+            if "SQL" in intent:
+                intent = "SQL"
+            else:
+                intent = "CONVERSA"
+
+            print(f"   Raciocínio: {response.reasoning}")
+            print(f"   Intent classificado: {intent}")
+
+            return {"intent": intent, "dictionary_context": ""}
+        except Exception as e:
+            print(f"   [AVISO] Erro no classificador LLM: {e}. Forçando rota SQL.")
+            return {"intent": "SQL", "dictionary_context": ""}
 
 async def dictionary_retrieval(state: AgentState, config: RunnableConfig) -> AgentState:
     """

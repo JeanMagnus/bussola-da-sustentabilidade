@@ -1,3 +1,5 @@
+from email.mime import text
+import json
 from app.agent.state import AgentState
 from langchain_community.agent_toolkits import SQLDatabaseToolkit
 from langgraph.prebuilt import ToolNode, InjectedState
@@ -146,6 +148,46 @@ async def retrieve_last_ai_message_tool(state: Annotated[AgentState, InjectedSta
     except Exception as e:
         return f"Erro ao recuperar a última mensagem da IA: {str(e)}"
 
+@tool
+def sql_db_query(
+    query: Annotated[str, "A consulta SQL (SELECT) a ser executada. É OBRIGATÓRIO o uso de LIMIT (máx 15) para evitar sobrecarga de dados."]
+) -> str:
+    """
+    A ÚNICA ferramenta disponível para acessar o banco de dados.
+    Executa uma consulta SQL (SELECT) e retorna os resultados em formato JSON.
+    
+    AVISO CRÍTICO: Você JÁ POSSUI o schema no seu prompt. 
+    NÃO tente invocar ferramentas como `sql_db_list_tables` ou `sql_db_schema`.
+    NÃO gere tags `<|DSML|>`. 
+    Apenas escreva a sua query e chame diretamente esta ferramenta.
+    """
+    query_upper = query.strip().upper()
+    
+    forbidden_keywords = ["DROP ", "DELETE ", "UPDATE ", "INSERT ", "ALTER ", "TRUNCATE ", "GRANT ", "REVOKE "]
+    if any(keyword in query_upper for keyword in forbidden_keywords):
+        return "ERRO DE SEGURANÇA: Apenas consultas SELECT são permitidas."
+
+    try:
+        print(f"\n [TOOL SQL] Executando: {query}")
+
+        resultado_bruto = db_bussola.run(query)
+
+        if not resultado_bruto or str(resultado_bruto).strip() == "":
+            return "A consulta foi executada com sucesso, mas retornou 0 resultados (vazio)."
+
+        MAX_CHARS = 1500 
+        
+        resultado_str = str(resultado_bruto)
+        if len(resultado_str) > MAX_CHARS:
+            print(f"   [Aviso] Resultado longo ({len(resultado_str)} chars). Truncando para {MAX_CHARS}.")
+            return resultado_str[:MAX_CHARS] + '... [RESULTADO CORTADO PARA POUPAR TOKENS. REFAÇA A QUERY COM UM "LIMIT" MENOR OU AGREGAÇÃO SE PRECISAR DE MAIS DADOS].'
+
+        return resultado_str
+
+    except Exception as e:
+        erro_limpo = str(e).split('\n')[0] 
+        print(f"   [Erro DB] {erro_limpo}")
+        return f"Erro de Sintaxe ou Execução SQL: {erro_limpo}. Revise a sua query e as colunas utilizadas."
 
 
 
@@ -220,7 +262,7 @@ db_tools_filtered = [
     tool for tool in db_tools 
     if tool.name not in excluded_tool_names
 ]
-tools_agent = [store_memory_tool, retrieve_memories_tool, retrieve_last_ai_message_tool] + db_tools_filtered
+tools_agent = [store_memory_tool, retrieve_memories_tool, retrieve_last_ai_message_tool, sql_db_query]
 tools_chat = [store_memory_tool, retrieve_memories_tool, retrieve_last_ai_message_tool]
 tools_rag = [retrieve_last_ai_message_tool]
 tool_node = ToolNode(tools=tools_agent)
