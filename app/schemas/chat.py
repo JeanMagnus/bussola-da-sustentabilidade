@@ -21,5 +21,10 @@ class IntentRouter(BaseModel):
     intent: Literal["SQL", "CONVERSA"] = Field(
         description="O veredito final. Use 'SQL' para busca de dados e 'CONVERSA' para chat geral."
     )
+    is_continuation: str = Field(
+        description="Responda 'SIM' se a pergunta atual depender do contexto da mensagem anterior (ex: usa pronomes como 'elas', 'dessas', 'e no estado X?'). Responda 'NAO' se for um assunto novo."
+    )
     
+class KeywordExtraction(BaseModel):
+    search_query: str = Field(description="Uma string contendo 3 a 6 palavras-chave minúsculas, separadas por espaço, essenciais para a busca no banco de dados. Nunca deve estar vazia. Exemplo: 'cidades turismo sustentabilidade ibge'.")
     

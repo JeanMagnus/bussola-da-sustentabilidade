@@ -15,6 +15,7 @@ class AgentState(TypedDict):
     input_tokens: int
     output_tokens: int
     last_msg_ai: str
+    is_continuation: bool
 
 
     

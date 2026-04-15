@@ -1,6 +1,4 @@
 import asyncio
-from pyexpat.errors import messages
-
 from app.core import config
 from app.core.config import model, db_bussola, summarizer_model, moderation_model, deepseek_model, rag_model, classify_model
 from app.agent.state import AgentState
@@ -9,7 +7,7 @@ from app.agent.tools import tools_agent, tools_chat, tools_rag
 from app.core.config import trimmer
 from app.agent.memory import vector_store, guide_vector_store, guide_vector_store_large
 from app.agent.utils import timer, token_count, token_count_total
-from app.schemas.chat import IntentRouter
+from app.schemas.chat import IntentRouter, KeywordExtraction
 from langgraph.graph import END
 from langchain.agents.middleware import before_model, after_model
 from langchain_core.messages import BaseMessage, AIMessage, SystemMessage, HumanMessage, RemoveMessage, ToolMessage
@@ -32,7 +30,8 @@ async def setup_node(state: AgentState, config: RunnableConfig) -> AgentState:
             "sql_plan": "",
             "total_tokens": 0,
             "input_tokens": 0,
-            "output_tokens": 0
+            "output_tokens": 0,
+            "is_continuation": False
         }
         print(f"DEBUG: Última mensagem da memória: {last_msg_memory}")
 
@@ -140,12 +139,53 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
         user_question = user_messages[-1].content if user_messages else ""
 
         last_ai_msg = state.get("last_msg_ai", "")
-
-        search_query = user_question
+        is_continuation = state.get("is_continuation", False)
         context_memory = ""
-        if last_ai_msg:
-            search_query = f"Contexto anterior: {last_ai_msg}. Pergunta atual: {user_question}"
+
+        # --- NOVA LÓGICA DE EXTRAÇÃO PARA O PINECONE ---
+        if last_ai_msg and is_continuation:
+
+            print("   [INFO] Continuação detectada")
             context_memory = f"A MENSAGEM ANTERIOR DA IA FOI: '{last_ai_msg}'\nUse isso para entender sobre o que o usuário está falando agora."
+            
+            EXTRACTION_PROMPT = f"""
+            Você é um filtro estrito de palavras-chave para um motor de busca.
+            
+            Contexto: '{last_ai_msg}'
+            Pergunta: '{user_question}'
+            
+            Extraia os substantivos cruciais combinando a Pergunta com o Contexto (se ela for uma continuação).
+            Retorne SEMPRE de 3 a 6 palavras separadas por espaço.
+            NUNCA retorne uma string vazia. Se estiver em dúvida, retorne 'cidades sustentáveis turismo dados'.
+            
+            """
+            
+            try:
+
+                extractor_model = deepseek_model.with_structured_output(KeywordExtraction)
+                kw_messages = [SystemMessage(content=EXTRACTION_PROMPT)]
+                response_kw = await extractor_model.ainvoke(kw_messages, config=config, reasoning_effort="low")
+                search_query = response_kw.search_query.strip()
+                print(f"   [SUCESSO] Keywords extraídas via Estrutura: '{search_query}'")
+                
+                # raw_kw = getattr(response_kw, "content", "") or ""
+                # search_query = raw_kw.strip()
+                # print(f"   [DEBUG] response_kw.content repr: {repr(raw_kw)}")
+                # if not search_query:
+                #     print("   [AVISO] Extração retornou vazio; usando fallback seguro.")
+                #     search_query = f"{last_ai_msg} {user_question}".strip()
+                # print(f"   [SUCESSO] Keywords extraídas: {search_query}")
+            except Exception as e:
+                print(f"   [AVISO] Erro na extração de palavras-chave: {e}")
+                search_query = f"{last_ai_msg} {user_question}" # Fallback de segurança
+        else:
+            search_query = user_question
+
+        if not search_query or search_query.strip() == "":
+            print("   [AVISO CRÍTICO] search_query ficou vazia! Injetando texto de salvação.")
+            search_query = "turismo sustentável dados"
+
+        print(f"   [PINECONE] Buscando vetores por: '{search_query}'")
 
         with timer("RAG_AGENT - BUSCA VETORIAL"):
             docs = guide_vector_store_large.similarity_search(
@@ -160,6 +200,7 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
 
             print("--- DICIONÁRIO RECUPERADO ---")
 
+        # --- PROMPT DO RAG PARA GERAR O PLANO SQL ---
         RAG_PROMPT = f"""Extraia do dicionário apenas os metadados necessários para responder: "{user_question}".
 
         CONTEXTO: {context_memory}
@@ -182,7 +223,6 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
 
         response = await deepseek_model.ainvoke([HumanMessage(content=RAG_PROMPT)], config=config, reasoning_effort="low", max_completion_tokens=3000)
 
-     
         print("--- RESPOSTA DO RAG (DEBUG PROFUNDO) ---")
         print(f"Content: {repr(response.content)}") 
         
@@ -201,7 +241,7 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
 
         print(f"--- RAG AGENT: plano gerado ({len(response.content)} chars) ---")
         return {"sql_plan": response.content, **usage}
-
+    
 #model_with_tools = model.bind_tools(tools_agent)
 async def agent(state: AgentState, config: RunnableConfig):
     with timer("AGENT_NODE"):
@@ -618,6 +658,8 @@ async def classify_intent(state: AgentState, config: RunnableConfig) -> AgentSta
             # usage = token_count_total(state, response)
 
             intent = response.intent
+            is_cont_str = response.is_continuation.strip().upper()
+            is_cont = True if is_cont_str == "SIM" else False
 
             if "SQL" in intent:
                 intent = "SQL"
@@ -626,8 +668,10 @@ async def classify_intent(state: AgentState, config: RunnableConfig) -> AgentSta
 
             print(f"   Raciocínio: {response.reasoning}")
             print(f"   Intent classificado: {intent}")
+            print(f"   É continuação? {is_cont}")
 
-            return {"intent": intent, "dictionary_context": ""}
+
+            return {"intent": intent, "is_continuation": is_cont, "dictionary_context": ""}
         except Exception as e:
             print(f"   [AVISO] Erro no classificador LLM: {e}. Forçando rota SQL.")
             return {"intent": "SQL", "dictionary_context": ""}
@@ -732,7 +776,6 @@ async def dictionary_lookup(state: AgentState, config: RunnableConfig):
             "messages": [AIMessage(content="Ocorreu um erro inesperado. Por favor, tente novamente.")],
             "error_occurred": True
             }
-
 
 
 def verify_sql(state: AgentState):
@@ -914,6 +957,7 @@ def should_continue(state: AgentState):
     
     print(" --- VAI PARA MODERAÇÃO DE SAÍDA ---")
     return "moderation_output"
+
 
 def route_verify_sql(state: AgentState):
     print("--- ROUTE VERIFY SQL ---")
