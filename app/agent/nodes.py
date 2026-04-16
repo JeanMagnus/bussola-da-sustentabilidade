@@ -57,79 +57,69 @@ async def setup_node(state: AgentState, config: RunnableConfig) -> AgentState:
 
 async def summarization_node(state: AgentState, config: RunnableConfig) -> AgentState:
     with timer("SUMMARIZATION_NODE"):
-        print("--- SUMMARIZATION NODE ---")
-
-        """
-        Sumariza uma lista de mensagens em um resumo conciso para reduzir o comprimento
-        do contexto enquanto preserva informações importantes.
-        """
         messages = state["messages"]
 
-        print(f"DEBUG: O histórico tem {len(messages)} mensagens agora.")
-
-        if len(messages) < LIMITE_MENSAGENS_PARA_SUMARIZACAO:
+        if len(messages) <= 6:
             return state
-        print(">>>> NÓ DE SUMARIZAÇÃO ATIVADO <<<<")
-        SUMM_PROMPT = """
-        Você é um sumarizador de conversas. Crie um resumo conciso da conversa anterior
-        entre o usuário e o assistente.
 
-        O resumo deve:
-        1. Destacar tópicos principais, preferências e decisões tomadas
-        2. Incluir quaisquer detalhes específicos mencionados
-        3. Anotar quaisquer perguntas pendentes ou tópicos que precisam de acompanhamento
-        4. Ser conciso mas informativo
-        5. Mensagens que foram bloqueadas por infrações do sistema não devem ser incluídas no resumo.
-        6. NUNCA inclua no resumo conclusões sobre ausência de dados (ex: "a base não contém X").
-        Resultados de consultas são temporários e podem mudar — não os eternize no resumo.
+        print("--- SUMMARIZATION NODE (PÓS-PROCESSAMENTO) ---")
 
-        REGRAS DE OURO:
-        1. DELETE: Remova códigos SQL (SELECT, CREATE TABLE), nomes técnicos de colunas e IDs de ferramentas.
-        2. PRESERVE: Mantenha os fatos descobertos (ex: "O usuário se Fulano", "As cidades sustentáveis são X, Y e Z").
-        3. RESUMA: Transforme diálogos longos em: "O usuário perguntou sobre X e o assistente respondeu Y usando dados da tabela de destinos".
-        4. FOCO: O resumo deve servir para que o assistente saiba o que já foi respondido e quem é o usuário, sem precisar ler o banco de dados de novo.
+        old_summary = state.get("summary", "")
 
-        Formate seu resumo como um parágrafo narrativo breve.
-        """
-        # Retirando chamadas de tools e SQLs avulsos
+        recent_msgs = messages[-2:]
+
         messages_to_summarize = [
-            m for m in messages 
-            if isinstance(m, (HumanMessage, AIMessage)) and not (hasattr(m, 'tool_calls') and m.tool_calls)
+            m for m in messages[:-2]
+            if isinstance(m, (HumanMessage, AIMessage)) and not getattr(m, 'tool_calls', None)
         ]
 
-        message_content = "\n".join(
-            [
-                f"{'Usuário' if isinstance(msg, HumanMessage) else 'Assistente'}: {msg.content}"
-                for msg in messages_to_summarize
-            ]
-        )
-        summary_response = await summarizer_model.ainvoke([
-            SystemMessage(content=SUMM_PROMPT),
-            HumanMessage(content=f"Por favor, resuma esta conversa:\n\n{message_content}"),
-        ], config=config)
+        message_content = "\n".join([
+            f"{'Usuário' if isinstance(msg, HumanMessage) else 'Assistente'}: {msg.content}"
+            for msg in messages_to_summarize
+        ])
 
-        # VISUALIZANDO TOKENS
+        SUMM_PROMPT = f"""
+        Você é um gerenciador de memória para um Assistente de Banco de Dados.
+        Atualize o resumo da conversa integrando o sumário antigo com as novas mensagens.
+
+        SUMÁRIO ANTERIOR:
+        {old_summary}
+
+        NOVAS MENSAGENS PARA INTEGRAR:
+        {message_content}
+
+        REGRAS DE OURO:
+        1. Mantenha fatos descobertos (ex: "O usuário perguntou sobre as 14 cidades sustentáveis de SC").
+        2. Remova jargão técnico SQL e IDs.
+        3. Nunca diga que "os dados não existem", pois o banco pode ser atualizado.
+        4. Crie um parágrafo narrativo único e fluido.
+        """
+
+        summary_response = await summarizer_model.ainvoke([
+            SystemMessage(content=SUMM_PROMPT)
+        ], config=config, max_tokens=150)
+
+        new_summary_text = summary_response.content
+
+        summary_message = SystemMessage(
+            content=f"Contexto Histórico da Conversa:\n\n{new_summary_text}\n\n(Consulte sempre o banco de dados para fatos novos)."
+        )
+
+        remove_messages = [RemoveMessage(id=msg.id) for msg in messages if getattr(msg, 'id', None)]
+
+        reconstructed_recent = [
+            HumanMessage(content=recent_msgs[0].content),
+            AIMessage(content=recent_msgs[1].content)
+        ]
+
         token_count(summary_response, "SUMMARIZATION_NODE")
         usage = token_count_total(state, summary_response)
 
-        summary_message = SystemMessage(
-            content=(
-                f"Contexto da conversa anterior (use apenas como referência histórica, "
-                f"NÃO como fonte de verdade sobre o banco de dados):\n\n"
-                f"{summary_response.content}\n\n"
-                f"Continue a conversa. Para qualquer pergunta sobre dados, consulte o banco diretamente."
-            )
-        )
-
-        # Remover todas as mensagens antigas e manter apenas o resumo + última mensagem do usuário
-        remove_messages = [RemoveMessage(id=msg.id) for msg in messages if msg.id is not None]
-
-        return {"messages": [
-            *remove_messages,  # desempacotando uma lista dentro de outra
-            summary_message,  # Ficará só o SystemMessage com resumo
-            messages[-1],  # Última mensagem (sempre HumanMessage nesse fluxo)
-        ], **usage}
-
+        return {
+            "messages": [*remove_messages, summary_message, *reconstructed_recent],
+            "summary": new_summary_text,
+            **usage
+        }
 
 async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
     with timer("RAG_AGENT"):
@@ -140,13 +130,9 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
 
         last_ai_msg = state.get("last_msg_ai", "")
         is_continuation = state.get("is_continuation", False)
-        context_memory = ""
 
-        # --- NOVA LÓGICA DE EXTRAÇÃO PARA O PINECONE ---
         if last_ai_msg and is_continuation:
-
             print("   [INFO] Continuação detectada")
-            context_memory = f"A MENSAGEM ANTERIOR DA IA FOI: '{last_ai_msg}'\nUse isso para entender sobre o que o usuário está falando agora."
             
             EXTRACTION_PROMPT = f"""
             Você é um filtro estrito de palavras-chave para um motor de busca.
@@ -157,29 +143,24 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
             Extraia os substantivos cruciais combinando a Pergunta com o Contexto (se ela for uma continuação).
             Retorne SEMPRE de 3 a 6 palavras separadas por espaço.
             NUNCA retorne uma string vazia. Se estiver em dúvida, retorne 'cidades sustentáveis turismo dados'.
-            
-            """
-            
+            """            
             try:
-
                 extractor_model = deepseek_model.with_structured_output(KeywordExtraction)
                 kw_messages = [SystemMessage(content=EXTRACTION_PROMPT)]
-                response_kw = await extractor_model.ainvoke(kw_messages, config=config, reasoning_effort="low")
+                
+                response_kw = await extractor_model.ainvoke(kw_messages, config=config)
                 search_query = response_kw.search_query.strip()
                 print(f"   [SUCESSO] Keywords extraídas via Estrutura: '{search_query}'")
-                
-                # raw_kw = getattr(response_kw, "content", "") or ""
-                # search_query = raw_kw.strip()
-                # print(f"   [DEBUG] response_kw.content repr: {repr(raw_kw)}")
-                # if not search_query:
-                #     print("   [AVISO] Extração retornou vazio; usando fallback seguro.")
-                #     search_query = f"{last_ai_msg} {user_question}".strip()
-                # print(f"   [SUCESSO] Keywords extraídas: {search_query}")
+
+                usage = token_count_total(state, response_kw)
+
             except Exception as e:
                 print(f"   [AVISO] Erro na extração de palavras-chave: {e}")
-                search_query = f"{last_ai_msg} {user_question}" # Fallback de segurança
+                search_query = f"{last_ai_msg} {user_question}" 
+                usage = {}
         else:
             search_query = user_question
+            usage = {}
 
         if not search_query or search_query.strip() == "":
             print("   [AVISO CRÍTICO] search_query ficou vazia! Injetando texto de salvação.")
@@ -190,62 +171,24 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
         with timer("RAG_AGENT - BUSCA VETORIAL"):
             docs = guide_vector_store_large.similarity_search(
                 query=search_query,
-                k=5,
+                k=3,
                 namespace="data_dictionary"
             )
+            
             if not docs:
-                return{"sql_plan": "Nenhuma informação relevante encontrada no dicionário de dados."}
+                print("   --- NENHUM DICIONÁRIO RECUPERADO ---")
+                return {"sql_plan": "Nenhuma informação relevante encontrada no dicionário de dados.", **usage}
             
-            dictionary_context = "\n".join([f"{doc.page_content}" for doc in docs])
+            raw_dictionary_context = "\n\n".join([f"{doc.page_content}" for doc in docs])
 
-            print("--- DICIONÁRIO RECUPERADO ---")
-
-        # --- PROMPT DO RAG PARA GERAR O PLANO SQL ---
-        RAG_PROMPT = f"""Extraia do dicionário apenas os metadados necessários para responder: "{user_question}".
-
-        CONTEXTO: {context_memory}
-
-        DICIONÁRIO: {dictionary_context}
-
-        --- FORMATO DE SAÍDA ---
-        RESUMO: [Escreva 1 frase curta explicando o que essas tabelas contêm]
-        TABELAS: [nome]
-        COLUNAS: [nome] -> [tipo] -> [Ação: manter ou CAST]
-        NOTA_SQL: Para médias de nota, use obrigatoriamente: AVG(CAST(REPLACE(nota, ',', '.') AS NUMERIC))
-        REGRAS_DE_CAST: [Liste explicitamente se alguma coluna precisa de REPLACE de vírgula ou CAST para INTEGER/NUMERIC baseado no dicionário]
-        JOIN: [A] + [B] ON [coluna] (apenas em caso de o dicionário indicar claramente como as tabelas se relacionam)
-        Apenas crie um JOIN se as colunas requisitadas pelo usuário estiverem em tabelas diferentes. Se tudo estiver na mesma tabela, responda: "NENHUM JOIN NECESSÁRIO"
-        FILTROS: [coluna] [condição]
-
-        - Se precisar filtrar e não souber valores exatos, use uma query de amostragem para ver comos os dados estão escritos antes de aplicar filtros definitivos.
-
-        Responda apenas com os dados técnicos."""
-
-        response = await deepseek_model.ainvoke([HumanMessage(content=RAG_PROMPT)], config=config, reasoning_effort="low", max_completion_tokens=3000)
-
-        print("--- RESPOSTA DO RAG (DEBUG PROFUNDO) ---")
-        print(f"Content: {repr(response.content)}") 
-        
-        # O dict de resposta costuma ter o metadata de uso
-        if hasattr(response, 'response_metadata'):
-            print(f"Metadados: {response.response_metadata}")
+            print("   --- DICIONÁRIO RECUPERADO (TEXTO BRUTO) ---")
             
-        # O dict usage_metadata (se existir)
-        if hasattr(response, 'usage_metadata'):
-            print(f"Tokens Reportados: {response.usage_metadata}")
-        print(response.content)
+            print(f"   [INFO] Retornando {len(raw_dictionary_context)} caracteres de regras brutas do banco.")
 
-        # VISUALIZANDO TOKENS
-        token_count(response, "RAG_AGENT")
-        usage = token_count_total(state, response)
-
-        print(f"--- RAG AGENT: plano gerado ({len(response.content)} chars) ---")
-        return {"sql_plan": response.content, **usage}
+        return {"sql_plan": raw_dictionary_context, **usage}
     
-#model_with_tools = model.bind_tools(tools_agent)
 async def agent(state: AgentState, config: RunnableConfig):
     with timer("AGENT_NODE"):
-
         print("--- AGENT NODE ---")
 
         messages = state["messages"]
@@ -253,187 +196,112 @@ async def agent(state: AgentState, config: RunnableConfig):
         last_msg_memory = state.get("last_msg_ai", "")
 
         try:
+            user_messages = [m for m in messages if isinstance(m, HumanMessage)]
+            actual_question = user_messages[-1].content if user_messages else "Analisar dados"
 
-            context_block=""
+            context_block = ""
             if last_msg_memory:
                 context_block = f"""
-                --- CONTEXTO ANTERIOR ---
-                ### MEMÓRIA VIVA DA CONVERSA (PRIORIDADE ALTA) ###
-                Na sua última interação, você respondeu o seguinte ao usuário:
-                {last_msg_memory}
-                Utilize este contexto para responder perguntas interligadas. Siga esse contexto como sendo uma ponte para responder perguntas relacionadas, mas lembre-se: o banco de dados é a fonte definitiva para qualquer informação técnica. Use o contexto apenas como referência histórica para manter a coerência da conversa, não como verdade absoluta sobre os dados.
-                Se o usuário pedir nomes, códigos ou detalhes desses mesmos elementos, use a lógica SQL que gerou a resposta acima, aplicado ao novo contexto.
-
-                CASO CONTRÁRIO IGNORE ESTE CONTEXTO E CONTINUE SEM ELE.
+                --- CONTEXTO DA CONVERSA ANTERIOR ---
+                Na última interação, você respondeu:
+                "{last_msg_memory}"
+                Use isso como referência para manter a coerência caso a pergunta atual dependa destes dados, mas confirme sempre informações novas no banco de dados.
                 -------------------------
                 """
 
             sql_plan = state.get("sql_plan", "")
-
             plan_block = ""
             if sql_plan:
                 plan_block = f"""
-                --- PLANO DE ACESSO AO BANCO DE DADOS (SIGA ESTE PLANO) ---
+                --- DICIONÁRIO DE DADOS (LEITURA OBRIGATÓRIA) ---
+                Abaixo estão as regras brutas do banco de dados e as colunas disponíveis relacionadas à pergunta do usuário.
+                LEIA com atenção para saber quais colunas usar, se é necessário fazer CAST de tipos e como fazer JOINs:
                 {sql_plan}
-                ---------------------------------------------------------
-                """
 
-            # last_user = next(
-            #     (m for m in reversed(messages) if isinstance(m, HumanMessage)),
-            #     None
-            # )
+                NOTA IMPORTANTE PARA SQL: Para médias de nota, use sempre AVG(CAST(REPLACE(nota, ',', '.') AS NUMERIC)).
+                -------------------------------------------------                """
 
-            # valid_context = []
-            # pending_tool_calls = set()
-
-            # WINDOW = 4
-            # recent_msgs = messages[-WINDOW:]
-
-            # for m in recent_msgs:
-            #     if isinstance(m, AIMessage) and getattr(m, "tool_calls", None):
-            #         valid_context.append(m)
-            #         for tc in m.tool_calls:
-            #             pending_tool_calls.add(tc["id"])
-
-            #     elif isinstance(m, ToolMessage):
-            #         if m.tool_call_id in pending_tool_calls:
-            #             valid_context.append(m)
-            #             pending_tool_calls.remove(m.tool_call_id)
-
-            #     elif isinstance(m, AIMessage):
-            #         # AI normal (sem tool)
-            #         valid_context.append(m)
-
-            # final_msgs = []
-            # if last_user:
-            #     final_msgs.append(last_user)
-
-            # final_msgs.extend(valid_context)
-
-            last_user = next(
-                (m for m in reversed(messages) if isinstance(m, HumanMessage)),
-                None
-            )
-
-            # Encontra o índice da última mensagem do usuário
-            last_user_idx = 0
-            for i in range(len(messages) - 1, -1, -1):
-                if isinstance(messages[i], HumanMessage):
-                    last_user_idx = i
-                    break
-            
-            # Pegamos APENAS as mensagens a partir da última pergunta do usuário.
-            recent_msgs = messages[last_user_idx + 1:] 
-
-            valid_context = []
-            pending_tool_calls = set()
-
-            for m in recent_msgs:
-                # Mantém toda a cadeia lógica de pensamento do agente INTACTA para a pergunta atual
-                if isinstance(m, AIMessage) and getattr(m, "tool_calls", None):
-                    valid_context.append(m)
-                    for tc in m.tool_calls:
-                        pending_tool_calls.add(tc["id"])
-
-                elif isinstance(m, ToolMessage):
-                    if m.tool_call_id in pending_tool_calls:
-                        # Se for um retorno gigante de SQL, aplica um limite de caracteres de segurança
-                        if len(str(m.content)) > 800:
-                            m_truncado = ToolMessage(
-                                tool_call_id=m.tool_call_id,
-                                content=str(m.content)[:800] + "\n...[DADOS TRUNCADOS PARA ECONOMIA. USE LIMIT NA SUA QUERY SE PRECISAR DE MAIS DADOS]."
-                            )
-                            valid_context.append(m_truncado)
-                        else:
-                            valid_context.append(m)
-                        pending_tool_calls.remove(m.tool_call_id)
-
-                elif isinstance(m, AIMessage):
-                    valid_context.append(m)
-
-            final_msgs = []
-            if last_user:
-                final_msgs.append(last_user)
-
-            final_msgs.extend(valid_context)
-
-            actual_question = last_user.content if last_user else "Analisar dados"
-
-            has_tool_results = any(
-                isinstance(m, ToolMessage) for m in messages[-5:]
-            )
-
-            prompt_with_mission = f"""{SYSTEM_PROMPT}
-            {context_block}
-            {plan_block}
-
-            MISSÃO ATUAL CRÍTICA:
-            O usuário solicitou: "{actual_question}"
-
-            INSTRUÇÃO DE FLUXO:
-            { "- Utilize o PLANO DE ACESSO acima."
-                "- Não use os exemplos do plano como verdade absoluta, mas como um guia para acessar o banco de dados."
-                "- Alguns dados serão passados como exemplos, mas sempre consulte o banco de dados para obter a resposta mais precisa e atualizada."
-                if has_tool_results else
-                "Se precisar de dados, use ferramentas SQL." }
-
-            --- REGRAS ---
-            1. Não repetir queries iguais.
-            2. Se vazio ([]), simplifique.
-            3. Não chamar mesma tool 2x com mesmos args.
-            """
-
-            messages_trim = [SystemMessage(content=prompt_with_mission)] + final_msgs
-
-            print(f"TRIMMER REMOVIDO: {len(messages)} → {len(messages_trim)} mensagens")
-
-            for i, m in enumerate(messages_trim):
-                print(f"  MSG FINAL {i} [{type(m).__name__}]")
-
+            last_msg_content = str(messages[-1].content)
+            has_error = "does not exist" in last_msg_content.lower() or "error" in last_msg_content.lower()
 
             if state.get("intent") == "CONVERSA":
+                print("   [ROTA] Chat Simples")
                 current_tools = tools_chat
+                prompt_with_mission = f"""Você é o Assistente do Projeto Bússola da Sustentabilidade.
+            Responda de forma educada e prestativa à seguinte interação do usuário.
+            Mantenha a resposta curta.
+            
+            Memória: {context_block}
+            """
             else:
+                print("   [ROTA] Agente SQL")
                 current_tools = tools_agent
+                prompt_with_mission = f"""{SYSTEM_PROMPT}
+                {context_block}
+                {plan_block}
 
-            model_with_tools = deepseek_model.bind_tools(current_tools) if current_tools else model
+                MISSÃO ATUAL:
+                O usuário solicitou: "{actual_question}"
 
-            response = await model_with_tools.ainvoke(messages_trim, config=config)
+                INSTRUÇÃO DE FLUXO:
+                - O Plano de Acesso é um guia. Os dados exatos e atualizados estão no banco.
+                
+                --- REGRAS INQUEBRÁVEIS ---
+                1. NÃO repita a mesma query se ela retornou VAZIA ([]). Mude a abordagem ou simplifique os filtros.
+                2. É PROIBIDO chamar a mesma ferramenta com os mesmos argumentos mais de uma vez consecutiva.
+                3. Se a query estourar o limite de linhas, o sistema truncará. Adicione LIMIT nas suas queries.
+                """
+
+            if has_error:
+                prompt_with_mission += "\nAVISO CRÍTICO: A execução SQL anterior falhou (coluna inexistente ou erro de sintaxe). Reveja os nomes das colunas e os tipos de dados (CAST)."
+
+            recent_msgs = messages[-10:]
+            user_msg = next((m for m in messages if isinstance(m, HumanMessage)), None)
+            while recent_msgs and isinstance(recent_msgs[0], ToolMessage):
+                recent_msgs = recent_msgs[1:]
+                
+            if user_msg and user_msg not in recent_msgs:
+                recent_msgs = [user_msg] + recent_msgs
+
+            messages_to_send = [SystemMessage(content=prompt_with_mission)] + recent_msgs
+            
+            print(f"   [INFO] Enviando {len(messages_to_send)} mensagens para o LLM.")
+
+            model_with_tools = deepseek_model.bind_tools(current_tools) if current_tools else deepseek_model
+            response = await model_with_tools.ainvoke(messages_to_send, config=config)
 
             if response.tool_calls:
                 print(" --- FERRAMENTAS CHAMADAS ---")
                 for call in response.tool_calls:
-                    print(f"Tool: {call['name']}")
+                    print(f"   Tool: {call['name']}")
             else:
-                print(" --- SEM TOOL ---")
+                print(" --- SEM TOOL (Gerando Resposta Final) ---")
 
             token_count(response, "AGENT")
             usage = token_count_total(state, response)
 
-            return {"messages": [response], "error_occurred": False, **usage, "last_msg_ai": response.content}
+            return {
+                "messages": [response], 
+                "error_occurred": False, 
+                **usage, 
+                "last_msg_ai": response.content
+            }
 
         except BadRequestError as e:
-            print(f"Erro de conteúdo: {e}")
+            print(f"Erro de API (Filtros/Bad Request): {e}")
             return {
-                "messages": [AIMessage(content="Erro de requisição inválida.")],
+                "messages": [AIMessage(content="Ocorreu um erro de comunicação com o modelo de IA (Bad Request).")],
                 "error_occurred": True,
                 **usage
             }
 
         except Exception as e:
-            print(f"Erro inesperado: {e}")
+            print(f"Erro inesperado no Agente: {e}")
             return {
-                "messages": [AIMessage(content="Erro inesperado.")],
+                "messages": [AIMessage(content="Ocorreu um erro interno inesperado durante a análise.")],
                 "error_occurred": True,
                 **usage
             }
-
-# def should_continue(state: AgentState):
-#     last_msg = state["messages"][-1]
-#     if last_msg.tool_calls:
-#         return "go_tools"
-#     return END
-
 
 
 async def guardrail_input(state: AgentState, config: RunnableConfig):
@@ -923,8 +791,23 @@ def should_continue(state: AgentState):
         return END
     
 
+    last_user_idx = 0
+    for i in range(len(state["messages"]) - 1, -1, -1):
+        if isinstance(state["messages"][i], HumanMessage):
+            last_user_idx = i
+            break
+
+    current_turn_msgs = state["messages"][last_user_idx:]
+
+    # sql_tool_calls = 0
+    # for msg in state["messages"]:
+    #     if isinstance(msg, AIMessage) and getattr(msg, "tool_calls", None):
+    #         for tool_call in msg.tool_calls:
+    #             if tool_call["name"] in ["sql_db_query", "sql_db_schema", "sql_db_list_tables"]:
+    #                 sql_tool_calls += 1
+
     sql_tool_calls = 0
-    for msg in state["messages"]:
+    for msg in current_turn_msgs:
         if isinstance(msg, AIMessage) and getattr(msg, "tool_calls", None):
             for tool_call in msg.tool_calls:
                 if tool_call["name"] in ["sql_db_query", "sql_db_schema", "sql_db_list_tables"]:
@@ -978,12 +861,12 @@ def route_moderation_output(state: AgentState):
 
     if state.get("error_occurred"):
         print(" --- ERRO ENCONTRADO, BLOQUEANDO ---")
-        return END
+        return "summarization_node"
     if isinstance(last_msg, HumanMessage) and "Alerta" in last_msg.content:
         print(" --- BLOQUEADO NA MODERAÇÃO DE SAÍDA ---")
         return "agent"
     print(" --- PASSOU NA MODERAÇÃO DE SAÍDA ---")
-    return END
+    return "summarization_node"
 
 
 def route_guardrail_input(state: AgentState):

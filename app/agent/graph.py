@@ -21,13 +21,15 @@ workflow.add_node("rag_agent", rag_agent)
 
 
 workflow.add_edge(START, "setup_node")
-workflow.add_edge("setup_node", "summarization_node")
+#workflow.add_edge("setup_node", "summarization_node")
 #workflow.add_edge("summarization_node", "moderation_input")
-workflow.add_edge("summarization_node", "guardrail_input")
+#workflow.add_edge("summarization_node", "guardrail_input")
+workflow.add_edge("setup_node", "guardrail_input")
 #workflow.add_edge("dictionary_lookup", "agent")
 workflow.add_edge("go_tools", "agent")
-workflow.add_edge("moderation_output", END)
+workflow.add_edge("moderation_output", "summarization_node")
 workflow.add_edge("rag_agent", "agent")
+workflow.add_edge("summarization_node", END)
 
 # workflow.add_conditional_edges("moderation_input", route_moderation_input,
 #                                {
@@ -44,7 +46,7 @@ workflow.add_conditional_edges("guardrail_input", route_guardrail_input,
                                 {
                                     #"agent": "agent", 
                                     "classify_intent": "classify_intent",
-                                    END: END          
+                                    END: "summarization_node"          
                                 }
                                 )
 
@@ -61,18 +63,18 @@ workflow.add_conditional_edges("agent", should_continue,
                                    "verify_sql": "verify_sql",
                                    "go_tools": "go_tools",
                                    "moderation_output": "moderation_output",
-                                    END: END
+                                    END: "summarization_node"
                                }
                                )
 workflow.add_conditional_edges("verify_sql", route_verify_sql,
                                {
                                    "go_tools": "go_tools",
-                                   END: END
+                                   END: "summarization_node"
                                }
                                )
 workflow.add_conditional_edges("moderation_output", route_moderation_output,
                                {
                                    "agent": "agent",
-                                   END: END
+                                   "summarization_node": "summarization_node"
                                }
                                )

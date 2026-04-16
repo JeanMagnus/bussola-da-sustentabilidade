@@ -1,5 +1,6 @@
 from email.mime import text
 import json
+from sqlalchemy import inspect
 from app.agent.state import AgentState
 from langchain_community.agent_toolkits import SQLDatabaseToolkit
 from langgraph.prebuilt import ToolNode, InjectedState
@@ -191,6 +192,64 @@ def sql_db_query(
 
 
 
+@tool
+def sql_db_schema(
+    table_names: Annotated[str, "Uma string com os nomes das tabelas separados por vírgula (ex: 'ibge, selo')."]
+) -> str:
+    """
+    Retorna a estrutura OTIMIZADA (apenas colunas, tipos e chaves primárias) das tabelas solicitadas.
+    Use esta ferramenta IMEDIATAMENTE se receber um erro de "column does not exist" ou 
+    "relation does not exist" para descobrir os nomes exatos antes de tentar a query novamente.
+    """
+    try:
+        print(f"\n [TOOL SCHEMA] Inspecionando tabelas: {table_names}")
+        
+        # Limpa e separa os nomes das tabelas enviados pelo LLM
+        tables = [t.strip() for t in table_names.split(",") if t.strip()]
+        
+        if not tables:
+            return "ERRO: Nenhuma tabela foi fornecida. Envie os nomes separados por vírgula."
+
+        # Extrai o "motor" do SQLAlchemy por trás do LangChain para inspecionar diretamente
+        inspector = inspect(db_bussola._engine)
+        schema_info = []
+        
+        for table in tables:
+            try:
+                # Busca as colunas e a chave primária
+                columns = inspector.get_columns(table)
+                pk_cols = inspector.get_pk_constraint(table).get('constrained_columns', [])
+                
+                col_details = []
+                for c in columns:
+                    # Adiciona um asterisco (*) para sinalizar que é Primary Key
+                    pk_marker = "*" if c['name'] in pk_cols else ""
+                    # Ex: id* (INTEGER) ou nome (VARCHAR)
+                    col_details.append(f"{c['name']}{pk_marker} ({c['type']})")
+                
+                # Formatação ultracompacta
+                schema_info.append(f"Tabela '{table}': {', '.join(col_details)}")
+                
+            except Exception as e:
+                # Se o LLM inventar um nome de tabela que não existe
+                schema_info.append(f"Tabela '{table}': Erro - Esta tabela não existe no banco de dados.")
+        
+        resultado_str = "\n".join(schema_info)
+        
+        # Proteção contra tabelas monstruosas (ex: tabelas com 200 colunas)
+        MAX_CHARS = 1000 
+        if len(resultado_str) > MAX_CHARS:
+            print(f"   [Aviso] Schema muito longo ({len(resultado_str)} chars). Truncando para {MAX_CHARS}.")
+            return resultado_str[:MAX_CHARS] + '... [SCHEMA CORTADO PARA POUPAR TOKENS].'
+
+        return resultado_str
+
+    except Exception as e:
+        erro_limpo = str(e).split('\n')[0] 
+        print(f"   [Erro Schema] {erro_limpo}")
+        return f"Erro ao tentar ler a estrutura do banco: {erro_limpo}"
+
+
 # @tool
 # async def search_data_dictionary(
 #     query: Annotated[str, "Termos de busca para encontrar tabelas e colunas (ex: 'população', 'sustentabilidade', 'turismo')"],
@@ -262,7 +321,7 @@ db_tools_filtered = [
     tool for tool in db_tools 
     if tool.name not in excluded_tool_names
 ]
-tools_agent = [store_memory_tool, retrieve_memories_tool, retrieve_last_ai_message_tool, sql_db_query]
+tools_agent = [store_memory_tool, retrieve_memories_tool, retrieve_last_ai_message_tool, sql_db_query, sql_db_schema]
 tools_chat = [store_memory_tool, retrieve_memories_tool, retrieve_last_ai_message_tool]
 tools_rag = [retrieve_last_ai_message_tool]
 tool_node = ToolNode(tools=tools_agent)

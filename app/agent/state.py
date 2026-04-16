@@ -2,6 +2,7 @@ from typing import Annotated, Sequence
 from typing_extensions import TypedDict
 from langchain_core.messages import BaseMessage
 from langgraph.graph import add_messages
+import operator
 
 class AgentState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], add_messages]
@@ -11,12 +12,11 @@ class AgentState(TypedDict):
     intent: str
     dictionary_context: str
     sql_plan: str
-    total_tokens: int
-    input_tokens: int
-    output_tokens: int
+    input_tokens: Annotated[int, operator.add]
+    output_tokens: Annotated[int, operator.add]
+    total_tokens: Annotated[int, operator.add]
     last_msg_ai: str
     is_continuation: bool
-
+    summary: str
 
     
-
