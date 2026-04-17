@@ -12,9 +12,12 @@ class AgentState(TypedDict):
     intent: str
     dictionary_context: str
     sql_plan: str
-    input_tokens: Annotated[int, operator.add]
-    output_tokens: Annotated[int, operator.add]
-    total_tokens: Annotated[int, operator.add]
+    # input_tokens: Annotated[int, operator.add]
+    # output_tokens: Annotated[int, operator.add]
+    # total_tokens: Annotated[int, operator.add]
+    input_tokens: int
+    output_tokens: int
+    total_tokens: int
     last_msg_ai: str
     is_continuation: bool
     summary: str

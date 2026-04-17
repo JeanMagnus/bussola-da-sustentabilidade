@@ -13,27 +13,27 @@ def token_count(response, node_name: str):
 
 # FUNÇÃO PARA CONTAGEM TOTAL DE TOKENS ACUMULADOS
 def token_count_total(state, response):
-    # current_total = state.get("total_tokens", 0)
-    # current_input = state.get("input_tokens", 0)
-    # current_output = state.get("output_tokens", 0)
-
-    # if hasattr(response, "usage_metadata") and response.usage_metadata:
-    #     usage = response.usage_metadata
-    #     return {
-    #         "total_tokens": current_total + usage.get("total_tokens", 0),
-    #         "input_tokens": current_input + usage.get("input_tokens", 0),
-    #         "output_tokens": current_output + usage.get("output_tokens", 0)
-    #     }
-    # return { "total_tokens": current_total, "input_tokens": current_input, "output_tokens": current_output }
+    current_total = state.get("total_tokens", 0)
+    current_input = state.get("input_tokens", 0)
+    current_output = state.get("output_tokens", 0)
 
     if hasattr(response, "usage_metadata") and response.usage_metadata:
         usage = response.usage_metadata
         return {
-            "total_tokens": usage.get("total_tokens", 0),
-            "input_tokens": usage.get("input_tokens", 0),
-            "output_tokens": usage.get("output_tokens", 0)
+            "total_tokens": current_total + usage.get("total_tokens", 0),
+            "input_tokens": current_input + usage.get("input_tokens", 0),
+            "output_tokens": current_output + usage.get("output_tokens", 0)
         }
-    return { "total_tokens": 0, "input_tokens": 0, "output_tokens": 0 }
+    return { "total_tokens": current_total, "input_tokens": current_input, "output_tokens": current_output }
+
+    # if hasattr(response, "usage_metadata") and response.usage_metadata:
+    #     usage = response.usage_metadata
+    #     return {
+    #         "total_tokens": usage.get("total_tokens", 0),
+    #         "input_tokens": usage.get("input_tokens", 0),
+    #         "output_tokens": usage.get("output_tokens", 0)
+    #     }
+    # return { "total_tokens": 0, "input_tokens": 0, "output_tokens": 0 }
 
 @contextmanager
 def timer(node_name):
