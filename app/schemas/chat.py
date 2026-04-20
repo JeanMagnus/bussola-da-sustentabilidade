@@ -27,4 +27,15 @@ class IntentRouter(BaseModel):
     
 class KeywordExtraction(BaseModel):
     search_query: str = Field(description="Uma string contendo 3 a 6 palavras-chave minúsculas, separadas por espaço, essenciais para a busca no banco de dados. Nunca deve estar vazia. Exemplo: 'cidades turismo sustentabilidade ibge'.")
-    
+
+
+class StreamInput(BaseModel):
+    """
+    Entrada para o endpoint de streaming /chat/stream.
+    Idêntica ao ChatInput — separada para clareza semântica e
+    para permitir extensões futuras específicas ao stream.
+    """
+    message: str
+    thread_id: str = "default"
+    user_id: str = "anonymous"
+ 
