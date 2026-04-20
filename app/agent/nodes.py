@@ -1,6 +1,6 @@
 import asyncio
 from app.core import config
-from app.core.config import model, db_bussola, summarizer_model, moderation_model, deepseek_model, rag_model, classify_model
+from app.core.config import model, db_bussola, summarizer_model, moderation_model, deepseek_model, rag_model, classify_model, kimi_model
 from app.agent.state import AgentState
 from app.agent.prompt import SYSTEM_PROMPT
 from app.agent.tools import tools_agent, tools_chat, tools_rag
@@ -142,6 +142,7 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
             
             Extraia os substantivos cruciais combinando a Pergunta com o Contexto (se ela for uma continuação).
             Retorne SEMPRE de 3 a 6 palavras separadas por espaço.
+            Você DEVE retornar um objeto JSON válido correspondente ao esquema solicitado.
             NUNCA retorne uma string vazia. Se estiver em dúvida, retorne 'cidades sustentáveis turismo dados'.
             """            
             try:

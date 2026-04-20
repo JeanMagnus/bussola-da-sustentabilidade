@@ -9,7 +9,7 @@ from langchain_core.documents import Document
 from langchain_core.tools import tool
 from typing import Annotated, List, Literal
 from app.core.config import model, db_bussola
-from app.agent.memory import vector_store, Memory, guide_vector_store
+from app.agent.memory import vector_store, Memory, guide_vector_store, about_vector_store
 
 
 @tool
@@ -249,6 +249,38 @@ def sql_db_schema(
         print(f"   [Erro Schema] {erro_limpo}")
         return f"Erro ao tentar ler a estrutura do banco: {erro_limpo}"
 
+@tool
+def retrieve_about(
+    query: Annotated[str, "Consulta para recuperar informações sobre a organização, missão, equipe ou outras informações relevantes."],
+    limit: Annotated[int, "Número máximo de trechos institucionais a serem recuperados"]
+) -> str:
+    """
+    Consulta o índice 'about' para recuperar informações sobre a organização, missão, equipe ou outras informações relevantes.
+    Use esta ferramenta SEMPRE que o usuário fizer perguntas sobre a própria organização, seus objetivos, equipe ou informações institucionais.
+    Esta ferramenta é a única forma de acessar o conhecimento sobre a organização persistente no Pinecone.
+    """
+    print(f"--- CONSULTANDO ÍNDICE 'ABOUT' ---")
+    
+    try:
+        docs = about_vector_store.similarity_search(
+            query=query, 
+            k=limit, 
+            filter={"type": "institutional_info"}, 
+            namespace="about"
+        )
+
+        if not docs:
+            return "Nenhuma informação relevante encontrada."
+
+        instrucoes = "RESULTADOS:\n"
+        for d in docs:
+            instrucoes += f"\n========================================\n"
+            instrucoes += f"CONTEÚDO: {d.page_content}\n"
+        
+        return instrucoes
+    
+    except Exception as e:
+        return f"Erro ao buscar no índice 'about': {str(e)}"
 
 # @tool
 # async def search_data_dictionary(
@@ -321,7 +353,7 @@ db_tools_filtered = [
     tool for tool in db_tools 
     if tool.name not in excluded_tool_names
 ]
-tools_agent = [store_memory_tool, retrieve_memories_tool, retrieve_last_ai_message_tool, sql_db_query, sql_db_schema]
-tools_chat = [store_memory_tool, retrieve_memories_tool, retrieve_last_ai_message_tool]
+tools_agent = [store_memory_tool, retrieve_memories_tool, retrieve_last_ai_message_tool, retrieve_about, sql_db_query, sql_db_schema]
+tools_chat = [store_memory_tool, retrieve_memories_tool, retrieve_last_ai_message_tool, retrieve_about]
 tools_rag = [retrieve_last_ai_message_tool]
 tool_node = ToolNode(tools=tools_agent)

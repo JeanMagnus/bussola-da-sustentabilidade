@@ -29,3 +29,10 @@ guide_vector_store_large = PineconeVectorStore(
     pinecone_api_key=settings.PINECONE_API_KEY,
     namespace="data_dictionary"
 )
+
+about_vector_store = PineconeVectorStore(
+    index_name=settings.PINECONE_INDEX_ABOUT,
+    embedding=embeddings_large,
+    pinecone_api_key=settings.PINECONE_API_KEY,
+    namespace="about"
+)

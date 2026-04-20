@@ -28,11 +28,16 @@ class Settings:
     AZURE_OPENAI_EMBEDDING_LARGE_ENDPOINT = os.getenv("AZURE_OPENAI_EMBEDDING_LARGE_ENDPOINT")
     AZURE_OPENAI_EMBEDDING_LARGE_API_KEY = os.getenv("AZURE_OPENAI_EMBEDDING_LARGE_API_KEY")
 
+    AZURE_KIMI_API_KEY = os.getenv("AZURE_KIMI_API_KEY")
+    AZURE_KIMI_ENDPOINT = os.getenv("AZURE_KIMI_ENDPOINT")
+    AZURE_KIMI_API_VERSION = os.getenv("AZURE_KIMI_API_VERSION")
+    AZURE_KIMI_DEPLOYMENT = os.getenv("AZURE_KIMI_DEPLOYMENT")
 
     PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
     PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
     PINECONE_INDEX_GUIDE = os.getenv("PINECONE_INDEX_GUIDE")
     PINECONE_INDEX_GUIDE_LARGE = os.getenv("PINECONE_INDEX_GUIDE_LARGE")
+    PINECONE_INDEX_ABOUT = os.getenv("PINECONE_INDEX_ABOUT")
 
     GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
@@ -45,10 +50,15 @@ settings = Settings()
 
 db_bussola = SQLDatabase.from_uri(settings.URI_DATABASE_BUSSOLA)
 
-print("LARGE DEPLOYMENT:", settings.AZURE_OPENAI_EMBEDDING_LARGE_DEPLOYMENT)
-print("LARGE ENDPOINT:", settings.AZURE_OPENAI_EMBEDDING_LARGE_ENDPOINT)
-print("LARGE API KEY:", settings.AZURE_OPENAI_EMBEDDING_LARGE_API_KEY[:10] if settings.AZURE_OPENAI_EMBEDDING_LARGE_API_KEY else "VAZIA")
-print("LARGE API VERSION:", settings.AZURE_OPENAI_EMBEDDING_LARGE_API_VERSION)
+# print("LARGE DEPLOYMENT:", settings.AZURE_OPENAI_EMBEDDING_LARGE_DEPLOYMENT)
+# print("LARGE ENDPOINT:", settings.AZURE_OPENAI_EMBEDDING_LARGE_ENDPOINT)
+# print("LARGE API KEY:", settings.AZURE_OPENAI_EMBEDDING_LARGE_API_KEY[:10] if settings.AZURE_OPENAI_EMBEDDING_LARGE_API_KEY else "VAZIA")
+# print("LARGE API VERSION:", settings.AZURE_OPENAI_EMBEDDING_LARGE_API_VERSION)
+
+print("KIMI DEPLOYMENT:", settings.AZURE_KIMI_DEPLOYMENT)
+print("KIMI ENDPOINT:", settings.AZURE_KIMI_ENDPOINT)
+print("KIMI API VERSION:", settings.AZURE_KIMI_API_VERSION)
+print("KIMI API KEY:", settings.AZURE_KIMI_API_KEY[:10] if settings.AZURE_KIMI_API_KEY else "VAZIA")    
 
 model = AzureChatOpenAI(
     model = "gpt-5-nano",
@@ -66,6 +76,17 @@ deepseek_model = AzureChatOpenAI(
     azure_endpoint = settings.AZURE_DEEPSEEK_ENDPOINT,
     api_key = settings.AZURE_DEEPSEEK_API_KEY,
     temperature = 0,
+)
+
+kimi_model = AzureChatOpenAI(
+    model = "Kimi-K2.5",
+    azure_deployment = settings.AZURE_KIMI_DEPLOYMENT,
+    api_version = settings.AZURE_KIMI_API_VERSION,
+    azure_endpoint = settings.AZURE_KIMI_ENDPOINT,
+    api_key = settings.AZURE_KIMI_API_KEY,
+    temperature = 0,
+    max_retries = 5,
+    timeout = 45.0,
 )
 
 # summarizer_model = AzureChatOpenAI(
