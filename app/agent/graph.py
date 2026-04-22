@@ -1,10 +1,10 @@
 from langgraph.graph import StateGraph, START, END
 from app.agent.state import AgentState
-from app.agent.nodes import agent, classify_intent, dictionary_lookup, dictionary_retrieval, rag_agent, route_classify_intent, setup_node, guardrail_input, route_guardrail_input, should_continue, moderation_input, check_relevance, moderation_output, verify_sql, route_check_relevance, route_moderation_input, route_verify_sql, route_moderation_output, summarization_node
+from app.agent.nodes import agent, classify_intent, dictionary_lookup, dictionary_retrieval, rag_agent, route_agent_check_output, route_classify_intent, setup_node, guardrail_input, route_guardrail_input, should_continue, moderation_input, check_relevance, moderation_output, verify_sql, route_check_relevance, route_moderation_input, route_verify_sql, route_moderation_output, summarization_node
 from app.agent.tools import tool_node
 
 workflow = StateGraph(AgentState)
-
+ 
 workflow.add_node("setup_node", setup_node)
 workflow.add_node("guardrail_input", guardrail_input)
 workflow.add_node("agent", agent)
@@ -76,5 +76,13 @@ workflow.add_conditional_edges("moderation_output", route_moderation_output,
                                {
                                    "agent": "agent",
                                    "summarization_node": "summarization_node"
+                               }
+                               )
+
+workflow.add_conditional_edges("moderation_output", route_agent_check_output,
+                               {
+                                   "retry": "agent",
+                                    "success": "summarization_node",
+                                    "blocked": END
                                }
                                )

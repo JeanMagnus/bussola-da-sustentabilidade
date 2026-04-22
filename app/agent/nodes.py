@@ -31,7 +31,8 @@ async def setup_node(state: AgentState, config: RunnableConfig) -> AgentState:
             "total_tokens": 0,
             "input_tokens": 0,
             "output_tokens": 0,
-            "is_continuation": False
+            "is_continuation": False,
+            "retries": 0
         }
         print(f"DEBUG: Última mensagem da memória: {last_msg_memory}")
 
@@ -146,7 +147,7 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
             NUNCA retorne uma string vazia. Se estiver em dúvida, retorne 'cidades sustentáveis turismo dados'.
             """            
             try:
-                extractor_model = deepseek_model.with_structured_output(KeywordExtraction)
+                extractor_model = kimi_model.with_structured_output(KeywordExtraction)
                 kw_messages = [SystemMessage(content=EXTRACTION_PROMPT)]
                 
                 response_kw = await extractor_model.ainvoke(kw_messages, config=config)
@@ -195,6 +196,7 @@ async def agent(state: AgentState, config: RunnableConfig):
         messages = state["messages"]
         usage = {}
         last_msg_memory = state.get("last_msg_ai", "")
+        retries = state.get("retries", 0)
 
         try:
             user_messages = [m for m in messages if isinstance(m, HumanMessage)]
@@ -268,8 +270,12 @@ async def agent(state: AgentState, config: RunnableConfig):
             
             print(f"   [INFO] Enviando {len(messages_to_send)} mensagens para o LLM.")
 
-            model_with_tools = deepseek_model.bind_tools(current_tools) if current_tools else deepseek_model
-            response = await model_with_tools.ainvoke(messages_to_send, config=config)
+            # FALLBACK BLOCK 
+            second_model_with_tools = deepseek_model.bind_tools(current_tools) if current_tools else deepseek_model
+            third_model_with_tools = model.bind_tools(current_tools) if current_tools else model
+            model_with_tools = kimi_model.bind_tools(current_tools) if current_tools else kimi_model
+            model_with_fallback = model_with_tools.with_fallbacks([second_model_with_tools, third_model_with_tools])
+            response = await model_with_fallback.ainvoke(messages_to_send, config=config)
 
             if response.tool_calls:
                 print(" --- FERRAMENTAS CHAMADAS ---")
@@ -285,7 +291,8 @@ async def agent(state: AgentState, config: RunnableConfig):
                 "messages": [response], 
                 "error_occurred": False, 
                 **usage, 
-                "last_msg_ai": response.content
+                "last_msg_ai": response.content,
+                "retries": retries + 1
             }
 
         except BadRequestError as e:
@@ -896,3 +903,21 @@ def route_classify_intent(state: AgentState):
         return "rag_agent"
     print("   --- CONVERSA DIRETA ---")
     return "agent"
+
+def route_agent_check_output(state: AgentState):
+    print("--- ROUTE AGENT CHECK OUTPUT ---")
+    response = state.get("last_msg_ai", "")
+    retries = state.get("retries", 0)
+
+    max_retries = 3
+
+    if response.strip() == "":
+        if retries < max_retries:
+            print(" --- RESPOSTA VAZIA, REINICIANDO AGENTE ---")
+            return "retry"
+        else:
+            print(" --- MÁXIMO DE RETRIES ATINGIDO, BLOQUEANDO ---")
+            return "blocked"
+    print(" --- RESPOSTA GERADA COM SUCESSO ---")
+    return "success"
+    
