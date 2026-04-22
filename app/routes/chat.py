@@ -1,11 +1,8 @@
 import json
-import asyncio
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 from app.schemas.chat import ChatInput, ChatOutput, StreamInput
-from app.core.config import settings
-from langchain_core.messages import HumanMessage, AIMessageChunk, AIMessage
-from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from langchain_core.messages import HumanMessage, AIMessage
 from time import perf_counter
 
 router = APIRouter()
@@ -41,20 +38,15 @@ async def chat_endpoint(request: ChatInput, req: Request):
 @router.post("/chat/stream")
 async def chat_stream_endpoint(request: StreamInput, req: Request):
     """
-    Emite Server-Sent Events no formato esperado pelo useStream do LangChain.
- 
-    Cada linha é um objeto JSON com os campos:
-        { "event": "<tipo>", "data": { ... } }
- 
-    Eventos emitidos:
-        messages/partial  — fragmento de mensagem enquanto o LLM escreve
-        messages/complete — mensagem final completa (AIMessage)
-        metadata          — metadados do run (run_id, thread_id)
-        error             — qualquer exceção não tratada
+    Emite Server-Sent Events para o frontend.
+
+    Importante: para evitar "poluição" da resposta com tokens intermediários
+    de nós internos do grafo, este endpoint envia apenas a mensagem final
+    do agente em `messages/complete`.
     """
- 
+
     graph = req.app.state.graph
- 
+
     config = {
         "configurable": {
             "recursion_limit": 15,
@@ -63,9 +55,8 @@ async def chat_stream_endpoint(request: StreamInput, req: Request):
         }
     }
     inputs = {"messages": [HumanMessage(content=request.message)]}
- 
+
     async def event_generator():
-        # ── 1. Metadados iniciais ──────────────────────────────────────────
         yield _sse(
             "metadata",
             {
@@ -73,67 +64,43 @@ async def chat_stream_endpoint(request: StreamInput, req: Request):
                 "thread_id": request.thread_id,
             },
         )
- 
-        accumulated_content = ""
- 
+
         try:
-            # ── 2. Stream token a token via astream_events ─────────────────
-            async for event in graph.astream_events(inputs, config, version="v2"):
-                kind = event.get("event", "")
- 
-                # Captura fragmentos gerados pelo LLM (on_chat_model_stream)
-                if kind == "on_chat_model_stream":
-                    chunk = event.get("data", {}).get("chunk")
-                    if isinstance(chunk, AIMessageChunk) and chunk.content:
-                        token = chunk.content
-                        accumulated_content += token
- 
-                        # Envia o fragmento parcial para o frontend atualizar
-                        # o estado em tempo real
-                        yield _sse(
-                            "messages/partial",
-                            [
-                                {
-                                    "type": "ai",
-                                    "content": accumulated_content,
-                                    "id": f"msg-{request.thread_id}",
-                                }
-                            ],
-                        )
- 
-                        # Pequena pausa para não sobrecarregar o cliente
-                        await asyncio.sleep(0)
- 
-            # ── 3. Mensagem completa após o grafo terminar ─────────────────
-            if accumulated_content:
-                yield _sse(
-                    "messages/complete",
-                    [
-                        {
-                            "type": "ai",
-                            "content": accumulated_content,
-                            "id": f"msg-{request.thread_id}",
-                        }
-                    ],
-                )
- 
+            result = await graph.ainvoke(inputs, config)
+            final_message = result.get("messages", [])[-1] if result.get("messages") else None
+            final_content = ""
+
+            if isinstance(final_message, AIMessage):
+                final_content = final_message.content or ""
+            elif final_message is not None:
+                final_content = getattr(final_message, "content", "") or ""
+
+            yield _sse(
+                "messages/complete",
+                [
+                    {
+                        "type": "ai",
+                        "content": final_content,
+                        "id": f"msg-{request.thread_id}",
+                    }
+                ],
+            )
+
         except Exception as exc:
             print(f"[SSE] Erro durante streaming: {exc}")
             yield _sse("error", {"message": str(exc)})
- 
+
     return StreamingResponse(
         event_generator(),
         media_type="text/event-stream",
         headers={
-            # Impede que proxies e navegadores façam cache do stream
             "Cache-Control": "no-cache",
             "X-Accel-Buffering": "no",
-            # Necessário para que o FetchStreamTransport leia o stream
             "Access-Control-Allow-Origin": "*",
         },
     )
- 
- 
+
+
 # ─────────────────────────────────────────────
 # Utilitário interno
 # ─────────────────────────────────────────────
