@@ -221,7 +221,9 @@ async def agent(state: AgentState, config: RunnableConfig):
                 LEIA com atenção para saber quais colunas usar, se é necessário fazer CAST de tipos e como fazer JOINs:
                 {sql_plan}
 
-                NOTA IMPORTANTE PARA SQL: Para médias de nota, use sempre AVG(CAST(REPLACE(nota, ',', '.') AS NUMERIC)).
+                1. MÉDIAS: Sempre use AVG(CAST(REPLACE(nota, ',', '.') AS NUMERIC)).
+                2. NOMES PRÓPRIOS/CIDADES: NUNCA use '=' ou 'IN' com strings literais. USE SEMPRE `ILIKE` e remova acentos (ex: `cidade ILIKE '%MIGUEL DO GOSTOSO%'`).
+                3. BUSCA VAZIA: Se a query retornar [], PARE. Use `SELECT DISTINCT coluna` para entender os dados reais antes de tentar de novo.
                 -------------------------------------------------                """
 
             last_msg_content = str(messages[-1].content)
@@ -834,7 +836,7 @@ def should_continue(state: AgentState):
         #     print(" --- DICIONÁRIO JÁ CONSULTADO, VAI PARA VERIFICAÇÃO DE SQL ---")
         #     return "verify_sql"
 
-        if sql_tool_calls >= 8 and tool_name in ["sql_db_query", "sql_db_schema", "sql_db_list_tables"]:
+        if sql_tool_calls >= 15 and tool_name in ["sql_db_query", "sql_db_schema", "sql_db_list_tables"]:
             print(" --- LIMITE DE CHAMADAS SQL ATINGIDO, VAI PARA MODERAÇÃO DE SAÍDA ---")
             return "moderation_output"
 
