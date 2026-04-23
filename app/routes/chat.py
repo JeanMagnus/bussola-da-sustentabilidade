@@ -66,22 +66,72 @@ async def chat_stream_endpoint(request: StreamInput, req: Request):
         )
 
         try:
-            result = await graph.ainvoke(inputs, config)
-            final_message = result.get("messages", [])[-1] if result.get("messages") else None
-            final_content = ""
+            # result = await graph.ainvoke(inputs, config)
+            # final_message = result.get("messages", [])[-1] if result.get("messages") else None
+            # final_content = ""
 
-            if isinstance(final_message, AIMessage):
-                final_content = final_message.content or ""
-            elif final_message is not None:
-                final_content = getattr(final_message, "content", "") or ""
+            # if isinstance(final_message, AIMessage):
+            #     final_content = final_message.content or ""
+            # elif final_message is not None:
+            #     final_content = getattr(final_message, "content", "") or ""
+
+            # yield _sse(
+            #     "messages/complete",
+            #     [
+            #         {
+            #             "type": "ai",
+            #             "content": final_content,
+            #             "id": f"msg-{request.thread_id}",
+            #         }
+            #     ],
+            # )
+
+            streamed_content = False
+            async for event in graph.astream_events(inputs, config, version="v2"):
+            
+                if event["event"] == "on_chat_model_stream":
+
+                    tags = event.get("tags", [])
+
+                    if "resposta_final" in tags:
+                        chunk = event["data"]["chunk"]
+
+                        if hasattr(chunk, "content_blocks") and chunk.content_blocks:
+                            for block in chunk.content_blocks:
+                                if block.get("type") == "reasoning":
+                                    yield _sse("thinking", {"content": block["reasoning"]})
+                                elif block.get("type") == "text":
+                                    streamed_content = True
+                                    yield _sse("chunk", {"content": block["text"]})
+                        
+                        elif chunk.content and getattr(chunk, "tool_call_chunks", None):
+                            # Emitimos como "thinking" em vez de "chunk"
+                            yield _sse("thinking", {"content": chunk.content})
+
+                        elif chunk.content and not getattr(chunk, "tool_call_chunks", None):
+                            streamed_content = True
+                            yield _sse("chunk", {"content": chunk.content})
+                
+                elif event["event"] == "on_tool_start":
+                    yield _sse("status", {"message": f"Executando {event['name']}..."})
+
+            state = await graph.aget_state(config)
+            final_messages = state.values.get("messages", [])
+            
+            if final_messages:
+                last_msg = final_messages[-1]
+                
+                # Se NADA foi enviado por stream (ex: Guardrail bloqueou logo no início e saltou para o END)
+                # E a última mensagem for uma resposta da IA, nós enviamos o conteúdo inteiro dela agora.
+                if not streamed_content and isinstance(last_msg, AIMessage):
+                    yield _sse("chunk", {"content": last_msg.content})
 
             yield _sse(
                 "messages/complete",
                 [
                     {
                         "type": "ai",
-                        "content": final_content,
-                        "id": f"msg-{request.thread_id}",
+                        "status": "done"
                     }
                 ],
             )
@@ -97,6 +147,7 @@ async def chat_stream_endpoint(request: StreamInput, req: Request):
             "Cache-Control": "no-cache",
             "X-Accel-Buffering": "no",
             "Access-Control-Allow-Origin": "*",
+            "Connection": "keep-alive"
         },
     )
 

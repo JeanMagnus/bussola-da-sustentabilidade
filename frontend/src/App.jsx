@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const DEFAULT_API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
@@ -40,7 +42,7 @@ function useStreamChat({ apiUrl, threadId, userId }) {
       setMessages((prev) => [
         ...prev,
         userMessage,
-        { id: assistantId, role: "assistant", content: "" },
+        { id: assistantId, role: "assistant", content: "", thinking: "" },
       ]);
       setError("");
       setIsStreaming(true);
@@ -89,11 +91,48 @@ function useStreamChat({ apiUrl, threadId, userId }) {
               const parsed = JSON.parse(payload);
               const { event, data } = parsed;
 
-              if ((event === "messages/partial" || event === "messages/complete") && Array.isArray(data)) {
-                const streamed = normalizeContent(data[0]?.content);
+              // if ((event === "messages/partial" || event === "messages/complete") && Array.isArray(data)) {
+              //   const streamed = normalizeContent(data[0]?.content);
+              //   setMessages((prev) =>
+              //     prev.map((msg) => (msg.id === assistantId ? { ...msg, content: streamed } : msg)),
+              //   );
+              // }
+
+              if (event == "chunk" && data?.content) {
                 setMessages((prev) =>
-                  prev.map((msg) => (msg.id === assistantId ? { ...msg, content: streamed } : msg)),
+                  prev.map((msg) =>
+                    msg.id === assistantId
+                      ? { ...msg, content: msg.content + data.content}
+                      : msg
+                  )
                 );
+              }
+
+              if (event == "thinking" && data?.content) {
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === assistantId
+                      ? { ...msg, thinking: (msg.thinking || "") + data.content }
+                      : msg
+                  )
+                );
+              }
+
+              if (event === "status" && data?.message) {
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === assistantId
+                      ? { 
+                          ...msg, 
+                          // Adiciona o status da ferramenta ao balão de raciocínio
+                          thinking: (msg.thinking || "") + `\n⚙️ *${data.message}*\n` 
+                        }
+                      : msg
+                  )
+                );
+              }
+
+              if (event === "messages/complete") {
               }
 
               if (event === "error") {
@@ -131,17 +170,56 @@ function useStreamChat({ apiUrl, threadId, userId }) {
   };
 }
 
-function Message({ role, content }) {
+function Message({ role, content, thinking }) { // 1. Adicionado o 'thinking' aqui!
   const isUser = role === "user";
-
+  
   return (
     <div className={`message-row ${isUser ? "is-user" : ""}`}>
       <article className={`message-bubble ${isUser ? "is-user" : "is-assistant"}`}>
-        {content || <span className="typing">Gerando resposta…</span>}
+        
+        {/* Renderiza o balão de raciocínio primeiro (apenas para o assistente) */}
+        {!isUser && thinking && (
+          <details style={{
+            marginBottom: '10px',
+            backgroundColor: '#f8fafc', // Cinza clarinho
+            border: '1px solid #e2e8f0',
+            borderRadius: '8px',
+            padding: '8px 12px',
+            fontSize: '0.85em',
+            color: '#64748b',
+            cursor: 'pointer'
+          }}>
+            <summary style={{ fontWeight: 'bold', outline: 'none' }}>
+              🧠 O agente pensou...
+            </summary>
+            <div style={{ marginTop: '8px', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+              {thinking}
+            </div>
+          </details>
+        )}
+
+        {/* Renderiza a resposta final LOGO ABAIXO do pensamento */}
+        {content ? (
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {content}
+          </ReactMarkdown>
+        ) : (
+          /* Se não tiver conteúdo E não estiver pensando, mostra a digitação */
+          !isUser && (
+            <div className="typing-container" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div className="loading-spinner"></div>
+              <span style={{ color: '#6c757d', fontStyle: 'italic', fontSize: '0.9em' }}>
+                {thinking ? 'A finalizar a análise...' : 'A iniciar processo...'}
+              </span>
+            </div>
+          )
+        )}
+
       </article>
     </div>
   );
 }
+
 
 function ThinkingTimeline({ isVisible }) {
   const [activeStep, setActiveStep] = useState(0);
@@ -166,7 +244,13 @@ function ThinkingTimeline({ isVisible }) {
       <div className="thinking-title">O agente está processando sua pergunta</div>
       <ul>
         {THINKING_STEPS.map((step, index) => (
-          <li key={step} className={index <= activeStep ? "active" : ""}>
+          <li 
+            key={step} 
+            className={`
+              ${index <= activeStep ? "active" : ""} 
+              ${index === activeStep ? "blinking" : ""}
+            `}
+          >
             <span className="step-dot" />
             <span>{step}</span>
           </li>
@@ -216,8 +300,8 @@ export default function App() {
           <div className="brand">
             <span className="brand-dot" />
             <div>
-              <h1>Bússola Chat</h1>
-              <p>Experiência fluida para consultas de sustentabilidade</p>
+              <h1>Bússola da Sustentabilidade</h1>
+              <p>Assistente de análise de dados </p>
             </div>
           </div>
 
@@ -248,7 +332,7 @@ export default function App() {
               </div>
             </section>
           ) : (
-            messages.map((msg) => <Message key={msg.id} role={msg.role} content={msg.content} />)
+            messages.map((msg) => <Message key={msg.id} role={msg.role} content={msg.content} thinking={msg.thinking} />)
           )}
 
           <ThinkingTimeline isVisible={showThinking} />

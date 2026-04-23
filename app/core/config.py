@@ -67,6 +67,7 @@ model = AzureChatOpenAI(
     azure_endpoint = settings.AZURE_OPENAI_ENDPOINT,
     api_key = settings.AZURE_OPENAI_API_KEY,
     temperature = 0,
+    tags=["resposta_final"],
 )
 
 deepseek_model = AzureChatOpenAI(
@@ -76,6 +77,7 @@ deepseek_model = AzureChatOpenAI(
     azure_endpoint = settings.AZURE_DEEPSEEK_ENDPOINT,
     api_key = settings.AZURE_DEEPSEEK_API_KEY,
     temperature = 0,
+    tags=["resposta_final"],
 )
 
 kimi_model = AzureChatOpenAI(
@@ -87,6 +89,7 @@ kimi_model = AzureChatOpenAI(
     temperature = 0,
     max_retries = 5,
     timeout = 45.0,
+    tags=["resposta_final"],
 )
 
 # summarizer_model = AzureChatOpenAI(
@@ -101,7 +104,7 @@ kimi_model = AzureChatOpenAI(
 summarizer_model = ChatGroq(
     model = "llama-3.1-8b-instant",
     groq_api_key = settings.GROQ_API_KEY,
-    temperature = 0
+    temperature = 0,
 )
 
 classify_model = ChatGroq(

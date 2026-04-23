@@ -23,7 +23,7 @@ class AgentState(TypedDict):
     input_tokens: int
     output_tokens: int
     total_tokens: int
-    last_msg_ai: str
+    last_msg_ai: Annotated[str, overwrite_reducer]
     is_continuation: bool
     summary: str
     retries: int
