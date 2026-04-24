@@ -170,46 +170,35 @@ function useStreamChat({ apiUrl, threadId, userId }) {
   };
 }
 
-function Message({ role, content, thinking }) { // 1. Adicionado o 'thinking' aqui!
+function Message({ role, content, thinking }) {
   const isUser = role === "user";
-  
+
   return (
     <div className={`message-row ${isUser ? "is-user" : ""}`}>
       <article className={`message-bubble ${isUser ? "is-user" : "is-assistant"}`}>
-        
-        {/* Renderiza o balão de raciocínio primeiro (apenas para o assistente) */}
+
         {!isUser && thinking && (
-          <details style={{
-            marginBottom: '10px',
-            backgroundColor: '#f8fafc', // Cinza clarinho
-            border: '1px solid #e2e8f0',
-            borderRadius: '8px',
-            padding: '8px 12px',
-            fontSize: '0.85em',
-            color: '#64748b',
-            cursor: 'pointer'
-          }}>
-            <summary style={{ fontWeight: 'bold', outline: 'none' }}>
+          <details className="thinking-details">
+            <summary className="thinking-summary">
               🧠 O agente pensou...
             </summary>
-            <div style={{ marginTop: '8px', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+
+            <div className="thinking-content">
               {thinking}
             </div>
           </details>
         )}
 
-        {/* Renderiza a resposta final LOGO ABAIXO do pensamento */}
         {content ? (
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {content}
           </ReactMarkdown>
         ) : (
-          /* Se não tiver conteúdo E não estiver pensando, mostra a digitação */
           !isUser && (
-            <div className="typing-container" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="typing-container">
               <div className="loading-spinner"></div>
-              <span style={{ color: '#6c757d', fontStyle: 'italic', fontSize: '0.9em' }}>
-                {thinking ? 'A finalizar a análise...' : 'A iniciar processo...'}
+              <span className="loading-text">
+                {thinking ? "A finalizar a análise..." : "A iniciar processo..."}
               </span>
             </div>
           )
@@ -266,6 +255,13 @@ export default function App() {
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
 
+  const [theme, setTheme] = useState("dark");
+    function toggleTheme() {
+    setTheme((currentTheme) =>
+      currentTheme === "dark" ? "light" : "dark"
+    );
+  }
+
   const { messages, error, isStreaming, sendMessage, stopStream, clearChat } = useStreamChat({
     apiUrl: DEFAULT_API_URL,
     threadId,
@@ -294,7 +290,7 @@ export default function App() {
   };
 
   return (
-    <div className="app-bg">
+    <div className="app-bg" data-theme={theme}>
       <div className="chat-shell">
         <header className="chat-header">
           <div className="brand">
@@ -305,9 +301,19 @@ export default function App() {
             </div>
           </div>
 
-          <button type="button" onClick={clearChat} className="ghost-btn">
+          <div className="header-actions">
+            <button
+              type="button"
+              className="theme-btn"
+              onClick={toggleTheme}
+              aria-label="Alternar tema"
+            >
+              {theme === "dark" ? "Tema claro" : "Tema escuro"}
+            </button>
+            <button type="button" onClick={clearChat} className="ghost-btn">
             Nova conversa
-          </button>
+            </button>
+          </div>
         </header>
 
         <main className="chat-main">
