@@ -27,10 +27,11 @@ function normalizeContent(content) {
 }
 
 function useStreamChat({ apiUrl, threadId, userId }) {
-  const [messages, setMessages] = useState([]);
+  const [messagesByThread, setMessagesByThread] = useState({});
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState("");
   const abortRef = useRef(null);
+  const messages = messagesByThread[threadId] ?? [];
 
   const sendMessage = useCallback(
     async (text) => {
@@ -39,11 +40,14 @@ function useStreamChat({ apiUrl, threadId, userId }) {
       const userMessage = { id: uuidv4(), role: "user", content: text };
       const assistantId = `assistant-${threadId}-${Date.now()}`;
 
-      setMessages((prev) => [
+      setMessagesByThread((prev) => ({
         ...prev,
-        userMessage,
-        { id: assistantId, role: "assistant", content: "", thinking: "" },
-      ]);
+        [threadId]: [
+          ...(prev[threadId] ?? []),
+          userMessage,
+          { id: assistantId, role: "assistant", content: "", thinking: "" },
+        ],
+      }));
       setError("");
       setIsStreaming(true);
 
@@ -99,37 +103,40 @@ function useStreamChat({ apiUrl, threadId, userId }) {
               // }
 
               if (event == "chunk" && data?.content) {
-                setMessages((prev) =>
-                  prev.map((msg) =>
+                setMessagesByThread((prev) => ({
+                  ...prev,
+                  [threadId]: (prev[threadId] ?? []).map((msg) =>
                     msg.id === assistantId
-                      ? { ...msg, content: msg.content + data.content}
+                      ? { ...msg, content: msg.content + data.content }
                       : msg
-                  )
-                );
+                  ),
+                }));
               }
 
               if (event == "thinking" && data?.content) {
-                setMessages((prev) =>
-                  prev.map((msg) =>
+                setMessagesByThread((prev) => ({
+                  ...prev,
+                  [threadId]: (prev[threadId] ?? []).map((msg) =>
                     msg.id === assistantId
                       ? { ...msg, thinking: (msg.thinking || "") + data.content }
                       : msg
-                  )
-                );
+                  ),
+                }));
               }
 
               if (event === "status" && data?.message) {
-                setMessages((prev) =>
-                  prev.map((msg) =>
+                setMessagesByThread((prev) => ({
+                  ...prev,
+                  [threadId]: (prev[threadId] ?? []).map((msg) =>
                     msg.id === assistantId
-                      ? { 
-                          ...msg, 
+                      ? {
+                          ...msg,
                           // Adiciona o status da ferramenta ao balão de raciocínio
-                          thinking: (msg.thinking || "") + `\n⚙️ *${data.message}*\n` 
+                          thinking: (msg.thinking || "") + `\n⚙️ *${data.message}*\n`,
                         }
                       : msg
-                  )
-                );
+                  ),
+                }));
               }
 
               if (event === "messages/complete") {
@@ -164,7 +171,7 @@ function useStreamChat({ apiUrl, threadId, userId }) {
     sendMessage,
     stopStream,
     clearChat: () => {
-      setMessages([]);
+      setMessagesByThread((prev) => ({ ...prev, [threadId]: [] }));
       setError("");
     },
   };
@@ -251,7 +258,14 @@ function ThinkingTimeline({ isVisible }) {
 
 export default function App() {
   const [input, setInput] = useState("");
-  const [threadId] = useState(() => uuidv4());
+  const [userDraft, setUserDraft] = useState(() => localStorage.getItem("chat_user_id") ?? "web-user");
+  const [userId, setUserId] = useState(() => localStorage.getItem("chat_user_id") ?? "web-user");
+  const [sessionsByUser, setSessionsByUser] = useState(() => {
+    const initialUser = localStorage.getItem("chat_user_id") ?? "web-user";
+    return { [initialUser]: uuidv4() };
+  });
+  const [threads, setThreads] = useState(() => []);
+  const [threadId, setThreadId] = useState(null);
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
 
@@ -262,11 +276,34 @@ export default function App() {
     );
   }
 
+  const activeSessionId = sessionsByUser[userId];
   const { messages, error, isStreaming, sendMessage, stopStream, clearChat } = useStreamChat({
     apiUrl: DEFAULT_API_URL,
     threadId,
-    userId: "web-user",
+    userId,
   });
+
+  const userThreads = useMemo(
+    () => threads.filter((thread) => thread.userId === userId && thread.sessionId === activeSessionId),
+    [activeSessionId, threads, userId],
+  );
+
+  useEffect(() => {
+    if (userThreads.length > 0) {
+      const hasCurrentThread = userThreads.some((thread) => thread.id === threadId);
+      if (!hasCurrentThread) {
+        setThreadId(userThreads[0].id);
+      }
+      return;
+    }
+
+    const newThreadId = uuidv4();
+    setThreads((prev) => [
+      ...prev,
+      { id: newThreadId, label: "Conversa 1", userId, sessionId: activeSessionId },
+    ]);
+    setThreadId(newThreadId);
+  }, [activeSessionId, threadId, userId, userThreads]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -278,7 +315,7 @@ export default function App() {
     textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 180)}px`;
   }, [input]);
 
-  const canSend = useMemo(() => input.trim().length > 0 && !isStreaming, [input, isStreaming]);
+  const canSend = useMemo(() => input.trim().length > 0 && !isStreaming && Boolean(threadId), [input, isStreaming, threadId]);
   const lastMessage = messages.at(-1);
   const showThinking = isStreaming && lastMessage?.role === "assistant" && !lastMessage?.content;
 
@@ -286,6 +323,38 @@ export default function App() {
     event.preventDefault();
     if (!canSend) return;
     sendMessage(input.trim());
+    setInput("");
+  };
+
+  const createThread = () => {
+    const nextIndex = userThreads.length + 1;
+    const newThreadId = uuidv4();
+    setThreads((prev) => [
+      ...prev,
+      { id: newThreadId, label: `Conversa ${nextIndex}`, userId, sessionId: activeSessionId },
+    ]);
+    setThreadId(newThreadId);
+    setInput("");
+  };
+
+  const applyUserId = () => {
+    const sanitized = userDraft.trim();
+    if (!sanitized) return;
+    setSessionsByUser((prev) => ({ ...prev, [sanitized]: prev[sanitized] ?? uuidv4() }));
+    setUserId(sanitized);
+    localStorage.setItem("chat_user_id", sanitized);
+  };
+
+  const createNewSession = () => {
+    const nextSessionId = uuidv4();
+    const nextThreadId = uuidv4();
+
+    setSessionsByUser((prev) => ({ ...prev, [userId]: nextSessionId }));
+    setThreads((prev) => [
+      ...prev,
+      { id: nextThreadId, label: "Conversa 1", userId, sessionId: nextSessionId },
+    ]);
+    setThreadId(nextThreadId);
     setInput("");
   };
 
@@ -302,6 +371,33 @@ export default function App() {
           </div>
 
           <div className="header-actions">
+            <input
+              type="text"
+              value={userDraft}
+              onChange={(event) => setUserDraft(event.target.value)}
+              className="header-input"
+              placeholder="user_id"
+            />
+              <button type="button" onClick={applyUserId} className="ghost-btn">
+              Definir usuário
+            </button>
+            <select
+              value={threadId ?? ""}
+              className="header-select"
+              onChange={(event) => setThreadId(event.target.value)}
+            >
+              {userThreads.map((thread) => (
+                <option key={thread.id} value={thread.id}>
+                  {thread.label}
+                </option>
+              ))}
+            </select>
+            <button type="button" onClick={createThread} className="ghost-btn">
+              Nova thread
+            </button>
+            <button type="button" onClick={createNewSession} className="ghost-btn">
+              Nova sessão
+            </button>
             <button
               type="button"
               className="theme-btn"
@@ -311,7 +407,7 @@ export default function App() {
               {theme === "dark" ? "Tema claro" : "Tema escuro"}
             </button>
             <button type="button" onClick={clearChat} className="ghost-btn">
-            Nova conversa
+              Limpar thread
             </button>
           </div>
         </header>
