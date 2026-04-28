@@ -19,6 +19,11 @@ body {
   min-height: 100svh;
 }
 
+.thinking-content {
+  white-space: pre-line;
+  line-height: 1.6;
+}
+
 /* ========================================================= */
 /* CONTROLES DO HEADER                                      */
 /* ========================================================= */
