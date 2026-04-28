@@ -66,26 +66,6 @@ async def chat_stream_endpoint(request: StreamInput, req: Request):
         )
 
         try:
-            # result = await graph.ainvoke(inputs, config)
-            # final_message = result.get("messages", [])[-1] if result.get("messages") else None
-            # final_content = ""
-
-            # if isinstance(final_message, AIMessage):
-            #     final_content = final_message.content or ""
-            # elif final_message is not None:
-            #     final_content = getattr(final_message, "content", "") or ""
-
-            # yield _sse(
-            #     "messages/complete",
-            #     [
-            #         {
-            #             "type": "ai",
-            #             "content": final_content,
-            #             "id": f"msg-{request.thread_id}",
-            #         }
-            #     ],
-            # )
-
             streamed_content = False
             async for event in graph.astream_events(inputs, config, version="v2"):
             
@@ -105,7 +85,6 @@ async def chat_stream_endpoint(request: StreamInput, req: Request):
                                     yield _sse("chunk", {"content": block["text"]})
                         
                         elif chunk.content and getattr(chunk, "tool_call_chunks", None):
-                            # Emitimos como "thinking" em vez de "chunk"
                             yield _sse("thinking", {"content": chunk.content})
 
                         elif chunk.content and not getattr(chunk, "tool_call_chunks", None):
@@ -121,8 +100,6 @@ async def chat_stream_endpoint(request: StreamInput, req: Request):
             if final_messages:
                 last_msg = final_messages[-1]
                 
-                # Se NADA foi enviado por stream (ex: Guardrail bloqueou logo no início e saltou para o END)
-                # E a última mensagem for uma resposta da IA, nós enviamos o conteúdo inteiro dela agora.
                 if not streamed_content and isinstance(last_msg, AIMessage):
                     yield _sse("chunk", {"content": last_msg.content})
 
@@ -151,10 +128,6 @@ async def chat_stream_endpoint(request: StreamInput, req: Request):
         },
     )
 
-
-# ─────────────────────────────────────────────
-# Utilitário interno
-# ─────────────────────────────────────────────
 def _sse(event: str, data) -> str:
     """
     Serializa um evento SSE no formato ndjson esperado pelo LangChain SDK.

@@ -91,13 +91,6 @@ function useStreamChat({ apiUrl, threadId, userId }) {
               const parsed = JSON.parse(payload);
               const { event, data } = parsed;
 
-              // if ((event === "messages/partial" || event === "messages/complete") && Array.isArray(data)) {
-              //   const streamed = normalizeContent(data[0]?.content);
-              //   setMessages((prev) =>
-              //     prev.map((msg) => (msg.id === assistantId ? { ...msg, content: streamed } : msg)),
-              //   );
-              // }
-
               if (event == "chunk" && data?.content) {
                 setMessages((prev) =>
                   prev.map((msg) =>
@@ -124,7 +117,6 @@ function useStreamChat({ apiUrl, threadId, userId }) {
                     msg.id === assistantId
                       ? { 
                           ...msg, 
-                          // Adiciona o status da ferramenta ao balão de raciocínio
                           thinking: (msg.thinking || "") + `\n⚙️ *${data.message}*\n` 
                         }
                       : msg
@@ -139,7 +131,6 @@ function useStreamChat({ apiUrl, threadId, userId }) {
                 setError(data?.message ?? "Erro ao processar resposta do servidor.");
               }
             } catch {
-              // payload inválido
             }
           }
         }
