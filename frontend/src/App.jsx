@@ -255,7 +255,7 @@ export default function App() {
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
 
-  const [theme, setTheme] = useState("dark");
+  const [theme, setTheme] = useState("light");
     function toggleTheme() {
     setTheme((currentTheme) =>
       currentTheme === "dark" ? "light" : "dark"

@@ -1,4 +1,5 @@
 import asyncio
+from urllib import response
 from app.core import config
 from app.core.config import model, db_bussola, summarizer_model, moderation_model, deepseek_model, rag_model, classify_model, kimi_model
 from app.agent.state import AgentState
@@ -31,8 +32,7 @@ async def setup_node(state: AgentState, config: RunnableConfig) -> AgentState:
             "total_tokens": 0,
             "input_tokens": 0,
             "output_tokens": 0,
-            "is_continuation": False,
-            "retries": 0
+            "is_continuation": False
         }
         print(f"DEBUG: Última mensagem da memória: {last_msg_memory}")
 
@@ -61,7 +61,7 @@ async def summarization_node(state: AgentState, config: RunnableConfig) -> Agent
         messages = state["messages"]
 
         if len(messages) <= 6:
-            return state
+            return {}
 
         print("--- SUMMARIZATION NODE (PÓS-PROCESSAMENTO) ---")
 
@@ -289,12 +289,16 @@ async def agent(state: AgentState, config: RunnableConfig):
             token_count(response, "AGENT")
             #usage = token_count_total(state, response)
 
+            response_content = response.content or ""
+            has_tool_calls = bool(getattr(response, "tool_calls", None))
+            next_retries = retries + 1 if not response_content.strip() and not has_tool_calls else 0
+
             return {
                 "messages": [response], 
                 "error_occurred": False, 
                 #**usage, 
                 "last_msg_ai": response.content,
-                "retries": retries + 1
+                "retries": next_retries
             }
 
         except BadRequestError as e:
