@@ -395,6 +395,11 @@ const THINKING_STEPS = [
   "Montando uma resposta clara para você",
 ];
 
+const EMPTY_MESSAGES = [];
+const INITIAL_VALUES = {
+  messages: [],
+};
+
 function normalizeContent(content) {
   if (typeof content === "string") return content;
 
@@ -527,13 +532,18 @@ export default function App() {
   const [theme, setTheme] = useState("light");
 
   const [chatMessages, setChatMessages] = useState([]);
+  const [currentThinking, setCurrentThinking] = useState("");
 
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
 
   const currentAssistantIdRef = useRef(null);
-  const lastAssistantContentRef = useRef("");
   const currentThinkingRef = useRef("");
+  const streamMessagesRef = useRef(EMPTY_MESSAGES);
+  const thinkingEventsSeenRef = useRef(new Set());
+
+  const previousStreamAssistantIdRef = useRef(null);
+  const previousStreamAssistantContentRef = useRef("");
 
   function toggleTheme() {
     setTheme((currentTheme) =>
@@ -549,215 +559,143 @@ export default function App() {
     []
   );
 
-  // const stream = useStream({
-  //   transport,
-  //   threadId,
-  //   messagesKey: "messages",
-
-  //   initialValues: {
-  //     messages: [],
-  //   },
-
-  //   onCustomEvent: (event) => {
-  //     if (event?.type === "status" && event?.message) {
-  //       const nextThinking = appendThinking(
-  //         currentThinkingRef.current,
-  //         event.message
-  //       );
-
-  //       currentThinkingRef.current = nextThinking;
-
-  //       const assistantId = currentAssistantIdRef.current;
-
-  //       if (!assistantId) return;
-
-  //       setChatMessages((prev) =>
-  //         prev.map((msg) =>
-  //           msg.id === assistantId
-  //             ? {
-  //                 ...msg,
-  //                 thinking: nextThinking,
-  //               }
-  //             : msg
-  //         )
-  //       );
-  //     }
-
-  //     if (event?.type === "thinking" && event?.content) {
-  //       const nextThinking = appendThinking(
-  //         currentThinkingRef.current,
-  //         event.content
-  //       );
-
-  //       currentThinkingRef.current = nextThinking;
-
-  //       const assistantId = currentAssistantIdRef.current;
-
-  //       if (!assistantId) return;
-
-  //       setChatMessages((prev) =>
-  //         prev.map((msg) =>
-  //           msg.id === assistantId
-  //             ? {
-  //                 ...msg,
-  //                 thinking: nextThinking,
-  //               }
-  //             : msg
-  //         )
-  //       );
-  //     }
-
-  //     if (event?.type === "done") {
-  //       currentAssistantIdRef.current = null;
-  //       lastAssistantContentRef.current = "";
-  //       currentThinkingRef.current = "";
-  //     }
-  //   },
-
-  //   onError: (err) => {
-  //     console.error("Erro no stream:", err);
-  //   },
-  // });
-
-// 1. Congelamos o objeto inicial
-  const initialValues = useMemo(() => ({ messages: [] }), []);
-
-  // 2. Congelamos a função de eventos para ela não ser recriada a cada renderização
   const handleCustomEvent = useCallback((event) => {
     if (event?.type === "status" && event?.message) {
-      const nextThinking = appendThinking(
-        currentThinkingRef.current,
-        event.message
-      );
-      currentThinkingRef.current = nextThinking;
-      const assistantId = currentAssistantIdRef.current;
-      if (!assistantId) return;
+      const key = `status:${event.node ?? ""}:${event.message}`;
 
-      setChatMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === assistantId
-            ? { ...msg, thinking: nextThinking }
-            : msg
-        )
-      );
+      if (thinkingEventsSeenRef.current.has(key)) return;
+      thinkingEventsSeenRef.current.add(key);
+
+      setCurrentThinking((prev) => {
+        const nextThinking = appendThinking(prev, event.message);
+        currentThinkingRef.current = nextThinking;
+        return nextThinking;
+      });
     }
 
     if (event?.type === "thinking" && event?.content) {
-      const nextThinking = appendThinking(
-        currentThinkingRef.current,
-        event.content
-      );
-      currentThinkingRef.current = nextThinking;
+      const key = `thinking:${event.content}`;
+
+      if (thinkingEventsSeenRef.current.has(key)) return;
+      thinkingEventsSeenRef.current.add(key);
+
+      setCurrentThinking((prev) => {
+        const nextThinking = appendThinking(prev, event.content);
+        currentThinkingRef.current = nextThinking;
+        return nextThinking;
+      });
+    }
+
+    if (event?.type === "done") {
       const assistantId = currentAssistantIdRef.current;
+
       if (!assistantId) return;
+
+      const lastAssistant = getLastAssistantMessage(streamMessagesRef.current);
+      const lastAssistantId = lastAssistant?.id ?? null;
+
+      let finalContent = normalizeContent(lastAssistant?.content ?? "");
+
+      const isPreviousAssistant =
+        lastAssistantId &&
+        lastAssistantId === previousStreamAssistantIdRef.current &&
+        finalContent === previousStreamAssistantContentRef.current;
+
+      const isPreviousAssistantWithoutId =
+        !lastAssistantId &&
+        finalContent === previousStreamAssistantContentRef.current;
+
+      if (isPreviousAssistant || isPreviousAssistantWithoutId) {
+        finalContent = "";
+      }
+
+      const finalThinking = currentThinkingRef.current;
 
       setChatMessages((prev) =>
         prev.map((msg) =>
           msg.id === assistantId
-            ? { ...msg, thinking: nextThinking }
+            ? {
+                ...msg,
+                content: finalContent || msg.content,
+                thinking: finalThinking || msg.thinking,
+              }
             : msg
         )
       );
-    }
 
-    if (event?.type === "done") {
       currentAssistantIdRef.current = null;
-      lastAssistantContentRef.current = "";
       currentThinkingRef.current = "";
+      thinkingEventsSeenRef.current.clear();
+      setCurrentThinking("");
     }
-  }, []); // <-- O array vazio garante que a função é memorizada para sempre
+  }, []);
 
-  // 3. Congelamos a função de erro
   const handleError = useCallback((err) => {
     console.error("Erro no stream:", err);
   }, []);
 
-  // 4. Passamos as referências seguras para o LangGraph!
   const stream = useStream({
     transport,
     threadId,
     messagesKey: "messages",
-    initialValues, // Referência estável
-    onCustomEvent: handleCustomEvent, // Referência estável
-    onError: handleError, // Referência estável
+    initialValues: INITIAL_VALUES,
+    onCustomEvent: handleCustomEvent,
+    onError: handleError,
   });
 
-
-  const streamMessages = stream.messages ?? [];
+  const streamMessages = stream.messages ?? EMPTY_MESSAGES;
   const isStreaming = stream.isLoading;
   const error = stream.error;
 
-  /*
-    Aqui está o ponto principal da correção.
-
-    Não renderizamos stream.messages diretamente.
-    Apenas usamos a última mensagem assistant do stream
-    para preencher a bolha local da assistente.
-  */
-  // useEffect(() => {
-  //   const assistantId = currentAssistantIdRef.current;
-
-  //   if (!assistantId) return;
-
-  //   const lastAssistant = getLastAssistantMessage(streamMessages);
-
-  //   if (!lastAssistant) return;
-
-  //   const content = normalizeContent(lastAssistant.content);
-
-  //   if (!content) return;
-
-  //   /*
-  //     Em muitos casos o useStream já entrega o conteúdo acumulado.
-  //     Então aqui substituímos o conteúdo da bolha da assistente,
-  //     em vez de concatenar manualmente e arriscar duplicação.
-  //   */
-  //   lastAssistantContentRef.current = content;
-
-  //   setChatMessages((prev) =>
-  //     prev.map((msg) =>
-  //       msg.id === assistantId
-  //         ? {
-  //             ...msg,
-  //             content,
-  //           }
-  //         : msg
-  //     )
-  //   );
-  // }, [streamMessages]);
-
-
-
-  // 1. Extraímos o conteúdo FORA do useEffect
-  const lastAssistantMsg = getLastAssistantMessage(streamMessages);
-  const newContent = lastAssistantMsg ? normalizeContent(lastAssistantMsg.content) : "";
-
-  // 2. O useEffect agora reage apenas à mudança do texto (newContent)
   useEffect(() => {
-    const assistantId = currentAssistantIdRef.current;
+    streamMessagesRef.current = streamMessages;
+  }, [streamMessages]);
 
-    if (!assistantId || !newContent) return;
+  const streamedAssistantContent = useMemo(() => {
+    const lastAssistant = getLastAssistantMessage(streamMessages);
 
-    // Barreira de segurança contra loop infinito
-    if (lastAssistantContentRef.current === newContent) return;
+    if (!lastAssistant) return "";
 
-    lastAssistantContentRef.current = newContent;
+    const lastAssistantId = lastAssistant.id ?? null;
+    const content = normalizeContent(lastAssistant.content ?? "");
 
-    setChatMessages((prev) =>
-      prev.map((msg) =>
-        msg.id === assistantId
-          ? {
-              ...msg,
-              content: newContent,
-            }
-          : msg
-      )
-    );
-  }, [newContent]);
+    if (!content) return "";
+
+    const isPreviousAssistant =
+      lastAssistantId &&
+      lastAssistantId === previousStreamAssistantIdRef.current &&
+      content === previousStreamAssistantContentRef.current;
+
+    const isPreviousAssistantWithoutId =
+      !lastAssistantId &&
+      content === previousStreamAssistantContentRef.current;
+
+    if (isPreviousAssistant || isPreviousAssistantWithoutId) {
+      return "";
+    }
+
+    return content;
+  }, [streamMessages]);
+
+  const displayMessages = useMemo(() => {
+    const activeAssistantId = currentAssistantIdRef.current;
+
+    return chatMessages.map((msg) => {
+      if (msg.id !== activeAssistantId || msg.role !== "assistant") {
+        return msg;
+      }
+
+      return {
+        ...msg,
+        content: streamedAssistantContent || msg.content,
+        thinking: currentThinking || msg.thinking,
+      };
+    });
+  }, [chatMessages, streamedAssistantContent, currentThinking]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatMessages, isStreaming]);
+  }, [displayMessages.length, streamedAssistantContent, currentThinking, isStreaming]);
 
   useEffect(() => {
     if (!textareaRef.current) return;
@@ -774,7 +712,7 @@ export default function App() {
     [input, isStreaming]
   );
 
-  const lastLocalMessage = chatMessages.at(-1);
+  const lastLocalMessage = displayMessages.at(-1);
 
   const showThinking =
     isStreaming &&
@@ -788,6 +726,13 @@ export default function App() {
       if (!canSend) return;
 
       const text = input.trim();
+
+      const previousAssistant = getLastAssistantMessage(streamMessagesRef.current);
+
+      previousStreamAssistantIdRef.current = previousAssistant?.id ?? null;
+      previousStreamAssistantContentRef.current = normalizeContent(
+        previousAssistant?.content ?? ""
+      );
 
       const userMessage = {
         id: uuidv4(),
@@ -803,8 +748,9 @@ export default function App() {
       };
 
       currentAssistantIdRef.current = assistantMessage.id;
-      lastAssistantContentRef.current = "";
       currentThinkingRef.current = "";
+      thinkingEventsSeenRef.current.clear();
+      setCurrentThinking("");
 
       setChatMessages((prev) => [
         ...prev,
@@ -838,9 +784,45 @@ export default function App() {
 
   const stopStream = useCallback(() => {
     stream.stop();
+
+    const assistantId = currentAssistantIdRef.current;
+
+    if (assistantId) {
+      const lastAssistant = getLastAssistantMessage(streamMessagesRef.current);
+      const lastAssistantId = lastAssistant?.id ?? null;
+
+      let finalContent = normalizeContent(lastAssistant?.content ?? "");
+
+      const isPreviousAssistant =
+        lastAssistantId &&
+        lastAssistantId === previousStreamAssistantIdRef.current &&
+        finalContent === previousStreamAssistantContentRef.current;
+
+      const isPreviousAssistantWithoutId =
+        !lastAssistantId &&
+        finalContent === previousStreamAssistantContentRef.current;
+
+      if (isPreviousAssistant || isPreviousAssistantWithoutId) {
+        finalContent = "";
+      }
+
+      setChatMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantId
+            ? {
+                ...msg,
+                content: finalContent || msg.content,
+                thinking: currentThinkingRef.current || msg.thinking,
+              }
+            : msg
+        )
+      );
+    }
+
     currentAssistantIdRef.current = null;
-    lastAssistantContentRef.current = "";
     currentThinkingRef.current = "";
+    thinkingEventsSeenRef.current.clear();
+    setCurrentThinking("");
   }, [stream]);
 
   const clearChat = useCallback(() => {
@@ -850,10 +832,15 @@ export default function App() {
 
     setThreadId(newThreadId);
     setChatMessages([]);
+    setCurrentThinking("");
 
     currentAssistantIdRef.current = null;
-    lastAssistantContentRef.current = "";
     currentThinkingRef.current = "";
+    streamMessagesRef.current = EMPTY_MESSAGES;
+    thinkingEventsSeenRef.current.clear();
+
+    previousStreamAssistantIdRef.current = null;
+    previousStreamAssistantContentRef.current = "";
 
     if (typeof stream.switchThread === "function") {
       stream.switchThread(newThreadId);
@@ -894,7 +881,7 @@ export default function App() {
         </header>
 
         <main className="chat-main">
-          {chatMessages.length === 0 ? (
+          {displayMessages.length === 0 ? (
             <section className="empty-state">
               <h2>Faça sua primeira pergunta</h2>
 
@@ -920,7 +907,7 @@ export default function App() {
               </div>
             </section>
           ) : (
-            chatMessages.map((msg, index) => (
+            displayMessages.map((msg, index) => (
               <Message
                 key={msg.id ?? index}
                 role={msg.role}
