@@ -171,7 +171,7 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
         print(f"   [PINECONE] Buscando vetores por: '{search_query}'")
 
         with timer("RAG_AGENT - BUSCA VETORIAL"):
-            docs = guide_vector_store_large.similarity_search(
+            docs = guide_vector_store.similarity_search(
                 query=search_query,
                 k=3,
                 namespace="data_dictionary"
@@ -840,7 +840,7 @@ def should_continue(state: AgentState):
         #     print(" --- DICIONÁRIO JÁ CONSULTADO, VAI PARA VERIFICAÇÃO DE SQL ---")
         #     return "verify_sql"
 
-        if sql_tool_calls >= 15 and tool_name in ["sql_db_query", "sql_db_schema", "sql_db_list_tables"]:
+        if sql_tool_calls >= 5 and tool_name in ["sql_db_query", "sql_db_schema", "sql_db_list_tables"]:
             print(" --- LIMITE DE CHAMADAS SQL ATINGIDO, VAI PARA MODERAÇÃO DE SAÍDA ---")
             return "moderation_output"
 

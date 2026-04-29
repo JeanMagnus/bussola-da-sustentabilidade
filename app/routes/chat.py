@@ -334,7 +334,7 @@ def _message_to_dict(message: BaseMessage) -> dict:
 
 def _sse(event: str, data) -> str:
     """
-    SSE nomeado esperado pelo useStream.
+    Formato que o useStream espera:
 
     Formato:
         event: messages
@@ -418,7 +418,7 @@ async def chat_stream_endpoint(req: Request):
     )
 
     config = {
-        "recursion_limit": 15,
+        "recursion_limit": 50,
         "configurable": {
             "thread_id": thread_id,
             "user_id": user_id,
@@ -477,11 +477,11 @@ async def chat_stream_endpoint(req: Request):
                     message_chunk, metadata = data
                     tags = metadata.get("tags", [])
 
-                    # Mantém seu filtro para não streamar nós internos.
+                    # printar apenas mensagem final
                     if "resposta_final" not in tags:
                         continue
-
-                    # Evita mostrar tool calls na tela.
+                    
+                    # ignorar tool calls na saída
                     if getattr(message_chunk, "tool_call_chunks", None):
                         continue
 
@@ -595,6 +595,7 @@ async def chat_stream_endpoint(req: Request):
         },
     )
 
+
 # @router.post("/chat/stream_alt")
 # async def chat_stream_alt_endpoint(request: StreamInput, req: Request):
-    
+

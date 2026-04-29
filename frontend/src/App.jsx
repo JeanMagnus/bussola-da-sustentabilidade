@@ -549,75 +549,139 @@ export default function App() {
     []
   );
 
+  // const stream = useStream({
+  //   transport,
+  //   threadId,
+  //   messagesKey: "messages",
+
+  //   initialValues: {
+  //     messages: [],
+  //   },
+
+  //   onCustomEvent: (event) => {
+  //     if (event?.type === "status" && event?.message) {
+  //       const nextThinking = appendThinking(
+  //         currentThinkingRef.current,
+  //         event.message
+  //       );
+
+  //       currentThinkingRef.current = nextThinking;
+
+  //       const assistantId = currentAssistantIdRef.current;
+
+  //       if (!assistantId) return;
+
+  //       setChatMessages((prev) =>
+  //         prev.map((msg) =>
+  //           msg.id === assistantId
+  //             ? {
+  //                 ...msg,
+  //                 thinking: nextThinking,
+  //               }
+  //             : msg
+  //         )
+  //       );
+  //     }
+
+  //     if (event?.type === "thinking" && event?.content) {
+  //       const nextThinking = appendThinking(
+  //         currentThinkingRef.current,
+  //         event.content
+  //       );
+
+  //       currentThinkingRef.current = nextThinking;
+
+  //       const assistantId = currentAssistantIdRef.current;
+
+  //       if (!assistantId) return;
+
+  //       setChatMessages((prev) =>
+  //         prev.map((msg) =>
+  //           msg.id === assistantId
+  //             ? {
+  //                 ...msg,
+  //                 thinking: nextThinking,
+  //               }
+  //             : msg
+  //         )
+  //       );
+  //     }
+
+  //     if (event?.type === "done") {
+  //       currentAssistantIdRef.current = null;
+  //       lastAssistantContentRef.current = "";
+  //       currentThinkingRef.current = "";
+  //     }
+  //   },
+
+  //   onError: (err) => {
+  //     console.error("Erro no stream:", err);
+  //   },
+  // });
+
+// 1. Congelamos o objeto inicial
+  const initialValues = useMemo(() => ({ messages: [] }), []);
+
+  // 2. Congelamos a função de eventos para ela não ser recriada a cada renderização
+  const handleCustomEvent = useCallback((event) => {
+    if (event?.type === "status" && event?.message) {
+      const nextThinking = appendThinking(
+        currentThinkingRef.current,
+        event.message
+      );
+      currentThinkingRef.current = nextThinking;
+      const assistantId = currentAssistantIdRef.current;
+      if (!assistantId) return;
+
+      setChatMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantId
+            ? { ...msg, thinking: nextThinking }
+            : msg
+        )
+      );
+    }
+
+    if (event?.type === "thinking" && event?.content) {
+      const nextThinking = appendThinking(
+        currentThinkingRef.current,
+        event.content
+      );
+      currentThinkingRef.current = nextThinking;
+      const assistantId = currentAssistantIdRef.current;
+      if (!assistantId) return;
+
+      setChatMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantId
+            ? { ...msg, thinking: nextThinking }
+            : msg
+        )
+      );
+    }
+
+    if (event?.type === "done") {
+      currentAssistantIdRef.current = null;
+      lastAssistantContentRef.current = "";
+      currentThinkingRef.current = "";
+    }
+  }, []); // <-- O array vazio garante que a função é memorizada para sempre
+
+  // 3. Congelamos a função de erro
+  const handleError = useCallback((err) => {
+    console.error("Erro no stream:", err);
+  }, []);
+
+  // 4. Passamos as referências seguras para o LangGraph!
   const stream = useStream({
     transport,
     threadId,
     messagesKey: "messages",
-
-    initialValues: {
-      messages: [],
-    },
-
-    onCustomEvent: (event) => {
-      if (event?.type === "status" && event?.message) {
-        const nextThinking = appendThinking(
-          currentThinkingRef.current,
-          event.message
-        );
-
-        currentThinkingRef.current = nextThinking;
-
-        const assistantId = currentAssistantIdRef.current;
-
-        if (!assistantId) return;
-
-        setChatMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === assistantId
-              ? {
-                  ...msg,
-                  thinking: nextThinking,
-                }
-              : msg
-          )
-        );
-      }
-
-      if (event?.type === "thinking" && event?.content) {
-        const nextThinking = appendThinking(
-          currentThinkingRef.current,
-          event.content
-        );
-
-        currentThinkingRef.current = nextThinking;
-
-        const assistantId = currentAssistantIdRef.current;
-
-        if (!assistantId) return;
-
-        setChatMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === assistantId
-              ? {
-                  ...msg,
-                  thinking: nextThinking,
-                }
-              : msg
-          )
-        );
-      }
-
-      if (event?.type === "done") {
-        currentAssistantIdRef.current = null;
-        lastAssistantContentRef.current = "";
-        currentThinkingRef.current = "";
-      }
-    },
-
-    onError: (err) => {
-      console.error("Erro no stream:", err);
-    },
+    initialValues, // Referência estável
+    onCustomEvent: handleCustomEvent, // Referência estável
+    onError: handleError, // Referência estável
   });
+
 
   const streamMessages = stream.messages ?? [];
   const isStreaming = stream.isLoading;
@@ -630,37 +694,66 @@ export default function App() {
     Apenas usamos a última mensagem assistant do stream
     para preencher a bolha local da assistente.
   */
+  // useEffect(() => {
+  //   const assistantId = currentAssistantIdRef.current;
+
+  //   if (!assistantId) return;
+
+  //   const lastAssistant = getLastAssistantMessage(streamMessages);
+
+  //   if (!lastAssistant) return;
+
+  //   const content = normalizeContent(lastAssistant.content);
+
+  //   if (!content) return;
+
+  //   /*
+  //     Em muitos casos o useStream já entrega o conteúdo acumulado.
+  //     Então aqui substituímos o conteúdo da bolha da assistente,
+  //     em vez de concatenar manualmente e arriscar duplicação.
+  //   */
+  //   lastAssistantContentRef.current = content;
+
+  //   setChatMessages((prev) =>
+  //     prev.map((msg) =>
+  //       msg.id === assistantId
+  //         ? {
+  //             ...msg,
+  //             content,
+  //           }
+  //         : msg
+  //     )
+  //   );
+  // }, [streamMessages]);
+
+
+
+  // 1. Extraímos o conteúdo FORA do useEffect
+  const lastAssistantMsg = getLastAssistantMessage(streamMessages);
+  const newContent = lastAssistantMsg ? normalizeContent(lastAssistantMsg.content) : "";
+
+  // 2. O useEffect agora reage apenas à mudança do texto (newContent)
   useEffect(() => {
     const assistantId = currentAssistantIdRef.current;
 
-    if (!assistantId) return;
+    if (!assistantId || !newContent) return;
 
-    const lastAssistant = getLastAssistantMessage(streamMessages);
+    // Barreira de segurança contra loop infinito
+    if (lastAssistantContentRef.current === newContent) return;
 
-    if (!lastAssistant) return;
-
-    const content = normalizeContent(lastAssistant.content);
-
-    if (!content) return;
-
-    /*
-      Em muitos casos o useStream já entrega o conteúdo acumulado.
-      Então aqui substituímos o conteúdo da bolha da assistente,
-      em vez de concatenar manualmente e arriscar duplicação.
-    */
-    lastAssistantContentRef.current = content;
+    lastAssistantContentRef.current = newContent;
 
     setChatMessages((prev) =>
       prev.map((msg) =>
         msg.id === assistantId
           ? {
               ...msg,
-              content,
+              content: newContent,
             }
           : msg
       )
     );
-  }, [streamMessages]);
+  }, [newContent]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
