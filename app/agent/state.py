@@ -6,7 +6,7 @@ import operator
 
 
 def overwrite_reducer(a, b):
-    # Simplesmente sobrescreve o valor antigo com o novo
+    # sobrescreve o valor antigo com o novo
     return b
 
 class AgentState(TypedDict):
@@ -17,9 +17,6 @@ class AgentState(TypedDict):
     intent: str
     dictionary_context: str
     sql_plan: str
-    # input_tokens: Annotated[int, operator.add]
-    # output_tokens: Annotated[int, operator.add]
-    # total_tokens: Annotated[int, operator.add]
     input_tokens: int
     output_tokens: int
     total_tokens: int

@@ -50,10 +50,6 @@ settings = Settings()
 
 db_bussola = SQLDatabase.from_uri(settings.URI_DATABASE_BUSSOLA)
 
-# print("LARGE DEPLOYMENT:", settings.AZURE_OPENAI_EMBEDDING_LARGE_DEPLOYMENT)
-# print("LARGE ENDPOINT:", settings.AZURE_OPENAI_EMBEDDING_LARGE_ENDPOINT)
-# print("LARGE API KEY:", settings.AZURE_OPENAI_EMBEDDING_LARGE_API_KEY[:10] if settings.AZURE_OPENAI_EMBEDDING_LARGE_API_KEY else "VAZIA")
-# print("LARGE API VERSION:", settings.AZURE_OPENAI_EMBEDDING_LARGE_API_VERSION)
 
 print("KIMI DEPLOYMENT:", settings.AZURE_KIMI_DEPLOYMENT)
 print("KIMI ENDPOINT:", settings.AZURE_KIMI_ENDPOINT)
@@ -92,15 +88,6 @@ kimi_model = AzureChatOpenAI(
     tags=["resposta_final"],
 )
 
-# summarizer_model = AzureChatOpenAI(
-#     model = "gpt-5-nano",
-#     azure_deployment = settings.AZURE_OPENAI_DEPLOYMENT,
-#     api_version = settings.AZURE_OPENAI_API_VERSION,
-#     azure_endpoint = settings.AZURE_OPENAI_ENDPOINT,
-#     api_key = settings.AZURE_OPENAI_API_KEY,
-#     temperature = 0,
-# )
-
 summarizer_model = ChatGroq(
     model = "llama-3.1-8b-instant",
     groq_api_key = settings.GROQ_API_KEY,
@@ -126,16 +113,6 @@ rag_model = ChatGroq (
     temperature = 0
 )
 
-# Fallback model para garantir que o agente continue funcionando mesmo se o modelo principal tiver problemas.
-# backup_model = AzureChatOpenAI(
-#     model = "gpt-5-mini",
-#     azure_deployment = settings.AZURE_OPENAI_DEPLOYMENT,
-#     api_version = settings.AZURE_OPENAI_API_VERSION,
-#     azure_endpoint = settings.AZURE_OPENAI_ENDPOINT,
-#     api_key = settings.AZURE_OPENAI_API_KEY,
-#     temperature = 0,
-# )
-
 embeddings = AzureOpenAIEmbeddings(
     model = "text-embedding-3-small",
     azure_deployment = settings.AZURE_OPENAI_EMBEDDING_DEPLOYMENT,
@@ -160,21 +137,3 @@ trimmer = trim_messages(
     allow_partial = False,
     start_on = "human",
     )
-
-
-# moderation = create_agent(
-#     model= model,
-#     middleware= [
-#         OpenAIModerationMiddleware(
-#             model= "omni-moderation-latest",
-#             check_input=True,
-#             check_output=True,
-#             check_tool_results=False,
-#             exit_behavior="end",
-#             violation_message=("Se liga!"
-#                                "Sua mensagem caiu na categoria: {categories}")
-#         )
-
-
-#     ]
-# )

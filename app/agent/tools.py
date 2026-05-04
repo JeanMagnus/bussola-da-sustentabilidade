@@ -101,7 +101,6 @@ async def retrieve_memories_tool(
         return "Erro: user_id não fornecido na configuração. Memórias não podem ser recuperadas."
 
     try:
-      #pinecone_filter = {"user_id": {"$eq": user_id}}
       pinecone_filter = {"user_id": user_id}
 
       docs = vector_store.similarity_search(query=query, k=limit, filter=pinecone_filter)
@@ -227,7 +226,7 @@ def sql_db_schema(
                     # Ex: id* (INTEGER) ou nome (VARCHAR)
                     col_details.append(f"{c['name']}{pk_marker} ({c['type']})")
                 
-                # Formatação ultracompacta
+                # Formatação compacta
                 schema_info.append(f"Tabela '{table}': {', '.join(col_details)}")
                 
             except Exception as e:
@@ -236,7 +235,7 @@ def sql_db_schema(
         
         resultado_str = "\n".join(schema_info)
         
-        # Proteção contra tabelas monstruosas (ex: tabelas com 200 colunas)
+        # Proteção contra tabelas grandes
         MAX_CHARS = 1000 
         if len(resultado_str) > MAX_CHARS:
             print(f"   [Aviso] Schema muito longo ({len(resultado_str)} chars). Truncando para {MAX_CHARS}.")
@@ -282,72 +281,11 @@ def retrieve_about(
     except Exception as e:
         return f"Erro ao buscar no índice 'about': {str(e)}"
 
-# @tool
-# async def search_data_dictionary(
-#     query: Annotated[str, "Termos de busca para encontrar tabelas e colunas (ex: 'população', 'sustentabilidade', 'turismo')"],
-#     config: RunnableConfig
-# ) -> str:
-#     """
-#     Consulta o manual técnico do banco de dados (Dicionário de Dados).
-#     Use esta ferramenta SEMPRE que precisar saber:
-#     1. Qual o nome real de uma tabela no banco de dados.
-#     2. O significado de colunas específicas (ex: o que é Q01, Q02).
-#     3. Quais colunas podem ser usadas para unir (JOIN) duas tabelas.
-#     4. Ver uma amostra dos dados para entender o formato (ex: se o estado é 'SC' ou 'Santa Catarina').
-#     """
-#     print(f"--- CONSULTANDO DICIONÁRIO: {query} ---")
-    
-#     docs = guide_vector_store.similarity_search(
-#         query=query, 
-#         k=15, 
-#         filter={"type": "dictionary"}, 
-#         namespace="data_dictionary"
-#     )
-
-#     if not docs:
-#         return "Nenhuma tabela ou coluna correspondente encontrada no dicionário."
-
-#     # Formata a resposta para o Agente
-#     instrucoes = "RESULTADOS DO DICIONÁRIO DE DADOS:\n"
-#     for d in docs:
-#         instrucoes += f"\n========================================\n"
-#         instrucoes += f"CONTEÚDO: {d.page_content}\n"
-    
-#     return instrucoes
-
-# @tool
-# async def retrieve_dictionary_tool(
-#         query: Annotated[str, "Pergunta do usuário para busca semântica no dicionário de dados"],
-#         limit: Annotated[int, "Número de trechos do dicionário a recuperar"] = 15,
-#         config: RunnableConfig = None,
-# ) -> str:
-#     """Busca no dicionário de metadados do banco de dados usando similaridade semântica.
- 
-#     Use esta ferramenta ANTES de qualquer consulta SQL quando a pergunta do usuário
-#     envolver dados do banco. Ela retorna quais tabelas e colunas são relevantes para
-#     a pergunta, evitando alucinações de nomes técnicos.
- 
-#     Retorna: trechos do dicionário com nomes exatos de tabelas, colunas e descrições.
-#     """
-#     print("--- RETRIEVE DICTIONARY TOOL ---")
-#     try:
-#         docs = guide_vector_store.similarity_search(query=query, k=limit)
-#         if not docs:
-#             return "Nenhum metadado encontrado no dicionário para esta consulta."
-#         results = []
-#         for doc in docs:
-#             source = doc.metadata.get("source", "dicionário")
-#             results.append(f"[{source}]\n{doc.page_content}")
-#         return "\n\n---\n\n".join(results)
-#     except Exception as e:
-#         return f"Erro ao buscar no dicionário: {str(e)}"
- 
 
 
 toolkit = SQLDatabaseToolkit(db=db_bussola, llm=model)
 
 db_tools = toolkit.get_tools()
-# , "sql_db_schema", "sql_db_list_tables"
 excluded_tool_names = ["sql_db_query_checker" , "sql_db_schema", "sql_db_list_tables"]   # Exclui ferramentas de consulta direta para forçar o uso do dicionário
 db_tools_filtered = [
     tool for tool in db_tools 
