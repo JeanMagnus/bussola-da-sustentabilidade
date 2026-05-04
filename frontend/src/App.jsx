@@ -380,6 +380,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { CiCirclePlus } from "react-icons/ci";
+import { FiSun, FiMoon } from 'react-icons/fi';
 
 import {
   useStream,
@@ -867,7 +869,7 @@ export default function App() {
               onClick={toggleTheme}
               aria-label="Alternar tema"
             >
-              {theme === "dark" ? "Tema claro" : "Tema escuro"}
+              {theme === "dark" ? <FiSun  size={25}/> : <FiMoon size={25}/>}
             </button>
 
             <button
@@ -875,7 +877,7 @@ export default function App() {
               onClick={clearChat}
               className="ghost-btn"
             >
-              Nova conversa
+              <CiCirclePlus size={30}/>
             </button>
           </div>
         </header>

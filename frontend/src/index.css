@@ -104,20 +104,21 @@ body {
 
 .app-bg[data-theme="light"] .ghost-btn,
 .app-bg[data-theme="light"] .theme-btn {
-  border: 1px solid #f1d5d9;
-  background: #ffffff;
+  border: none;
+  background: transparent;
   color: #CC0033;
-  border-radius: 10px;
-  padding: 0.54rem 0.85rem;
+  border-radius: 0;
+  padding: 0;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: color 0.2s, opacity 0.2s;
 }
 
 .app-bg[data-theme="light"] .ghost-btn:hover,
 .app-bg[data-theme="light"] .theme-btn:hover {
-  background: #fff5f6;
-  border-color: #eec1c7;
+  background: transparent;
+  color: #860122;
+  opacity: 0.85;
 }
 
 .app-bg[data-theme="light"] .chat-main {
@@ -463,22 +464,31 @@ body {
   font-size: clamp(0.73rem, 1.6vw, 0.83rem);
 }
 
+
 .app-bg[data-theme="dark"] .ghost-btn,
 .app-bg[data-theme="dark"] .theme-btn {
-  border: 1px solid rgba(185, 28, 53, 0.35);
-  background: rgba(185, 28, 53, 0.12);
-  color: #fff;
-  border-radius: 12px;
-  padding: 0.58rem 0.9rem;
+  border: none;
+  background: transparent;
+  color: #ce0033;
+  border-radius: 0;
+  padding: 0.2rem 0.25rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease;
+  transition: color 0.2s ease, opacity 0.2s ease;
 }
 
 .app-bg[data-theme="dark"] .ghost-btn:hover,
 .app-bg[data-theme="dark"] .theme-btn:hover {
-  background: rgba(185, 28, 53, 0.2);
-  border-color: rgba(185, 28, 53, 0.55);
+  background: transparent;
+  color: #ffffff;
+  opacity: 0.9;
+}
+
+.app-bg[data-theme="dark"] .ghost-btn:focus-visible,
+.app-bg[data-theme="dark"] .theme-btn:focus-visible {
+  outline: 2px solid rgba(253, 164, 175, 0.45);
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 
 .app-bg[data-theme="dark"] .chat-main {
