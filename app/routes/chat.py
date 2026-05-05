@@ -476,8 +476,12 @@ async def chat_stream_endpoint(req: Request):
                 if stream_type == "messages":
                     message_chunk, metadata = data
                     tags = metadata.get("tags", [])
+                    node_name = metadata.get("langgraph_node")
 
                     # printar apenas mensagem final
+                    if node_name != "agent":
+                        continue
+
                     if "resposta_final" not in tags:
                         continue
                     
@@ -560,12 +564,12 @@ async def chat_stream_endpoint(req: Request):
                         ],
                     )
 
-                yield _sse(
-                    "values",
-                    {
-                        "messages": _extract_visible_messages(final_messages)
-                    },
-                )
+                # yield _sse(
+                #     "values",
+                #     {
+                #         "messages": _extract_visible_messages(final_messages)
+                #     },
+                # )
 
             yield _sse(
                 "custom",

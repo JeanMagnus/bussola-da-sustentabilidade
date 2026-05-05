@@ -1,5 +1,6 @@
 import asyncio
 from urllib import response
+from app.agent import state
 from app.core import config
 from app.core.config import model, db_bussola, summarizer_model, moderation_model, deepseek_model, rag_model, classify_model, kimi_model
 from app.agent.state import AgentState
@@ -15,6 +16,7 @@ from langchain_core.messages import BaseMessage, AIMessage, SystemMessage, Human
 from langgraph.types import Command
 from langchain_core.runnables import RunnableConfig
 from openai import BadRequestError
+from langchain_community.callbacks import get_openai_callback
 
 
 LIMITE_MENSAGENS_PARA_SUMARIZACAO = 10
@@ -95,10 +97,16 @@ async def summarization_node(state: AgentState, config: RunnableConfig) -> Agent
         3. Nunca diga que "os dados não existem", pois o banco pode ser atualizado.
         4. Crie um parágrafo narrativo único e fluido.
         """
-
-        summary_response = await summarizer_model.ainvoke([
-            SystemMessage(content=SUMM_PROMPT)
-        ], config=config, max_tokens=150)
+        with get_openai_callback() as cb:
+            summary_response = await summarizer_model.ainvoke([
+                SystemMessage(content=SUMM_PROMPT)
+            ], config=config, max_tokens=150)
+            
+            print("VISUALIZANDO USO DE TOKENS NO SUMMARIZATION_NODE:")
+            print(f"Total de Tokens: {cb.total_tokens}")
+            print(f"Tokens de Prompt: {cb.prompt_tokens}")
+            print(f"Tokens de Resposta: {cb.completion_tokens}")
+            print(f"Custo Total (USD): ${cb.total_cost}")
 
         new_summary_text = summary_response.content
 
@@ -113,7 +121,7 @@ async def summarization_node(state: AgentState, config: RunnableConfig) -> Agent
             AIMessage(content=recent_msgs[1].content)
         ]
 
-        token_count(summary_response, "SUMMARIZATION_NODE")
+        #token_count(summary_response, "SUMMARIZATION_NODE")
         #usage = token_count_total(state, summary_response)
 
         return {
@@ -149,8 +157,15 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
             try:
                 extractor_model = kimi_model.with_structured_output(KeywordExtraction)
                 kw_messages = [SystemMessage(content=EXTRACTION_PROMPT)]
-                
-                response_kw = await extractor_model.ainvoke(kw_messages, config=config)
+                with get_openai_callback() as cb:
+                    response_kw = await extractor_model.ainvoke(kw_messages, config=config)
+
+                    print("VISUALIZANDO USO DE TOKENS DO RAG")
+                    print(f"Total de Tokens: {cb.total_tokens}")
+                    print(f"Tokens de Prompt: {cb.prompt_tokens}")
+                    print(f"Tokens de Resposta: {cb.completion_tokens}")
+                    print(f"Custo Total (USD): ${cb.total_cost}")
+
                 search_query = response_kw.search_query.strip()
                 print(f"   [SUCESSO] Keywords extraídas via Estrutura: '{search_query}'")
 
@@ -261,7 +276,8 @@ async def agent(state: AgentState, config: RunnableConfig):
                 prompt_with_mission += "\nAVISO CRÍTICO: A execução SQL anterior falhou (coluna inexistente ou erro de sintaxe). Reveja os nomes das colunas e os tipos de dados (CAST)."
 
             recent_msgs = messages[-10:]
-            user_msg = next((m for m in messages if isinstance(m, HumanMessage)), None)
+            #user_msg = next((m for m in messages if isinstance(m, HumanMessage)), None)
+            user_msg = next((m for m in reversed(messages) if isinstance(m, HumanMessage)), None)
             while recent_msgs and isinstance(recent_msgs[0], ToolMessage):
                 recent_msgs = recent_msgs[1:]
                 
@@ -277,7 +293,15 @@ async def agent(state: AgentState, config: RunnableConfig):
             third_model_with_tools = model.bind_tools(current_tools) if current_tools else model
             model_with_tools = kimi_model.bind_tools(current_tools) if current_tools else kimi_model
             model_with_fallback = model_with_tools.with_fallbacks([second_model_with_tools, third_model_with_tools])
-            response = await model_with_fallback.ainvoke(messages_to_send, config=config)
+
+            with get_openai_callback() as cb:
+                response = await model_with_fallback.ainvoke(messages_to_send, config=config)
+
+            print(" VISUALIZANDO USO DE TOKENS DO AGENTE ")
+            print(f"Total de Tokens: {cb.total_tokens}")
+            print(f"Tokens de Prompt: {cb.prompt_tokens}")
+            print(f"Tokens de Resposta: {cb.completion_tokens}")
+            print(f"Custo Total (USD): ${cb.total_cost}")
 
             if response.tool_calls:
                 print(" --- FERRAMENTAS CHAMADAS ---")
@@ -286,7 +310,7 @@ async def agent(state: AgentState, config: RunnableConfig):
             else:
                 print(" --- SEM TOOL (Gerando Resposta Final) ---")
 
-            token_count(response, "AGENT")
+            #token_count(response, "AGENT")
             #usage = token_count_total(state, response)
 
             response_content = response.content or ""
@@ -339,10 +363,17 @@ async def guardrail_input(state: AgentState, config: RunnableConfig):
             Responda APENAS com 'PASSAR1' ou 'BLOQUEAR1' para a primeira diretriz, e 'PASSAR2' ou 'BLOQUEAR2' para a segunda diretriz. 
             
             """
-            response = await moderation_model.ainvoke([GUARD_PROMPT], config=config)
+            with get_openai_callback() as cb:
+                response = await moderation_model.ainvoke([GUARD_PROMPT], config=config)
+                print("VISUALIZANDO USO DE TOKENS NO GUARDRAIL_INPUT:")
+                print(f"Total de Tokens: {cb.total_tokens}")
+                print(f"Tokens de Prompt: {cb.prompt_tokens}")
+                print(f"Tokens de Resposta: {cb.completion_tokens}")
+                print(f"Custo Total (USD): ${cb.total_cost}")
+
 
             # VISUALIZANDO TOKENS
-            token_count(response, "GUARDRAIL_INPUT")
+            #token_count(response, "GUARDRAIL_INPUT")
             #usage = token_count_total(state, response)
 
             if "BLOQUEAR1" in response.content:
@@ -533,7 +564,13 @@ async def classify_intent(state: AgentState, config: RunnableConfig) -> AgentSta
         
         try:
             structured_model = classify_model.with_structured_output(IntentRouter)
-            response = await structured_model.ainvoke([SystemMessage(content=CLASSIFY_PROMPT), HumanMessage(content=last_msg)], config=config)
+            with get_openai_callback() as cb:
+                response = await structured_model.ainvoke([SystemMessage(content=CLASSIFY_PROMPT), HumanMessage(content=last_msg)], config=config)
+
+                print(f"Total de Tokens: {cb.total_tokens}")
+                print(f"Tokens de Prompt: {cb.prompt_tokens}")
+                print(f"Tokens de Resposta: {cb.completion_tokens}")
+                print(f"Custo Total (USD): ${cb.total_cost}")
 
             # # VISUALIZANDO TOKENS
             # token_count(response, "CLASSIFY_INTENT")
@@ -720,12 +757,18 @@ async def moderation_output(state: AgentState, config: RunnableConfig):
             
             Responda APENAS com a palavra 'PASSAR' ou 'BLOQUEAR'.
             """
+            with get_openai_callback() as cb:
+                response = await moderation_model.ainvoke([MOD_PROMPT], config=config)
 
-            response = await moderation_model.ainvoke([MOD_PROMPT], config=config)
+                print(" VISUALIZANDO TOKENS DO MODERATION_OUTPUT ")
+                print(f"Total de Tokens: {cb.total_tokens}")
+                print(f"Tokens de Prompt: {cb.prompt_tokens}")
+                print(f"Tokens de Resposta: {cb.completion_tokens}")
+                print(f"Custo Total (USD): ${cb.total_cost}")
 
 
             # VISUALIZANDO TOKENS
-            token_count(response, "MODERATION_OUTPUT")
+            #token_count(response, "MODERATION_OUTPUT")
             #usage = token_count_total(state, response)
 
 
@@ -760,7 +803,29 @@ async def moderation_output(state: AgentState, config: RunnableConfig):
                 "error_occurred": True,
                 #**usage
             }
-
+def fallback_node (state: AgentState):
+    print(" --- LIMITE ATINGIDO: FORÇANDO RESPOSTA DE ERRO NAS FERRAMENTAS ---")
+    last_msg = state["messages"][-1]
+    
+    tool_messages = []
+    
+    # Vamos "responder" a todas as ferramentas que o agente pediu com uma mensagem de erro
+    if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
+        for tc in last_msg.tool_calls:
+            tool_messages.append(
+                ToolMessage(
+                    tool_call_id=tc["id"],
+                    name=tc["name"],
+                    content=(
+                        "ERRO DO SISTEMA: Limite máximo de consultas ao banco de dados atingido. "
+                        "Não use mais NENHUMA ferramenta nesta rodada. "
+                        "Formule sua resposta final IMEDIATAMENTE com os dados que você já "
+                        "possui ou peça desculpas informando que os dados estão incompletos."
+                    )
+                )
+            )
+            
+    return {"messages": tool_messages}
 
 # def should_continue(state: AgentState):
 #     last_msg = state["messages"][-1]
@@ -820,6 +885,7 @@ def should_continue(state: AgentState):
     #             if tool_call["name"] in ["sql_db_query", "sql_db_schema", "sql_db_list_tables"]:
     #                 sql_tool_calls += 1
 
+
     sql_tool_calls = 0
     for msg in current_turn_msgs:
         if isinstance(msg, AIMessage) and getattr(msg, "tool_calls", None):
@@ -842,7 +908,7 @@ def should_continue(state: AgentState):
 
         if sql_tool_calls >= 5 and tool_name in ["sql_db_query", "sql_db_schema", "sql_db_list_tables"]:
             print(" --- LIMITE DE CHAMADAS SQL ATINGIDO, VAI PARA MODERAÇÃO DE SAÍDA ---")
-            return "moderation_output"
+            return "fallback_node"
 
         if tool_name in ["sql_db_query", "sql_db_schema", "sql_db_list_tables"]:
         #if tool_name in ["sql_db_query", "sql_db_schema", "sql_db_list_tables", "sql_db_query_checker"]:
