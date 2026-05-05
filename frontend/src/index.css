@@ -118,7 +118,7 @@ body {
 .app-bg[data-theme="light"] .theme-btn:hover {
   background: transparent;
   color: #860122;
-  opacity: 0.85;
+  opacity: 0.6;
 }
 
 .app-bg[data-theme="light"] .chat-main {
@@ -471,7 +471,7 @@ body {
   background: transparent;
   color: #ce0033;
   border-radius: 0;
-  padding: 0.2rem 0.25rem;
+  padding: 0;
   font-weight: 600;
   cursor: pointer;
   transition: color 0.2s ease, opacity 0.2s ease;
@@ -481,7 +481,7 @@ body {
 .app-bg[data-theme="dark"] .theme-btn:hover {
   background: transparent;
   color: #ffffff;
-  opacity: 0.9;
+  opacity: 0.6;
 }
 
 .app-bg[data-theme="dark"] .ghost-btn:focus-visible,
