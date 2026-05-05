@@ -531,9 +531,7 @@ body {
 .app-bg[data-theme="dark"] .empty-state h2 {
   margin: 0;
   color: var(--text-main);
-  font-size: clamp(1.2rem, 3.2vw, 1.7rem);
-  font-weight: 750;
-  letter-spacing: -0.03em;
+  font-size: clamp(1.1rem, 3.2vw, 1.6rem);
 }
 
 .app-bg[data-theme="dark"] .empty-state p {
