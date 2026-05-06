@@ -897,6 +897,7 @@ export default function App() {
                   "Quais cidades têm melhor indicador geral de sustentabilidade?",
                   "Compare Bombinhas e Urubici em turismo e renda.",
                   "Mostre os principais insights de 2023 para SC.",
+                  "Quais cidades têm selo de certificação Green Destinations?",
                 ].map((prompt) => (
                   <button
                     key={prompt}

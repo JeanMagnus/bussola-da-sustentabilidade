@@ -127,6 +127,12 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
+  background:
+  linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.015),
+    rgba(255, 255, 255, 0)
+  );
 }
 
 .app-bg[data-theme="light"] .empty-state {
@@ -419,8 +425,9 @@ body {
   width: min(1080px, 100%);
   height: min(94svh, 900px);
   background: rgba(16, 16, 16, 0.96);
+  backdrop-filter: blur(4px);
   border: 1px solid var(--panel-border);
-  border-radius: 22px;
+  border-radius: 24px;
   display: grid;
   grid-template-rows: auto 1fr auto;
   overflow: hidden;
@@ -432,7 +439,7 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1rem 1.25rem;
+  padding: 1rem 1.2rem;
   border-bottom: 1px solid var(--panel-border);
   background: rgba(12, 12, 12, 0.88);
 }
@@ -452,10 +459,9 @@ body {
 
 .app-bg[data-theme="dark"] .chat-header h1 {
   margin: 0;
-  font-size: clamp(0.95rem, 1.8vw, 1.12rem);
+  font-size: clamp(0.95rem, 1.8vw, 1.1rem);
   font-weight: 700;
   color: var(--text-main);
-  letter-spacing: -0.01em;
 }
 
 .app-bg[data-theme="dark"] .chat-header p {
@@ -493,7 +499,7 @@ body {
 
 .app-bg[data-theme="dark"] .chat-main {
   overflow-y: auto;
-  padding: clamp(1rem, 2vw, 1.5rem);
+  padding: clamp(0.9rem, 1.8vw, 1.4rem);
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
@@ -540,18 +546,18 @@ body {
 }
 
 .app-bg[data-theme="dark"] .prompt-list {
-  margin-top: 1.35rem;
+  margin-top: 1.25rem;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.7rem;
+  gap: 0.65rem;
 }
 
 .app-bg[data-theme="dark"] .prompt-list button {
   border: 1px solid var(--panel-border);
-  border-radius: 14px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.035);
   color: var(--text-soft);
-  padding: 0.8rem 0.9rem;
+  padding: 0.75rem;
   text-align: left;
   cursor: pointer;
   transition:
@@ -578,8 +584,7 @@ body {
   width: fit-content;
   max-width: min(82%, 780px);
   border-radius: 18px;
-  padding: 0.82rem 1.05rem;
-  line-height: 1.55;
+  padding: 0.8rem 1.1rem;
 }
 
 .app-bg[data-theme="dark"] .message-bubble p {
@@ -689,18 +694,18 @@ body {
 .app-bg[data-theme="dark"] .chat-input {
   border-top: 1px solid var(--panel-border);
   background: rgba(12, 12, 12, 0.92);
-  padding: 0.95rem 1.1rem;
+  padding: 0.9rem 1.1rem;
 }
 
 .app-bg[data-theme="dark"] .chat-input textarea {
   width: 100%;
   border: 1px solid #e5e7eb;
-  border-radius: 15px;
+  border-radius: 14px;
   background: var(--input-bg);
   color: var(--input-text);
-  padding: 0.85rem 0.95rem;
+  padding: 0.8rem 0.95rem;
   font: inherit;
-  min-height: 48px;
+  min-height: 46px;
   max-height: 180px;
   resize: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -732,8 +737,8 @@ body {
 .app-bg[data-theme="dark"] .send-btn,
 .app-bg[data-theme="dark"] .stop-btn {
   border: none;
-  border-radius: 12px;
-  padding: 0.58rem 1.25rem;
+  border-radius: 10px;
+  padding: 0.54rem 1.2rem;
   font-weight: 700;
   cursor: pointer;
   transition:
