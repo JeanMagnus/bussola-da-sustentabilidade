@@ -1,392 +1,10 @@
-// import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-// import { v4 as uuidv4 } from "uuid";
-// import ReactMarkdown from 'react-markdown';
-// import remarkGfm from 'remark-gfm';
-// import { useStream, FetchStreamTransport } from "@langchain/langgraph-sdk/react";
-
-// const DEFAULT_API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
-
-// const THINKING_STEPS = [
-//   "Entendendo sua pergunta",
-//   "Consultando a base de dados",
-//   "Organizando os indicadores relevantes",
-//   "Montando uma resposta clara para você",
-// ];
-
-// function normalizeContent(content) {
-//   if (typeof content === "string") return content;
-//   if (Array.isArray(content)) {
-//     return content
-//       .map((item) => {
-//         if (typeof item === "string") return item;
-//         if (item?.text) return item.text;
-//         return "";
-//       })
-//       .join("\n");
-//   }
-//   return "";
-// }
-
-
-
-// function useStreamChat({ apiUrl, threadId, userId }) {
-//   const [messages, setMessages] = useState([]);
-//   const [isStreaming, setIsStreaming] = useState(false);
-//   const [error, setError] = useState("");
-//   const abortRef = useRef(null);
-
-//   const sendMessage = useCallback(
-//     async (text) => {
-//       if (!text.trim() || isStreaming) return;
-
-//       const userMessage = { id: uuidv4(), role: "user", content: text };
-//       const assistantId = `assistant-${threadId}-${Date.now()}`;
-
-//       setMessages((prev) => [
-//         ...prev,
-//         userMessage,
-//         { id: assistantId, role: "assistant", content: "", thinking: "" },
-//       ]);
-//       setError("");
-//       setIsStreaming(true);
-
-//       const controller = new AbortController();
-//       abortRef.current = controller;
-
-//       try {
-//         const response = await fetch(`${apiUrl}/chat/stream`, {
-//           method: "POST",
-//           headers: { "Content-Type": "application/json" },
-//           body: JSON.stringify({
-//             message: text,
-//             thread_id: threadId,
-//             user_id: userId,
-//           }),
-//           signal: controller.signal,
-//         });
-
-//         if (!response.ok) {
-//           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-//         }
-
-//         const reader = response.body?.getReader();
-//         if (!reader) throw new Error("Não foi possível iniciar o stream da resposta.");
-
-//         const decoder = new TextDecoder();
-//         let buffer = "";
-
-//         while (true) {
-//           const { done, value } = await reader.read();
-//           if (done) break;
-
-//           buffer += decoder.decode(value, { stream: true });
-//           const lines = buffer.split("\n");
-//           buffer = lines.pop() ?? "";
-
-//           for (const line of lines) {
-//             const cleaned = line.trim();
-//             if (!cleaned.startsWith("data:")) continue;
-
-//             const payload = cleaned.replace(/^data:\s*/, "");
-//             if (!payload) continue;
-
-//             try {
-//               const parsed = JSON.parse(payload);
-//               const { event, data } = parsed;
-
-//               if (event == "chunk" && data?.content) {
-//                 setMessages((prev) =>
-//                   prev.map((msg) =>
-//                     msg.id === assistantId
-//                       ? { ...msg, content: msg.content + data.content}
-//                       : msg
-//                   )
-//                 );
-//               }
-
-//               if (event == "thinking" && data?.content) {
-//                 setMessages((prev) =>
-//                   prev.map((msg) =>
-//                     msg.id === assistantId
-//                       ? { ...msg, thinking: (msg.thinking || "") + data.content }
-//                       : msg
-//                   )
-//                 );
-//               }
-
-//               if (event === "status" && data?.message) {
-//                 setMessages((prev) =>
-//                   prev.map((msg) =>
-//                     msg.id === assistantId
-//                       ? { 
-//                           ...msg, 
-//                           thinking: msg.thinking
-//                             ? `${msg.thinking}\n⚙️ ${data.message}`
-//                             : `⚙️ ${data.message}`
-//                         }
-//                       : msg
-//                   )
-//                 );
-//               }
-
-//               if (event === "messages/complete") {
-//               }
-
-//               if (event === "error") {
-//                 setError(data?.message ?? "Erro ao processar resposta do servidor.");
-//               }
-//             } catch {
-//             }
-//           }
-//         }
-//       } catch (err) {
-//         if (err.name !== "AbortError") {
-//           setError(err.message || "Erro inesperado.");
-//         }
-//       } finally {
-//         setIsStreaming(false);
-//         abortRef.current = null;
-//       }
-//     },
-//     [apiUrl, isStreaming, threadId, userId],
-//   );
-
-//   const stopStream = useCallback(() => abortRef.current?.abort(), []);
-
-//   return {
-//     messages,
-//     error,
-//     isStreaming,
-//     sendMessage,
-//     stopStream,
-//     clearChat: () => {
-//       setMessages([]);
-//       setError("");
-//     },
-//   };
-// }
-
-// function Message({ role, content, thinking }) {
-//   const isUser = role === "user";
-
-//   return (
-//     <div className={`message-row ${isUser ? "is-user" : ""}`}>
-//       <article className={`message-bubble ${isUser ? "is-user" : "is-assistant"}`}>
-
-//         {!isUser && thinking && (
-//           <details className="thinking-details">
-//             <summary className="thinking-summary">
-//               🧠 O agente pensou...
-//             </summary>
-
-//             <div className="thinking-content">
-//               {thinking}
-//             </div>
-//           </details>
-//         )}
-
-//         {content ? (
-//           <ReactMarkdown remarkPlugins={[remarkGfm]}>
-//             {content}
-//           </ReactMarkdown>
-//         ) : (
-//           !isUser && (
-//             <div className="typing-container">
-//               <div className="loading-spinner"></div>
-//               <span className="loading-text">
-//                 {thinking ? "A finalizar a análise..." : "A iniciar processo..."}
-//               </span>
-//             </div>
-//           )
-//         )}
-
-//       </article>
-//     </div>
-//   );
-// }
-
-
-// function ThinkingTimeline({ isVisible }) {
-//   const [activeStep, setActiveStep] = useState(0);
-
-//   useEffect(() => {
-//     if (!isVisible) {
-//       setActiveStep(0);
-//       return;
-//     }
-
-//     const interval = setInterval(() => {
-//       setActiveStep((prev) => Math.min(prev + 1, THINKING_STEPS.length - 1));
-//     }, 1100);
-
-//     return () => clearInterval(interval);
-//   }, [isVisible]);
-
-//   if (!isVisible) return null;
-
-//   return (
-//     <section className="thinking-panel" aria-live="polite">
-//       <div className="thinking-title">O agente está processando sua pergunta</div>
-//       <ul>
-//         {THINKING_STEPS.map((step, index) => (
-//           <li 
-//             key={step} 
-//             className={`
-//               ${index <= activeStep ? "active" : ""} 
-//               ${index === activeStep ? "blinking" : ""}
-//             `}
-//           >
-//             <span className="step-dot" />
-//             <span>{step}</span>
-//           </li>
-//         ))}
-//       </ul>
-//     </section>
-//   );
-// }
-
-// export default function App() {
-//   const [input, setInput] = useState("");
-//   const [threadId] = useState(() => uuidv4());
-//   const bottomRef = useRef(null);
-//   const textareaRef = useRef(null);
-
-//   const [theme, setTheme] = useState("light");
-//     function toggleTheme() {
-//     setTheme((currentTheme) =>
-//       currentTheme === "dark" ? "light" : "dark"
-//     );
-//   }
-
-//   const { messages, error, isStreaming, sendMessage, stopStream, clearChat } = useStreamChat({
-//     apiUrl: DEFAULT_API_URL,
-//     threadId,
-//     userId: "web-user",
-//   });
-
-//   useEffect(() => {
-//     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-//   }, [messages, isStreaming]);
-
-//   useEffect(() => {
-//     if (!textareaRef.current) return;
-//     textareaRef.current.style.height = "0px";
-//     textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 180)}px`;
-//   }, [input]);
-
-//   const canSend = useMemo(() => input.trim().length > 0 && !isStreaming, [input, isStreaming]);
-//   const lastMessage = messages.at(-1);
-//   const showThinking = isStreaming && lastMessage?.role === "assistant" && !lastMessage?.content;
-
-//   const handleSubmit = (event) => {
-//     event.preventDefault();
-//     if (!canSend) return;
-//     sendMessage(input.trim());
-//     setInput("");
-//   };
-
-//   return (
-//     <div className="app-bg" data-theme={theme}>
-//       <div className="chat-shell">
-//         <header className="chat-header">
-//           <div className="brand">
-//             <span className="brand-dot" />
-//             <div>
-//               <h1>Bússola da Sustentabilidade</h1>
-//               <p>Assistente de análise de dados </p>
-//             </div>
-//           </div>
-
-//           <div className="header-actions">
-//             <button
-//               type="button"
-//               className="theme-btn"
-//               onClick={toggleTheme}
-//               aria-label="Alternar tema"
-//             >
-//               {theme === "dark" ? "Tema claro" : "Tema escuro"}
-//             </button>
-//             <button type="button" onClick={clearChat} className="ghost-btn">
-//             Nova conversa
-//             </button>
-//           </div>
-//         </header>
-
-//         <main className="chat-main">
-//           {messages.length === 0 ? (
-//             <section className="empty-state">
-//               <h2>Faça sua primeira pergunta</h2>
-//               <p>
-//                 Converse com o agente em linguagem natural e receba respostas em tempo real com contexto do
-//                 projeto.
-//               </p>
-
-//               <div className="prompt-list">
-//                 {[
-//                   "Quais cidades têm melhor indicador geral de sustentabilidade?",
-//                   "Compare Bombinhas e Urubici em turismo e renda.",
-//                   "Mostre os principais insights de 2023 para SC.",
-//                 ].map((prompt) => (
-//                   <button key={prompt} type="button" onClick={() => setInput(prompt)}>
-//                     {prompt}
-//                   </button>
-//                 ))}
-//               </div>
-//             </section>
-//           ) : (
-//             messages.map((msg) => <Message key={msg.id} role={msg.role} content={msg.content} thinking={msg.thinking} />)
-//           )}
-
-//           <ThinkingTimeline isVisible={showThinking} />
-
-//           {error && <div className="error-banner">⚠ {error}</div>}
-//           <div ref={bottomRef} />
-//         </main>
-
-//         <form className="chat-input" onSubmit={handleSubmit}>
-//           <textarea
-//             ref={textareaRef}
-//             value={input}
-//             onChange={(event) => setInput(event.target.value)}
-//             placeholder="Digite sua pergunta..."
-//             rows={1}
-//             onKeyDown={(event) => {
-//               if (event.key === "Enter" && !event.shiftKey) {
-//                 event.preventDefault();
-//                 handleSubmit(event);
-//               }
-//             }}
-//           />
-
-//           <div className="input-actions">
-//             <span className="hint">Enter envia · Shift + Enter quebra linha</span>
-//             {isStreaming ? (
-//               <button type="button" className="stop-btn" onClick={stopStream}>
-//                 Parar
-//               </button>
-//             ) : (
-//               <button type="submit" disabled={!canSend} className="send-btn">
-//                 Enviar
-//               </button>
-//             )}
-//           </div>
-//         </form>
-//       </div>
-//     </div>
-//   );
-// }
-
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CiCirclePlus } from "react-icons/ci";
-import { FiSun, FiMoon } from 'react-icons/fi';
-
-import {
-  useStream,
-  FetchStreamTransport,
-} from "@langchain/langgraph-sdk/react";
+import { FiSun, FiMoon } from "react-icons/fi";
+import { useStream, FetchStreamTransport } from "@langchain/langgraph-sdk/react";
 
 const DEFAULT_API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
@@ -398,90 +16,98 @@ const THINKING_STEPS = [
 ];
 
 const EMPTY_MESSAGES = [];
-const INITIAL_VALUES = {
-  messages: [],
-};
+const INITIAL_VALUES = { messages: [] };
 
 function normalizeContent(content) {
   if (typeof content === "string") return content;
-
   if (Array.isArray(content)) {
-    return content
-      .map((item) => {
-        if (typeof item === "string") return item;
-        if (item?.text) return item.text;
-        return "";
-      })
-      .join("\n");
+    return content.map((item) => (typeof item === "string" ? item : item?.text || "")).join("\n");
   }
-
   return "";
 }
 
 function getMessageRole(msg) {
   if (!msg) return "assistant";
-
-  if (msg.role === "user" || msg.role === "assistant") {
-    return msg.role;
-  }
-
+  if (msg.role === "user" || msg.role === "assistant") return msg.role;
   if (msg.type === "human") return "user";
   if (msg.type === "ai" || msg.type === "AIMessageChunk") return "assistant";
-
   return msg.role ?? msg.type ?? "assistant";
 }
 
 function getLastAssistantMessage(messages) {
-  return [...messages]
-    .reverse()
-    .find((msg) => getMessageRole(msg) === "assistant");
+  return [...messages].reverse().find((msg) => getMessageRole(msg) === "assistant");
 }
 
-function appendThinking(prev, text) {
-  if (!text) return prev;
+// function Message({ role, content }) {
+//   const isUser = role === "user";
+//   return (
+//     <div className={`message-row ${isUser ? "is-user" : ""}`}>
+//       <article className={`message-bubble ${isUser ? "is-user" : "is-assistant"}`}>
+//         {content ? (
+//           <ReactMarkdown remarkPlugins={[remarkGfm]}>{normalizeContent(content)}</ReactMarkdown>
+//         ) : (
+//           !isUser && (
+//             <div className="typing-container">
+//               <div className="loading-spinner" />
+//               <span className="loading-text">Gerando resposta...</span>
+//             </div>
+//           )
+//         )}
+//       </article>
+//     </div>
+//   );
+// }
 
-  const line = `⚙️ ${text}`;
-
-  if (!prev) return line;
-
-  return `${prev}\n${line}`;
-}
-
-function Message({ role, content, thinking }) {
+function Message({ role, content }) {
   const isUser = role === "user";
 
   return (
-    <div className={`message-row ${isUser ? "is-user" : ""}`}>
-      <article
-        className={`message-bubble ${
-          isUser ? "is-user" : "is-assistant"
-        }`}
-      >
-        {!isUser && thinking && (
-          <details className="thinking-details">
-            <summary className="thinking-summary">
-              🧠 O agente pensou...
-            </summary>
+    <div className={`message-row ${isUser ? "is-user" : "is-assistant"}`}>
+      {!isUser && (
+        <div className="message-avatar assistant-avatar" aria-hidden="true">
+          🧭
+        </div>
+      )}
 
-            <div className="thinking-content">{thinking}</div>
-          </details>
-        )}
+      <div className={`message-content ${isUser ? "is-user" : "is-assistant"}`}>
+        <span className="message-sender">
+          {isUser ? "Você" : "Bússola"}
+        </span>
 
-        {content ? (
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {normalizeContent(content)}
-          </ReactMarkdown>
-        ) : (
-          !isUser && (
-            <div className="typing-container">
-              <div className="loading-spinner"></div>
-              <span className="loading-text">
-                {thinking ? "A finalizar a análise..." : "A iniciar processo..."}
-              </span>
-            </div>
-          )
-        )}
-      </article>
+        <article className={`message-bubble ${isUser ? "is-user" : "is-assistant"}`}>
+          {content ? (
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {normalizeContent(content)}
+            </ReactMarkdown>
+          ) : (
+            !isUser && (
+              <div className="typing-container">
+                <div className="loading-spinner" />
+                <span className="loading-text">Gerando resposta...</span>
+              </div>
+            )
+          )}
+        </article>
+      </div>
+    </div>
+  );
+}
+
+function LiveProcessing({ thinking, isStreaming }) {
+  if (!isStreaming || !thinking) return null;
+
+  const lines = thinking.split('\n').filter(line => line.trim() !== '');
+  if (lines.length === 0) return null;
+
+  const lastLine = lines[lines.length - 1];
+  const currentStatus = lastLine.replace('⚙️', '').trim();
+
+  return (
+    <div className="live-status-container blinking">
+      <div className="status-indicator">
+        <span className="status-icon">⚙️</span>
+        <span className="status-text">{currentStatus}...</span>
+      </div>
     </div>
   );
 }
@@ -528,61 +154,38 @@ function ThinkingTimeline({ isVisible }) {
   );
 }
 
+
 export default function App() {
   const [input, setInput] = useState("");
   const [threadId, setThreadId] = useState(() => uuidv4());
   const [theme, setTheme] = useState("light");
-
   const [chatMessages, setChatMessages] = useState([]);
   const [currentThinking, setCurrentThinking] = useState("");
 
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
-
   const currentAssistantIdRef = useRef(null);
   const currentThinkingRef = useRef("");
   const streamMessagesRef = useRef(EMPTY_MESSAGES);
   const thinkingEventsSeenRef = useRef(new Set());
-
   const previousStreamAssistantIdRef = useRef(null);
   const previousStreamAssistantContentRef = useRef("");
 
-  function toggleTheme() {
-    setTheme((currentTheme) =>
-      currentTheme === "dark" ? "light" : "dark"
-    );
-  }
+  const toggleTheme = () => setTheme((prev) => (prev === "dark" ? "light" : "dark"));
 
-  const transport = useMemo(
-    () =>
-      new FetchStreamTransport({
-        apiUrl: `${DEFAULT_API_URL}/chat/stream`,
-      }),
-    []
-  );
+  const transport = useMemo(() => new FetchStreamTransport({
+    apiUrl: `${DEFAULT_API_URL}/chat/stream`,
+  }), []);
 
   const handleCustomEvent = useCallback((event) => {
     if (event?.type === "status" && event?.message) {
       const key = `status:${event.node ?? ""}:${event.message}`;
-
       if (thinkingEventsSeenRef.current.has(key)) return;
       thinkingEventsSeenRef.current.add(key);
 
       setCurrentThinking((prev) => {
-        const nextThinking = appendThinking(prev, event.message);
-        currentThinkingRef.current = nextThinking;
-        return nextThinking;
-      });
-    }
-
-    if (event?.type === "thinking" && event?.content) {
-      const key = `thinking:${event.content}`;
-
-      if (thinkingEventsSeenRef.current.has(key)) return;
-      thinkingEventsSeenRef.current.add(key);
-
-      setCurrentThinking((prev) => {
-        const nextThinking = appendThinking(prev, event.content);
+        const prefix = prev && !prev.endsWith("\n") ? "\n" : "";
+        const nextThinking = `${prev}${prefix}⚙️ ${event.message}`;
         currentThinkingRef.current = nextThinking;
         return nextThinking;
       });
@@ -590,40 +193,15 @@ export default function App() {
 
     if (event?.type === "done") {
       const assistantId = currentAssistantIdRef.current;
-
       if (!assistantId) return;
 
       const lastAssistant = getLastAssistantMessage(streamMessagesRef.current);
-      const lastAssistantId = lastAssistant?.id ?? null;
-
-      let finalContent = normalizeContent(lastAssistant?.content ?? "");
-
-      const isPreviousAssistant =
-        lastAssistantId &&
-        lastAssistantId === previousStreamAssistantIdRef.current &&
-        finalContent === previousStreamAssistantContentRef.current;
-
-      const isPreviousAssistantWithoutId =
-        !lastAssistantId &&
-        finalContent === previousStreamAssistantContentRef.current;
-
-      if (isPreviousAssistant || isPreviousAssistantWithoutId) {
-        finalContent = "";
-      }
-
+      const finalContent = normalizeContent(lastAssistant?.content ?? "");
       const finalThinking = currentThinkingRef.current;
 
-      setChatMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === assistantId
-            ? {
-                ...msg,
-                content: finalContent || msg.content,
-                thinking: finalThinking || msg.thinking,
-              }
-            : msg
-        )
-      );
+      setChatMessages((prev) => prev.map((msg) =>
+        msg.id === assistantId ? { ...msg, content: finalContent || msg.content, thinking: finalThinking || msg.thinking } : msg
+      ));
 
       currentAssistantIdRef.current = null;
       currentThinkingRef.current = "";
@@ -632,221 +210,76 @@ export default function App() {
     }
   }, []);
 
-  const handleError = useCallback((err) => {
-    console.error("Erro no stream:", err);
-  }, []);
-
   const stream = useStream({
     transport,
     threadId,
     messagesKey: "messages",
     initialValues: INITIAL_VALUES,
     onCustomEvent: handleCustomEvent,
-    onError: handleError,
+    onError: (err) => console.error("Erro no stream:", err),
   });
 
   const streamMessages = stream.messages ?? EMPTY_MESSAGES;
   const isStreaming = stream.isLoading;
   const error = stream.error;
 
-  useEffect(() => {
-    streamMessagesRef.current = streamMessages;
-  }, [streamMessages]);
+  useEffect(() => { streamMessagesRef.current = streamMessages; }, [streamMessages]);
 
   const streamedAssistantContent = useMemo(() => {
     const lastAssistant = getLastAssistantMessage(streamMessages);
-
     if (!lastAssistant) return "";
-
-    const lastAssistantId = lastAssistant.id ?? null;
-    const content = normalizeContent(lastAssistant.content ?? "");
-
-    if (!content) return "";
-
-    const isPreviousAssistant =
-      lastAssistantId &&
-      lastAssistantId === previousStreamAssistantIdRef.current &&
-      content === previousStreamAssistantContentRef.current;
-
-    const isPreviousAssistantWithoutId =
-      !lastAssistantId &&
-      content === previousStreamAssistantContentRef.current;
-
-    if (isPreviousAssistant || isPreviousAssistantWithoutId) {
-      return "";
-    }
-
-    return content;
+    return normalizeContent(lastAssistant.content ?? "");
   }, [streamMessages]);
 
   const displayMessages = useMemo(() => {
     const activeAssistantId = currentAssistantIdRef.current;
-
-    return chatMessages.map((msg) => {
-      if (msg.id !== activeAssistantId || msg.role !== "assistant") {
-        return msg;
-      }
-
-      return {
-        ...msg,
-        content: streamedAssistantContent || msg.content,
-        thinking: currentThinking || msg.thinking,
-      };
-    });
-  }, [chatMessages, streamedAssistantContent, currentThinking]);
+    return chatMessages.map((msg) => ({
+      ...msg,
+      content: msg.id === activeAssistantId ? streamedAssistantContent || msg.content : msg.content,
+    }));
+  }, [chatMessages, streamedAssistantContent]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [displayMessages.length, streamedAssistantContent, currentThinking, isStreaming]);
+  }, [displayMessages.length, streamedAssistantContent, currentThinking]);
 
   useEffect(() => {
     if (!textareaRef.current) return;
-
     textareaRef.current.style.height = "0px";
-    textareaRef.current.style.height = `${Math.min(
-      textareaRef.current.scrollHeight,
-      180
-    )}px`;
+    textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 180)}px`;
   }, [input]);
 
-  const canSend = useMemo(
-    () => input.trim().length > 0 && !isStreaming,
-    [input, isStreaming]
-  );
+  const handleSubmit = useCallback((event) => {
+    event.preventDefault();
+    if (!input.trim() || isStreaming) return;
 
-  const lastLocalMessage = displayMessages.at(-1);
+    const text = input.trim();
+    const assistantMessage = { id: `assistant-${threadId}-${Date.now()}`, role: "assistant", content: "", thinking: "" };
+    
+    currentAssistantIdRef.current = assistantMessage.id;
+    setCurrentThinking("");
+    setChatMessages((prev) => [...prev, { id: uuidv4(), role: "user", content: text }, assistantMessage]);
 
-  const showThinking =
-    isStreaming &&
-    lastLocalMessage?.role === "assistant" &&
-    !lastLocalMessage?.content;
-
-  const handleSubmit = useCallback(
-    (event) => {
-      event.preventDefault();
-
-      if (!canSend) return;
-
-      const text = input.trim();
-
-      const previousAssistant = getLastAssistantMessage(streamMessagesRef.current);
-
-      previousStreamAssistantIdRef.current = previousAssistant?.id ?? null;
-      previousStreamAssistantContentRef.current = normalizeContent(
-        previousAssistant?.content ?? ""
-      );
-
-      const userMessage = {
-        id: uuidv4(),
-        role: "user",
-        content: text,
-      };
-
-      const assistantMessage = {
-        id: `assistant-${threadId}-${Date.now()}`,
-        role: "assistant",
-        content: "",
-        thinking: "",
-      };
-
-      currentAssistantIdRef.current = assistantMessage.id;
-      currentThinkingRef.current = "";
-      thinkingEventsSeenRef.current.clear();
-      setCurrentThinking("");
-
-      setChatMessages((prev) => [
-        ...prev,
-        userMessage,
-        assistantMessage,
-      ]);
-
-      stream.submit(
-        {
-          messages: [
-            {
-              type: "human",
-              content: text,
-            },
-          ],
-        },
-        {
-          config: {
-            configurable: {
-              thread_id: threadId,
-              user_id: "web-user",
-            },
-          },
-        }
-      );
-
-      setInput("");
-    },
-    [canSend, input, stream, threadId]
-  );
+    stream.submit({ messages: [{ type: "human", content: text }] }, {
+      config: { configurable: { thread_id: threadId, user_id: "web-user" } }
+    });
+    setInput("");
+  }, [input, isStreaming, stream, threadId]);
 
   const stopStream = useCallback(() => {
     stream.stop();
-
-    const assistantId = currentAssistantIdRef.current;
-
-    if (assistantId) {
-      const lastAssistant = getLastAssistantMessage(streamMessagesRef.current);
-      const lastAssistantId = lastAssistant?.id ?? null;
-
-      let finalContent = normalizeContent(lastAssistant?.content ?? "");
-
-      const isPreviousAssistant =
-        lastAssistantId &&
-        lastAssistantId === previousStreamAssistantIdRef.current &&
-        finalContent === previousStreamAssistantContentRef.current;
-
-      const isPreviousAssistantWithoutId =
-        !lastAssistantId &&
-        finalContent === previousStreamAssistantContentRef.current;
-
-      if (isPreviousAssistant || isPreviousAssistantWithoutId) {
-        finalContent = "";
-      }
-
-      setChatMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === assistantId
-            ? {
-                ...msg,
-                content: finalContent || msg.content,
-                thinking: currentThinkingRef.current || msg.thinking,
-              }
-            : msg
-        )
-      );
-    }
-
     currentAssistantIdRef.current = null;
-    currentThinkingRef.current = "";
-    thinkingEventsSeenRef.current.clear();
     setCurrentThinking("");
   }, [stream]);
 
   const clearChat = useCallback(() => {
     stream.stop();
-
     const newThreadId = uuidv4();
-
     setThreadId(newThreadId);
     setChatMessages([]);
     setCurrentThinking("");
-
     currentAssistantIdRef.current = null;
-    currentThinkingRef.current = "";
-    streamMessagesRef.current = EMPTY_MESSAGES;
-    thinkingEventsSeenRef.current.clear();
-
-    previousStreamAssistantIdRef.current = null;
-    previousStreamAssistantContentRef.current = "";
-
-    if (typeof stream.switchThread === "function") {
-      stream.switchThread(newThreadId);
-    }
+    if (typeof stream.switchThread === "function") stream.switchThread(newThreadId);
   }, [stream]);
 
   return (
@@ -855,29 +288,17 @@ export default function App() {
         <header className="chat-header">
           <div className="brand">
             <span className="brand-dot" />
-
             <div>
               <h1>Bússola da Sustentabilidade</h1>
               <p>Assistente de análise de dados</p>
             </div>
           </div>
-
           <div className="header-actions">
-            <button
-              type="button"
-              className="theme-btn"
-              onClick={toggleTheme}
-              aria-label="Alternar tema"
-            >
-              {theme === "dark" ? <FiSun  size={25}/> : <FiMoon size={25}/>}
+            <button type="button" className="theme-btn" onClick={toggleTheme} aria-label="Alternar tema">
+              {theme === "dark" ? <FiSun size={25} /> : <FiMoon size={25} />}
             </button>
-
-            <button
-              type="button"
-              onClick={clearChat}
-              className="ghost-btn"
-            >
-              <CiCirclePlus size={30}/>
+            <button type="button" onClick={clearChat} className="ghost-btn">
+              <CiCirclePlus size={30} />
             </button>
           </div>
         </header>
@@ -886,48 +307,34 @@ export default function App() {
           {displayMessages.length === 0 ? (
             <section className="empty-state">
               <h2>Faça sua primeira pergunta</h2>
-
-              <p>
-                Converse com o agente em linguagem natural e receba respostas
-                em tempo real com contexto do projeto.
-              </p>
-
+              <p>Converse com o agente em linguagem natural e receba respostas em tempo real.</p>
               <div className="prompt-list">
                 {[
                   "Quais cidades têm melhor indicador geral de sustentabilidade?",
                   "Compare Bombinhas e Urubici em turismo e renda.",
                   "Mostre os principais insights de 2023 para SC.",
                   "Quais cidades têm selo de certificação Green Destinations?",
-                ].map((prompt) => (
-                  <button
-                    key={prompt}
-                    type="button"
-                    onClick={() => setInput(prompt)}
-                  >
-                    {prompt}
-                  </button>
+
+                ].map((p) => (
+                  <button key={p} type="button" onClick={() => setInput(p)}>{p}</button>
                 ))}
               </div>
             </section>
           ) : (
-            displayMessages.map((msg, index) => (
-              <Message
-                key={msg.id ?? index}
-                role={msg.role}
-                content={msg.content}
-                thinking={msg.thinking}
-              />
-            ))
+            displayMessages.map((msg, index) => {
+              const isAssistantStreaming = isStreaming && msg.role === "assistant" && msg.id === currentAssistantIdRef.current;
+              return (
+                <div key={msg.id ?? index} className="message-wrapper">
+                  {isAssistantStreaming && !msg.content && (
+                    <LiveProcessing thinking={currentThinking} isStreaming={isStreaming} />
+                  )}
+                  <Message role={msg.role} content={msg.content} />
+                </div>
+              );
+            })
           )}
-
-          <ThinkingTimeline isVisible={showThinking} />
-
-          {error && (
-            <div className="error-banner">
-              ⚠ {String(error?.message ?? error)}
-            </div>
-          )}
-
+          <ThinkingTimeline isVisible={isStreaming && !streamedAssistantContent} />
+          {error && <div className="error-banner">⚠ {String(error?.message ?? error)}</div>}
           <div ref={bottomRef} />
         </main>
 
@@ -935,38 +342,17 @@ export default function App() {
           <textarea
             ref={textareaRef}
             value={input}
-            onChange={(event) => setInput(event.target.value)}
+            onChange={(e) => setInput(e.target.value)}
             placeholder="Digite sua pergunta..."
             rows={1}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                handleSubmit(event);
-              }
-            }}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(e); } }}
           />
-
           <div className="input-actions">
-            <span className="hint">
-              Enter envia · Shift + Enter quebra linha
-            </span>
-
+            <span className="hint">Enter envia · Shift + Enter quebra linha</span>
             {isStreaming ? (
-              <button
-                type="button"
-                className="stop-btn"
-                onClick={stopStream}
-              >
-                Parar
-              </button>
+              <button type="button" className="stop-btn" onClick={stopStream}>Parar</button>
             ) : (
-              <button
-                type="submit"
-                disabled={!canSend}
-                className="send-btn"
-              >
-                Enviar
-              </button>
+              <button type="submit" disabled={!input.trim() || isStreaming} className="send-btn">Enviar</button>
             )}
           </div>
         </form>

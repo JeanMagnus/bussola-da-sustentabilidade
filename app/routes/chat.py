@@ -477,6 +477,16 @@ async def chat_stream_endpoint(req: Request):
                     message_chunk, metadata = data
                     tags = metadata.get("tags", [])
                     node_name = metadata.get("langgraph_node")
+                    print("\n===== DEBUG MESSAGE CHUNK =====")
+                    print("NODE:", metadata.get("langgraph_node"))
+                    print("TAGS:", metadata.get("tags"))
+                    print("CHUNK TYPE:", type(message_chunk))
+                    print("CONTENT:", getattr(message_chunk, "content", None))
+                    print("CONTENT_BLOCKS:", getattr(message_chunk, "content_blocks", None))
+                    print("ADDITIONAL_KWARGS:", getattr(message_chunk, "additional_kwargs", None))
+                    print("RESPONSE_METADATA:", getattr(message_chunk, "response_metadata", None))
+                    print("MODEL_DUMP:", message_chunk.model_dump() if hasattr(message_chunk, "model_dump") else None)
+                    print("===== END DEBUG =====\n")
 
                     # printar apenas mensagem final
                     if node_name != "agent":
@@ -525,6 +535,18 @@ async def chat_stream_endpoint(req: Request):
                                     )
 
                     else:
+                        additional_kwargs = getattr(message_chunk, "additional_kwargs", {})
+                        if "reasoning_content" in  additional_kwargs:
+                            reasoning = additional_kwargs.get("reasoning_content", "")
+                            if reasoning:
+                                yield _sse(
+                                    "custom",
+                                    {
+                                        "type": "thinking",
+                                        "content": reasoning,
+                                    },
+                                )
+
                         content = getattr(message_chunk, "content", "")
 
                         if content:
