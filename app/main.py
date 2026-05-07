@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from app.core.config import settings
 from app.agent.graph import workflow
-from app.routes import chat
+from app.routes import chat, reports
 
 
 @asynccontextmanager
@@ -28,6 +28,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 app.include_router(chat.router, tags=["Chat"])
+app.include_router(reports.router)
 
 
 app.add_middleware(
