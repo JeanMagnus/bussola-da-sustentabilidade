@@ -130,6 +130,81 @@ async def summarization_node(state: AgentState, config: RunnableConfig) -> Agent
             #**usage
         }
 
+# async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
+#     with timer("RAG_AGENT"):
+#         print("--- RAG AGENT NODE ---")
+
+#         user_messages = [m for m in state["messages"] if isinstance(m, HumanMessage)]
+#         user_question = user_messages[-1].content if user_messages else ""
+
+#         last_ai_msg = state.get("last_msg_ai", "")
+#         is_continuation = state.get("is_continuation", False)
+
+#         if last_ai_msg and is_continuation:
+#             print("   [INFO] Continuação detectada")
+            
+#             EXTRACTION_PROMPT = f"""
+#             Você é um filtro estrito de palavras-chave para um motor de busca.
+            
+#             Contexto: '{last_ai_msg}'
+#             Pergunta: '{user_question}'
+            
+#             Extraia os substantivos cruciais combinando a Pergunta com o Contexto (se ela for uma continuação).
+#             Retorne SEMPRE de 3 a 6 palavras separadas por espaço.
+#             Você DEVE retornar um objeto JSON válido correspondente ao esquema solicitado.
+#             NUNCA retorne uma string vazia. Se estiver em dúvida, retorne 'cidades sustentáveis turismo dados'.
+#             """            
+#             try:
+#                 extractor_model = kimi_model.with_structured_output(KeywordExtraction)
+#                 kw_messages = [SystemMessage(content=EXTRACTION_PROMPT)]
+#                 with get_openai_callback() as cb:
+#                     response_kw = await extractor_model.ainvoke(kw_messages, config=config)
+
+#                     print("VISUALIZANDO USO DE TOKENS DO RAG")
+#                     print(f"Total de Tokens: {cb.total_tokens}")
+#                     print(f"Tokens de Prompt: {cb.prompt_tokens}")
+#                     print(f"Tokens de Resposta: {cb.completion_tokens}")
+#                     print(f"Custo Total (USD): ${cb.total_cost}")
+
+#                 search_query = response_kw.search_query.strip()
+#                 print(f"   [SUCESSO] Keywords extraídas via Estrutura: '{search_query}'")
+
+#                 #usage = token_count_total(state, response_kw)
+
+#             except Exception as e:
+#                 print(f"   [AVISO] Erro na extração de palavras-chave: {e}")
+#                 search_query = f"{last_ai_msg} {user_question}" 
+#                 #usage = {}
+#         else:
+#             search_query = user_question
+#             #usage = {}
+
+#         if not search_query or search_query.strip() == "":
+#             print("   [AVISO CRÍTICO] search_query ficou vazia! Injetando texto de salvação.")
+#             search_query = "turismo sustentável dados"
+
+#         print(f"   [PINECONE] Buscando vetores por: '{search_query}'")
+
+#         with timer("RAG_AGENT - BUSCA VETORIAL"):
+#             docs = guide_vector_store.similarity_search(
+#                 query=search_query,
+#                 k=5,
+#                 namespace="data_dictionary"
+#             )
+            
+#             if not docs:
+#                 print("   --- NENHUM DICIONÁRIO RECUPERADO ---")
+#                 return {"sql_plan": "Nenhuma informação relevante encontrada no dicionário de dados."}#**usage
+            
+#             raw_dictionary_context = "\n\n".join([f"{doc.page_content}" for doc in docs])
+
+#             print("   --- DICIONÁRIO RECUPERADO (TEXTO BRUTO) ---")
+            
+#             print(f"   [INFO] Retornando {len(raw_dictionary_context)} caracteres de regras brutas do banco.")
+
+#         return {"sql_plan": raw_dictionary_context}#**usage
+
+
 async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
     with timer("RAG_AGENT"):
         print("--- RAG AGENT NODE ---")
@@ -160,24 +235,14 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
                 with get_openai_callback() as cb:
                     response_kw = await extractor_model.ainvoke(kw_messages, config=config)
 
-                    print("VISUALIZANDO USO DE TOKENS DO RAG")
-                    print(f"Total de Tokens: {cb.total_tokens}")
-                    print(f"Tokens de Prompt: {cb.prompt_tokens}")
-                    print(f"Tokens de Resposta: {cb.completion_tokens}")
-                    print(f"Custo Total (USD): ${cb.total_cost}")
-
                 search_query = response_kw.search_query.strip()
                 print(f"   [SUCESSO] Keywords extraídas via Estrutura: '{search_query}'")
-
-                #usage = token_count_total(state, response_kw)
 
             except Exception as e:
                 print(f"   [AVISO] Erro na extração de palavras-chave: {e}")
                 search_query = f"{last_ai_msg} {user_question}" 
-                #usage = {}
         else:
             search_query = user_question
-            #usage = {}
 
         if not search_query or search_query.strip() == "":
             print("   [AVISO CRÍTICO] search_query ficou vazia! Injetando texto de salvação.")
@@ -188,21 +253,58 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
         with timer("RAG_AGENT - BUSCA VETORIAL"):
             docs = guide_vector_store.similarity_search(
                 query=search_query,
-                k=3,
+                k=5,
                 namespace="data_dictionary"
             )
             
             if not docs:
                 print("   --- NENHUM DICIONÁRIO RECUPERADO ---")
-                return {"sql_plan": "Nenhuma informação relevante encontrada no dicionário de dados."}#**usage
+                return {"sql_plan": "Nenhuma informação relevante encontrada no dicionário de dados. Use a ferramenta sql_db_list_tables."}
             
             raw_dictionary_context = "\n\n".join([f"{doc.page_content}" for doc in docs])
+            print(f"   [INFO] Recuperados {len(raw_dictionary_context)} caracteres de regras brutas.")
 
-            print("   --- DICIONÁRIO RECUPERADO (TEXTO BRUTO) ---")
+        print("   [INFO] Gerando Plano de Pesquisa Estratégico...")
+        
+        PLANNER_PROMPT = f"""
+        Você é o Arquiteto de Dados Sênior do projeto Bússola da Sustentabilidade.
+        Sua função é analisar as regras do banco de dados (Dicionário) e criar um PLANO DE AÇÃO estrito para o Agente SQL (que é focado, mas tem pouca iniciativa).
+        
+        PERGUNTA DO USUÁRIO: "{user_question}"
+        CONTEXTO DA CONVERSA: "{last_ai_msg}"
+        
+        REGRAS DO BANCO DE DADOS DISPONÍVEIS:
+        {raw_dictionary_context}
+        
+        Crie um plano de pesquisa direto contendo:
+        1. O NOME EXATO da(s) tabela(s) que deve(m) ser usada(s) (priorize top100_30, top100_15 ou destinations_2023 para notas e comparações de Green Destinations).
+        2. As COLUNAS exatas que devem ser selecionadas.
+        3. Instruções para o WHERE (ex: "Use ILIKE respeitando os acentos exatos pedidos pelo usuário").
+        4. Um plano de contingência: "Se esta tabela retornar vazio, tente a tabela X em seguida".
+        
+        NÃO escreva a query SQL final. Escreva apenas as instruções textuais em tópicos para o Agente SQL executar.
+        Seja breve e técnico (máximo de 5 a 6 linhas).
+        """
+        
+        try:
+            # Reutilizamos o modelo principal para inteligência (pode ser o 'model' que você já usa)
+            planner_messages = [SystemMessage(content=PLANNER_PROMPT)]
             
-            print(f"   [INFO] Retornando {len(raw_dictionary_context)} caracteres de regras brutas do banco.")
+            with get_openai_callback() as cb:
+                plan_response = await kimi_model.ainvoke(planner_messages, config=config)
+                
+                print("VISUALIZANDO USO DE TOKENS DO PLANEJADOR RAG")
+                print(f"Total de Tokens: {cb.total_tokens}")
+                print(f"Custo Total (USD): ${cb.total_cost}")
 
-        return {"sql_plan": raw_dictionary_context}#**usage
+            final_plan = plan_response.content
+            print("   [SUCESSO] Plano de Ação Gerado!")
+            
+        except Exception as e:
+            print(f"   [AVISO] Falha ao gerar plano, enviando contexto bruto: {e}")
+            final_plan = raw_dictionary_context
+
+        return {"sql_plan": final_plan}
     
 async def agent(state: AgentState, config: RunnableConfig):
     with timer("AGENT_NODE"):
@@ -230,16 +332,28 @@ async def agent(state: AgentState, config: RunnableConfig):
             sql_plan = state.get("sql_plan", "")
             plan_block = ""
             if sql_plan:
+                # plan_block = f"""
+                # --- DICIONÁRIO DE DADOS (LEITURA OBRIGATÓRIA) ---
+                # Abaixo estão as regras brutas do banco de dados e as colunas disponíveis relacionadas à pergunta do usuário.
+                # LEIA com atenção para saber quais colunas usar, se é necessário fazer CAST de tipos e como fazer JOINs:
+                # {sql_plan}
+
+                # 1. MÉDIAS: Sempre use AVG(CAST(REPLACE(nota, ',', '.') AS NUMERIC)).
+                # 2. NOMES PRÓPRIOS/CIDADES: NUNCA use '=' ou 'IN' com strings literais. USE SEMPRE `ILIKE` e remova acentos (ex: `cidade ILIKE '%MIGUEL DO GOSTOSO%'`).
+                # 3. BUSCA VAZIA: Se a query retornar [], PARE. Use `SELECT DISTINCT coluna` para entender os dados reais antes de tentar de novo.
+                # -------------------------------------------------                """
                 plan_block = f"""
-                --- DICIONÁRIO DE DADOS (LEITURA OBRIGATÓRIA) ---
-                Abaixo estão as regras brutas do banco de dados e as colunas disponíveis relacionadas à pergunta do usuário.
-                LEIA com atenção para saber quais colunas usar, se é necessário fazer CAST de tipos e como fazer JOINs:
+                --- PLANO DE AÇÃO ESTRATÉGICO (LEITURA OBRIGATÓRIA) ---
+                O Arquiteto de Dados (RAG) analisou o banco e gerou o seguinte plano de pesquisa para você:
+                
                 {sql_plan}
 
-                1. MÉDIAS: Sempre use AVG(CAST(REPLACE(nota, ',', '.') AS NUMERIC)).
-                2. NOMES PRÓPRIOS/CIDADES: NUNCA use '=' ou 'IN' com strings literais. USE SEMPRE `ILIKE` e remova acentos (ex: `cidade ILIKE '%MIGUEL DO GOSTOSO%'`).
-                3. BUSCA VAZIA: Se a query retornar [], PARE. Use `SELECT DISTINCT coluna` para entender os dados reais antes de tentar de novo.
-                -------------------------------------------------                """
+                --- LEMBRETES VITAIS PARA EXECUÇÃO ---
+                1. DADOS BRUTOS: Extraia os dados com SELECT simples e faça as contas/comparações na sua mente. É proibido usar funções como AVG ou CAST(REPLACE).
+                2. ACENTOS SÃO OBRIGATÓRIOS: O ILIKE no Postgres não ignora acentos. Use '%Itá%' e NUNCA '%ita%'.
+                3. CONTINGÊNCIA: Se a query retornar [], a tabela pode estar errada ou o nome da cidade pode estar diferente. Não repita queries idênticas.
+                -------------------------------------------------                
+                """
 
             last_msg_content = str(messages[-1].content)
             has_error = "does not exist" in last_msg_content.lower() or "error" in last_msg_content.lower()
@@ -906,7 +1020,7 @@ def should_continue(state: AgentState):
         #     print(" --- DICIONÁRIO JÁ CONSULTADO, VAI PARA VERIFICAÇÃO DE SQL ---")
         #     return "verify_sql"
 
-        if sql_tool_calls >= 5 and tool_name in ["sql_db_query", "sql_db_schema", "sql_db_list_tables"]:
+        if sql_tool_calls >= 15 and tool_name in ["sql_db_query", "sql_db_schema", "sql_db_list_tables"]:
             print(" --- LIMITE DE CHAMADAS SQL ATINGIDO, VAI PARA MODERAÇÃO DE SAÍDA ---")
             return "fallback_node"
 

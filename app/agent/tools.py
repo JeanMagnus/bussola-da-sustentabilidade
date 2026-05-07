@@ -176,7 +176,7 @@ def sql_db_query(
         if not resultado_bruto or str(resultado_bruto).strip() == "":
             return "A consulta foi executada com sucesso, mas retornou 0 resultados (vazio)."
 
-        MAX_CHARS = 1500 
+        MAX_CHARS = 10000
         
         resultado_str = str(resultado_bruto)
         if len(resultado_str) > MAX_CHARS:
