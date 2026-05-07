@@ -890,6 +890,51 @@ body {
   font-family: 'JetBrains Mono', monospace; 
 }
 
+
+.icon-buss-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 2rem;
+  perspective: 1000px; 
+}
+
+
+.icon-buss {
+  font-size: clamp(40px, 10vw, 80px); /* Tamanho responsivo */
+  line-height: 1;
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.1));
+  animation: float-compass 6s ease-in-out infinite;
+  user-select: none;
+}
+
+
+.app-bg[data-theme="light"] .icon-buss {
+  filter: drop-shadow(0 0 30px rgba(204, 0, 51, 0.15));
+}
+
+.app-bg[data-theme="dark"] .icon-buss {
+  filter: drop-shadow(0 0 40px rgba(253, 164, 175, 0.3));
+}
+
+
+@keyframes float-compass {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-10px) rotate(5deg);
+  }
+  50% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  75% {
+    transform: translateY(-10px) rotate(-5deg);
+  }
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+}
 /* ========================================================= */
 /* ANIMAÇÕES COMPARTILHADAS                                  */
 /* ========================================================= */

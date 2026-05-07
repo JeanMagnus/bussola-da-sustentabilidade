@@ -274,7 +274,11 @@ export default function App() {
         <main className="chat-main">
           {displayMessages.length === 0 ? (
             <section className="empty-state">
+              <div className="icon-buss-container">
+                <div className="icon-buss" aria-hidden="true">🧭</div>
+              </div>
               <h2>Faça sua primeira pergunta</h2>
+              <p>Converse com o agente em linguagem natural e receba respostas em tempo real.</p>
               <div className="prompt-list">
                 {[
                   "Quais cidades têm melhor indicador geral de sustentabilidade?",
