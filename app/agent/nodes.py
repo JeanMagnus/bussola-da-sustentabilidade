@@ -216,31 +216,93 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
         is_continuation = state.get("is_continuation", False)
 
         if last_ai_msg and is_continuation:
-            print("   [INFO] Continuação detectada")
+            # print("   [INFO] Continuação detectada")
             
-            EXTRACTION_PROMPT = f"""
-            Você é um filtro estrito de palavras-chave para um motor de busca.
+            # EXTRACTION_PROMPT = f"""
+            # Você é um filtro estrito de palavras-chave para um motor de busca.
             
-            Contexto: '{last_ai_msg}'
-            Pergunta: '{user_question}'
+            # Contexto: '{last_ai_msg}'
+            # Pergunta: '{user_question}'
             
-            Extraia os substantivos cruciais combinando a Pergunta com o Contexto (se ela for uma continuação).
-            Retorne SEMPRE de 3 a 6 palavras separadas por espaço.
-            Você DEVE retornar um objeto JSON válido correspondente ao esquema solicitado.
-            NUNCA retorne uma string vazia. Se estiver em dúvida, retorne 'cidades sustentáveis turismo dados'.
-            """            
-            try:
-                extractor_model = kimi_model.with_structured_output(KeywordExtraction)
-                kw_messages = [SystemMessage(content=EXTRACTION_PROMPT)]
-                with get_openai_callback() as cb:
-                    response_kw = await extractor_model.ainvoke(kw_messages, config=config)
+            # Extraia os substantivos cruciais combinando a Pergunta com o Contexto (se ela for uma continuação).
+            # Retorne SEMPRE de 3 a 6 palavras separadas por espaço.
+            # Você DEVE retornar um objeto JSON válido correspondente ao esquema solicitado.
+            # NUNCA retorne uma string vazia. Se estiver em dúvida, retorne 'cidades sustentáveis turismo dados'.
+            # """            
+            # try:
+            #     extractor_model = kimi_model.with_structured_output(KeywordExtraction)
+            #     kw_messages = [SystemMessage(content=EXTRACTION_PROMPT)]
+            #     with get_openai_callback() as cb:
+            #         response_kw = await extractor_model.ainvoke(kw_messages, config=config)
 
-                search_query = response_kw.search_query.strip()
-                print(f"   [SUCESSO] Keywords extraídas via Estrutura: '{search_query}'")
+            #     search_query = response_kw.search_query.strip()
+            #     print(f"   [SUCESSO] Keywords extraídas via Estrutura: '{search_query}'")
+
+            # except Exception as e:
+            #     print(f"   [AVISO] Erro na extração de palavras-chave: {e}")
+            #     search_query = f"{last_ai_msg} {user_question}" 
+            # print("   [INFO] Continuação detectada")
+            
+            # EXTRACTION_PROMPT = f"""
+            # Você é um filtro estrito de palavras-chave para um motor de busca.
+            # Contexto: '{last_ai_msg}'
+            # Pergunta: '{user_question}'
+            
+            # Extraia de 3 a 6 palavras-chave cruciais.
+            
+            # REGRAS CRÍTICAS DE SAÍDA:
+            # 1. Extraia os substantivos cruciais combinando a Pergunta com o Contexto (se ela for uma continuação).
+            # 2. Retorne SEMPRE de 3 a 6 palavras separadas por espaço.
+            # 3. NUNCA retorne uma string vazia. Se estiver em dúvida, retorne 'cidades sustentáveis turismo dados'.
+            # 4. SE VOCÊ NÃO SOUBER O QUE EXTRAIR, RETORNE EXATAMENTE AS PALAVRAS DA PERGUNTA DO USUÁRIO. Nunca retorne vazio.
+            # """            
+            # try:
+            #     kw_messages = [SystemMessage(content=EXTRACTION_PROMPT)]
+                
+            #     with get_openai_callback() as cb:
+            #         response_kw = await kimi_model.ainvoke(kw_messages, config=config)
+
+            #     search_query = response_kw.content.strip().replace('"', '').replace("'", "")
+                
+            #     print(f"   [SUCESSO] Keywords extraídas em texto puro: '{search_query}'")
+
+            # except Exception as e:
+            #     print(f"   [AVISO] Erro na extração de palavras-chave: {e}")
+            #     search_query = f"{last_ai_msg} {user_question}"
+
+            print("   [INFO] Continuação detectada")
+            try:
+                sys_msg = SystemMessage(content="""Você é um extrator de palavras-chave. 
+                REGRAS: 
+                1. Retorne SEMPRE de 3 a 6 palavras separadas por espaço.
+                2. NUNCA retorne uma string vazia. Se estiver em dúvida, retorne 'cidades sustentáveis turismo dados'.
+                3. SE VOCÊ NÃO SOUBER O QUE EXTRAIR, RETORNE EXATAMENTE AS PALAVRAS DA PERGUNTA DO USUÁRIO. Nunca retorne vazio.
+                4. NENHUMA pontuação, NENHUMA explicação.""")
+                
+                human_msg = HumanMessage(content=f"""
+                Contexto: '{last_ai_msg}'
+                Pergunta: '{user_question}'
+                
+                Extraia os substantivos cruciais combinando a Pergunta com o Contexto.
+                """)
+                
+                kw_messages = [sys_msg, human_msg]
+                
+                with get_openai_callback() as cb:
+                    response_kw = await kimi_model.ainvoke(kw_messages, config=config)
+
+                search_query = response_kw.content.strip().replace('"', '').replace("'", "")
+                
+                if not search_query or search_query == "":
+                    print("   [AVISO] Kimi retornou vazio. Usando a pergunta do usuário como fallback.")
+                    search_query = f"{user_question} {last_ai_msg}"[:200] 
+                else:
+                    print(f"   [SUCESSO] Keywords extraídas em texto puro: '{search_query}'")
 
             except Exception as e:
                 print(f"   [AVISO] Erro na extração de palavras-chave: {e}")
-                search_query = f"{last_ai_msg} {user_question}" 
+                search_query = f"{user_question} {last_ai_msg}"[:200]
+
         else:
             search_query = user_question
 
@@ -282,12 +344,16 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
         3. Instruções para o WHERE (ex: "Use ILIKE respeitando os acentos exatos pedidos pelo usuário").
         4. Um plano de contingência: "Se esta tabela retornar vazio, tente a tabela X em seguida".
         
+        ## PROIBIÇÕES
+        1. PROIBIDO RACIOCINAR ALTO: Não justifique o porquê escolheu a tabela.
+        2. PROIBIDO INTRODUÇÕES: Não comece com "O plano de ação é..." ou "Baseado nas regras...".
+        3. CUSPA OS DADOS: A sua resposta deve ser APENAS os 4 tópicos do plano e absolutamente mais nada. Seja robótico e cru.
+        
         NÃO escreva a query SQL final. Escreva apenas as instruções textuais em tópicos para o Agente SQL executar.
         Seja breve e técnico (máximo de 5 a 6 linhas).
         """
         
         try:
-            # Reutilizamos o modelo principal para inteligência (pode ser o 'model' que você já usa)
             planner_messages = [SystemMessage(content=PLANNER_PROMPT)]
             
             with get_openai_callback() as cb:
