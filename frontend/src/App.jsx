@@ -62,10 +62,19 @@ function getCurrentStatus(thinking) {
   };
 }
 
+function formatProcessingTime(ms) {
+  const totalSeconds = Math.max(0, Math.floor((ms ?? 0) / 1000));
+
+  return `(${totalSeconds}s)`;
+}
+
 // --- COMPONENTES ---
-const Message = React.memo(({ role, content }) => {
+const Message = React.memo(({ role, content, processingMs }) => {
   const isUser = role === "user";
   const processedContent = useMemo(() => normalizeContent(content), [content]);
+
+  const shouldShowProcessingTime =
+    !isUser && typeof processingMs === "number" && processingMs >= 0;
 
   return (
     <div className={`message-row ${isUser ? "is-user" : "is-assistant"}`}>
@@ -78,7 +87,13 @@ const Message = React.memo(({ role, content }) => {
       <div className={`message-content ${isUser ? "is-user" : "is-assistant"}`}>
         <span className="message-sender">{isUser ? "Você" : "Bússola"}</span>
 
-        <article className={`message-bubble ${isUser ? "is-user" : "is-assistant"}`}>
+        <article
+          className={[
+            "message-bubble",
+            isUser ? "is-user" : "is-assistant",
+            shouldShowProcessingTime ? "has-processing-time" : "",
+          ].join(" ")}
+        >
           {processedContent ? (
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{processedContent}</ReactMarkdown>
           ) : (
@@ -89,16 +104,24 @@ const Message = React.memo(({ role, content }) => {
               </div>
             )
           )}
+
+          {shouldShowProcessingTime && (
+            <span className="bubble-processing-time">
+              {formatProcessingTime(processingMs)}
+            </span>
+          )}
         </article>
       </div>
     </div>
   );
 });
 
-function ProcessingBubble({ isVisible, thinking }) {
+function ProcessingBubble({ isVisible, thinking, elapsedMs }) {
   const [activeStep, setActiveStep] = useState(0);
 
   const { lines, currentStatus } = useMemo(() => getCurrentStatus(thinking), [thinking]);
+
+  const elapsedTime = formatProcessingTime(elapsedMs);
 
   useEffect(() => {
     if (!isVisible) {
@@ -173,6 +196,8 @@ function ProcessingBubble({ isVisible, thinking }) {
               );
             })}
           </div>
+
+          <span className="bubble-processing-time">{elapsedTime}</span>
         </section>
       </div>
     </div>
@@ -186,6 +211,7 @@ export default function App() {
   const [theme, setTheme] = useState("light");
   const [chatMessages, setChatMessages] = useState([]);
   const [currentThinking, setCurrentThinking] = useState("");
+  const [elapsedMs, setElapsedMs] = useState(0);
 
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
@@ -193,6 +219,7 @@ export default function App() {
   const currentThinkingRef = useRef("");
   const streamMessagesRef = useRef(EMPTY_MESSAGES);
   const thinkingEventsSeenRef = useRef(new Set());
+  const processingStartedAtRef = useRef(null);
 
   const toggleTheme = () => setTheme((prev) => (prev === "dark" ? "light" : "dark"));
 
@@ -224,6 +251,10 @@ export default function App() {
 
       if (!assistantId) return;
 
+      const finalProcessingMs = processingStartedAtRef.current
+        ? Date.now() - processingStartedAtRef.current
+        : elapsedMs;
+
       const lastAssistant = getLastAssistantMessage(streamMessagesRef.current);
       const finalContent = normalizeContent(lastAssistant?.content ?? "");
 
@@ -234,6 +265,7 @@ export default function App() {
                 ...msg,
                 content: finalContent || msg.content,
                 thinking: currentThinkingRef.current,
+                processingMs: finalProcessingMs,
               }
             : msg
         )
@@ -242,9 +274,11 @@ export default function App() {
       currentAssistantIdRef.current = null;
       currentThinkingRef.current = "";
       thinkingEventsSeenRef.current.clear();
+      processingStartedAtRef.current = null;
       setCurrentThinking("");
+      setElapsedMs(0);
     }
-  }, []);
+  }, [elapsedMs]);
 
   const stream = useStream({
     transport,
@@ -257,6 +291,20 @@ export default function App() {
 
   const isStreaming = stream.isLoading;
   const streamError = stream.error;
+
+  useEffect(() => {
+  if (!isStreaming || !processingStartedAtRef.current) return;
+
+  const updateElapsedTime = () => {
+    setElapsedMs(Date.now() - processingStartedAtRef.current);
+  };
+
+  updateElapsedTime();
+
+  const interval = setInterval(updateElapsedTime, 250);
+
+  return () => clearInterval(interval);
+}, [isStreaming]);
 
   useEffect(() => {
     streamMessagesRef.current = stream.messages ?? EMPTY_MESSAGES;
@@ -278,16 +326,17 @@ export default function App() {
         return {
           ...msg,
           content: streamedAssistantContent || msg.content,
+          processingMs: isStreaming ? elapsedMs : msg.processingMs,
         };
       }
 
       return msg;
     });
-  }, [chatMessages, streamedAssistantContent]);
+  }, [chatMessages, streamedAssistantContent, isStreaming, elapsedMs]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "auto" });
-  }, [displayMessages.length, isStreaming, currentThinking, streamedAssistantContent]);
+  }, [displayMessages.length, isStreaming, currentThinking, streamedAssistantContent, elapsedMs]);
 
   useEffect(() => {
     if (!textareaRef.current) return;
@@ -304,6 +353,9 @@ export default function App() {
 
       const text = input.trim();
       const assistantId = `assistant-${Date.now()}`;
+
+      processingStartedAtRef.current = Date.now();
+      setElapsedMs(0);
 
       currentAssistantIdRef.current = assistantId;
       currentThinkingRef.current = "";
@@ -322,6 +374,7 @@ export default function App() {
           role: "assistant",
           content: "",
           thinking: "",
+          processingMs: 0,
         },
       ]);
 
@@ -361,6 +414,8 @@ export default function App() {
     currentAssistantIdRef.current = null;
     currentThinkingRef.current = "";
     thinkingEventsSeenRef.current.clear();
+    processingStartedAtRef.current = null;
+    setElapsedMs(0);
 
     if (typeof stream.switchThread === "function") {
       stream.switchThread(newThreadId);
@@ -445,9 +500,14 @@ export default function App() {
                     <ProcessingBubble
                       isVisible={isAssistantStreaming}
                       thinking={currentThinking}
+                      elapsedMs={elapsedMs}
                     />
                   ) : (
-                    <Message role={msg.role} content={msg.content} />
+                    <Message
+                      role={msg.role}
+                      content={msg.content}
+                      processingMs={msg.processingMs}
+                    />
                   )}
                 </div>
               );

@@ -403,11 +403,16 @@ button {
 }
 
 .message-bubble.is-assistant {
+  position: relative;
   border: 1px solid var(--assistant-border);
   border-top-left-radius: 7px;
   background: var(--assistant-bg);
   color: var(--text-soft);
   box-shadow: var(--assistant-shadow);
+}
+
+.message-bubble.is-assistant.has-processing-time {
+  padding-bottom: 1.72rem;
 }
 
 .message-bubble.is-user {
@@ -506,6 +511,21 @@ button {
   box-shadow: 0 9px 22px color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
+.processing-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding-bottom: 0.85rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--assistant-border) 70%, transparent);
+}
+
+.processing-header-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+
 /* ========================================================= */
 /* PROCESSAMENTO EM FORMATO DE BALÃO                         */
 /* ========================================================= */
@@ -526,10 +546,11 @@ button {
 }
 
 .processing-bubble {
+  position: relative;
   border: 1px solid var(--assistant-border);
   border-radius: 19px;
   border-top-left-radius: 7px;
-  padding: 0.95rem 1rem;
+  padding: 0.95rem 1rem 1.72rem;
   background: var(--assistant-bg);
   color: var(--text-soft);
   box-shadow: var(--assistant-shadow);
@@ -625,6 +646,19 @@ button {
   background: var(--accent);
   box-shadow: 0 0 0 6px var(--accent-soft);
   animation: dotPulse 1.15s ease-in-out infinite;
+}
+
+.bubble-processing-time {
+  position: absolute;
+  right: 0.9rem;
+  bottom: 0.55rem;
+  color: var(--text-faint);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  user-select: none;
 }
 
 .typing-dots {
@@ -768,6 +802,7 @@ button {
   border-radius: 12px;
   padding: 0.58rem 1.25rem;
   font-weight: 750;
+  font-size: 15px;
   cursor: pointer;
   transition:
     background 0.18s ease,
@@ -961,6 +996,16 @@ button {
   .message-bubble,
   .processing-bubble {
     padding: 0.75rem 0.9rem;
+  }
+
+  .message-bubble.is-assistant.has-processing-time,
+  .processing-bubble {
+    padding-bottom: 1.65rem;
+  }
+
+  .bubble-processing-time {
+    right: 0.85rem;
+    bottom: 0.52rem;
   }
 
   .processing-header {
