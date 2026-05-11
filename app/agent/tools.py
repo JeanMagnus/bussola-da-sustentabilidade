@@ -1,5 +1,6 @@
 from email.mime import text
 import json
+import re
 from sqlalchemy import inspect
 from app.agent.state import AgentState
 from langchain_community.agent_toolkits import SQLDatabaseToolkit
@@ -151,22 +152,133 @@ async def retrieve_last_ai_message_tool(state: Annotated[AgentState, InjectedSta
 
 @tool
 def sql_db_query(
-    query: Annotated[str, "A consulta SQL (SELECT) a ser executada. É OBRIGATÓRIO o uso de LIMIT (máx 15) para evitar sobrecarga de dados."]
+    query: Annotated[
+        str,
+        """
+        Consulta SQL SELECT a ser executada no banco PostgreSQL.
+
+        REGRAS OBRIGATÓRIAS:
+        - Use apenas SELECT.
+        - É obrigatório usar LIMIT, no máximo LIMIT 15.
+        - Nunca use SELECT *.
+        - Para filtros textuais com nomes de cidades, municípios, destinos ou nomes próprios,
+          SEMPRE use busca tolerante a acentos e maiúsculas/minúsculas.
+
+        PADRÃO OBRIGATÓRIO PARA CIDADES/NOMES:
+        Use:
+            unaccent(coluna::text) ILIKE unaccent('%valor%')
+
+        Exemplo correto:
+            SELECT cidade, uf, codigo_municipio
+            FROM situacional_2023
+            WHERE unaccent(cidade::text) ILIKE unaccent('%Treze Tilias%')
+            LIMIT 15
+
+        Exemplo errado:
+            WHERE cidade ILIKE '%Treze Tilias%'
+
+        Exemplo errado:
+            WHERE cidade = 'Treze Tilias'
+        """
+    ]
 ) -> str:
     """
     A ÚNICA ferramenta disponível para acessar o banco de dados.
-    Executa uma consulta SQL (SELECT) e retorna os resultados em formato JSON.
-    
-    AVISO CRÍTICO: Você JÁ POSSUI o schema no seu prompt. 
-    NÃO tente invocar ferramentas como `sql_db_list_tables` ou `sql_db_schema`.
-    NÃO gere tags `<|DSML|>`. 
-    Apenas escreva a sua query e chame diretamente esta ferramenta.
+
+    Executa consultas SQL SELECT no PostgreSQL e retorna os resultados.
+
+    INSTRUÇÕES CRÍTICAS PARA O AGENTE:
+    - Você JÁ POSSUI o schema no prompt.
+    - NÃO invoque ferramentas como `sql_db_list_tables` ou `sql_db_schema`.
+    - NÃO gere tags `<|DSML|>`.
+    - NÃO use SELECT *.
+    - Para nomes de cidades, municípios, destinos ou nomes próprios, use obrigatoriamente:
+
+        unaccent(coluna::text) ILIKE unaccent('%valor%')
+
+    Isso evita erro com:
+    - acentos: "Tílias" vs "Tilias";
+    - maiúsculas/minúsculas: "Bombinhas" vs "BOMBINHAS";
+    - variações simples de escrita.
     """
-    query_upper = query.strip().upper()
-    
-    forbidden_keywords = ["DROP ", "DELETE ", "UPDATE ", "INSERT ", "ALTER ", "TRUNCATE ", "GRANT ", "REVOKE "]
+
+    query = query.strip()
+    query_upper = query.upper()
+
+    forbidden_keywords = [
+        "DROP ",
+        "DELETE ",
+        "UPDATE ",
+        "INSERT ",
+        "ALTER ",
+        "TRUNCATE ",
+        "GRANT ",
+        "REVOKE ",
+        "CREATE ",
+        "REPLACE ",
+    ]
+
     if any(keyword in query_upper for keyword in forbidden_keywords):
         return "ERRO DE SEGURANÇA: Apenas consultas SELECT são permitidas."
+
+    if not query_upper.startswith("SELECT"):
+        return "ERRO DE SEGURANÇA: A consulta deve começar com SELECT."
+
+    if "SELECT *" in query_upper:
+        return (
+            "ERRO DE CONSULTA: Não use SELECT *. "
+            "Selecione apenas as colunas necessárias para responder ao usuário."
+        )
+
+    if " LIMIT " not in query_upper:
+        return (
+            "ERRO DE CONSULTA: Toda consulta precisa usar LIMIT, no máximo LIMIT 15."
+        )
+
+    limit_match = re.search(r"\bLIMIT\s+(\d+)\b", query_upper)
+    if limit_match:
+        limit_value = int(limit_match.group(1))
+        if limit_value > 15:
+            return (
+                "ERRO DE CONSULTA: O LIMIT máximo permitido é 15. "
+                "Refaça a query usando LIMIT 15 ou menor."
+            )
+
+    text_columns = [
+        "cidade",
+        "municipio",
+        "município",
+        "destino",
+        "nome",
+    ]
+
+    uses_text_column = any(
+        re.search(rf"\b{col}\b", query, flags=re.IGNORECASE)
+        for col in text_columns
+    )
+
+    uses_text_filter = bool(
+        re.search(
+            r"\b(ILIKE|LIKE|=|IN)\s*(\(|')",
+            query,
+            flags=re.IGNORECASE,
+        )
+    )
+
+    uses_unaccent = "unaccent(" in query.lower()
+
+    if uses_text_column and uses_text_filter and not uses_unaccent:
+        return (
+            "ERRO DE CONSULTA: Para filtros textuais com cidade, município, destino "
+            "ou nome próprio, use busca tolerante a acentos e maiúsculas/minúsculas.\n\n"
+            "Use este padrão:\n"
+            "unaccent(coluna::text) ILIKE unaccent('%valor%')\n\n"
+            "Exemplo:\n"
+            "SELECT cidade, uf, codigo_municipio\n"
+            "FROM situacional_2023\n"
+            "WHERE unaccent(cidade::text) ILIKE unaccent('%Treze Tilias%')\n"
+            "LIMIT 15;"
+        )
 
     try:
         print(f"\n [TOOL SQL] Executando: {query}")
@@ -174,22 +286,48 @@ def sql_db_query(
         resultado_bruto = db_bussola.run(query)
 
         if not resultado_bruto or str(resultado_bruto).strip() == "":
-            return "A consulta foi executada com sucesso, mas retornou 0 resultados (vazio)."
+            return "A consulta foi executada com sucesso, mas retornou 0 resultados."
 
         MAX_CHARS = 10000
-        
+
         resultado_str = str(resultado_bruto)
+
         if len(resultado_str) > MAX_CHARS:
-            print(f"   [Aviso] Resultado longo ({len(resultado_str)} chars). Truncando para {MAX_CHARS}.")
-            return resultado_str[:MAX_CHARS] + '... [RESULTADO CORTADO PARA POUPAR TOKENS. REFAÇA A QUERY COM UM "LIMIT" MENOR OU AGREGAÇÃO SE PRECISAR DE MAIS DADOS].'
+            print(
+                f"   [Aviso] Resultado longo ({len(resultado_str)} chars). "
+                f"Truncando para {MAX_CHARS}."
+            )
+            return (
+                resultado_str[:MAX_CHARS]
+                + '... [RESULTADO CORTADO PARA POUPAR TOKENS. '
+                + 'REFAÇA A QUERY COM UM "LIMIT" MENOR OU AGREGAÇÃO SE PRECISAR DE MAIS DADOS].'
+            )
+        
+        resultado_bruto = db_bussola.run(query)
+
+        print(f"   [TOOL SQL] Resultado bruto repr: {repr(resultado_bruto)[:1000]}")
+
+        if not resultado_bruto or str(resultado_bruto).strip() == "":
+            print("   [TOOL SQL] Resultado vazio.")
+            return "A consulta foi executada com sucesso, mas retornou 0 resultados."
 
         return resultado_str
 
     except Exception as e:
-        erro_limpo = str(e).split('\n')[0] 
+        erro_limpo = str(e).split("\n")[0]
         print(f"   [Erro DB] {erro_limpo}")
-        return f"Erro de Sintaxe ou Execução SQL: {erro_limpo}. Revise a sua query e as colunas utilizadas."
 
+        if "unaccent" in erro_limpo.lower():
+            return (
+                "Erro de execução SQL: a função unaccent parece não estar habilitada "
+                "no banco de dados. É necessário habilitar a extensão PostgreSQL "
+                "unaccent com: CREATE EXTENSION IF NOT EXISTS unaccent;"
+            )
+
+        return (
+            f"Erro de Sintaxe ou Execução SQL: {erro_limpo}. "
+            "Revise a query, os nomes das colunas e os tipos utilizados."
+        )
 
 
 @tool

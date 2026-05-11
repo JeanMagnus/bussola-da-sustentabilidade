@@ -66,12 +66,14 @@ workflow.add_conditional_edges("agent", should_continue,
                                    "go_tools": "go_tools",
                                    "moderation_output": "moderation_output",
                                    "fallback_node": "fallback_node",
+                                   "agent": "agent",
                                     END: "summarization_node"
                                }
                                )
 workflow.add_conditional_edges("verify_sql", route_verify_sql,
                                {
                                    "go_tools": "go_tools",
+                                   "agent": "agent",
                                    END: "summarization_node"
                                }
                                )

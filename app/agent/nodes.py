@@ -1,4 +1,5 @@
 import asyncio
+import re
 from urllib import response
 from app.agent import state
 from app.core import config
@@ -20,6 +21,67 @@ from langchain_community.callbacks import get_openai_callback
 
 
 LIMITE_MENSAGENS_PARA_SUMARIZACAO = 10
+MAX_RAG_DOCS = 3
+MAX_RAG_CHARS = 3000
+MAX_SQL_TOOL_CALLS_PER_TURN = 10
+MAX_SCHEMA_TOOL_CALLS_PER_TURN = 2
+MAX_LAST_AI_MEMORY_CHARS = 1500
+MAX_EMPTY_RESPONSE_RETRIES = 2
+
+
+CERTIFIED_CITY_NAMES = [
+    "Arroio Trinta",
+    "Bombinhas",
+    "Bom Jardim da Serra",
+    "Frei Rogério",
+    "Itá",
+    "Navegantes",
+    "Orleans",
+    "São Joaquim",
+    "Treze Tílias",
+    "Urubici",
+    "Apodi",
+    "São Miguel do Gostoso",
+    "Tibau do Sul",
+    "Fernando de Noronha",
+]
+
+
+def extract_text_content(response) -> str:
+    content = getattr(response, "content", "")
+
+    if isinstance(content, str):
+        return content.strip()
+
+    if isinstance(content, list):
+        parts = []
+        for item in content:
+            if isinstance(item, str):
+                parts.append(item)
+            elif isinstance(item, dict):
+                if item.get("type") == "text":
+                    parts.append(item.get("text", ""))
+                elif "text" in item:
+                    parts.append(item.get("text", ""))
+        return "\n".join(parts).strip()
+
+    return str(content or "").strip()
+
+
+def make_tool_error_messages(tool_calls, content: str):
+    tool_messages = []
+
+    for tc in tool_calls:
+        tool_messages.append(
+            ToolMessage(
+                tool_call_id=tc["id"],
+                name=tc["name"],
+                content=content
+            )
+        )
+
+    return tool_messages
+
 
 async def setup_node(state: AgentState, config: RunnableConfig) -> AgentState:
     with timer("SETUP_NODE"):    
@@ -58,151 +120,86 @@ async def setup_node(state: AgentState, config: RunnableConfig) -> AgentState:
 
         return update
 
+
 async def summarization_node(state: AgentState, config: RunnableConfig) -> AgentState:
     with timer("SUMMARIZATION_NODE"):
-        messages = state["messages"]
+        try:
+            messages = state["messages"]
 
-        if len(messages) <= 6:
+            if len(messages) <= 6:
+                return {}
+
+            print("--- SUMMARIZATION NODE (PÓS-PROCESSAMENTO) ---")
+
+            old_summary = state.get("summary", "")
+
+            recent_msgs = messages[-2:]
+
+            messages_to_summarize = [
+                m for m in messages[:-2]
+                if isinstance(m, (HumanMessage, AIMessage)) and not getattr(m, 'tool_calls', None)
+            ]
+
+            message_content = "\n".join([
+                f"{'Usuário' if isinstance(msg, HumanMessage) else 'Assistente'}: {msg.content}"
+                for msg in messages_to_summarize
+            ])
+
+            old_summary = old_summary[:1500]
+            message_content = message_content[-6000:]
+
+            SUMM_PROMPT = f"""
+            Você é um gerenciador de memória para um Assistente de Banco de Dados.
+            Atualize o resumo da conversa integrando o sumário antigo com as novas mensagens.
+
+            SUMÁRIO ANTERIOR:
+            {old_summary}
+
+            NOVAS MENSAGENS PARA INTEGRAR:
+            {message_content}
+
+            REGRAS DE OURO:
+            1. Mantenha fatos descobertos (ex: "O usuário perguntou sobre as 14 cidades sustentáveis de SC").
+            2. Remova jargão técnico SQL e IDs.
+            3. Nunca diga que "os dados não existem", pois o banco pode ser atualizado.
+            4. Crie um parágrafo narrativo único e fluido.
+            """
+            with get_openai_callback() as cb:
+                summary_response = await summarizer_model.ainvoke([
+                    SystemMessage(content=SUMM_PROMPT)
+                ], config=config, max_tokens=120)
+                
+                print("VISUALIZANDO USO DE TOKENS NO SUMMARIZATION_NODE:")
+                print(f"Total de Tokens: {cb.total_tokens}")
+                print(f"Tokens de Prompt: {cb.prompt_tokens}")
+                print(f"Tokens de Resposta: {cb.completion_tokens}")
+                print(f"Custo Total (USD): ${cb.total_cost}")
+
+            new_summary_text = summary_response.content
+
+            summary_message = SystemMessage(
+                content=f"Contexto Histórico da Conversa:\n\n{new_summary_text}\n\n(Consulte sempre o banco de dados para fatos novos)."
+            )
+
+            remove_messages = [RemoveMessage(id=msg.id) for msg in messages if getattr(msg, 'id', None)]
+
+            reconstructed_recent = [
+                HumanMessage(content=recent_msgs[0].content),
+                AIMessage(content=recent_msgs[1].content)
+            ]
+
+            #token_count(summary_response, "SUMMARIZATION_NODE")
+            #usage = token_count_total(state, summary_response)
+
+            return {
+                "messages": [*remove_messages, summary_message, *reconstructed_recent],
+                "summary": new_summary_text,
+                #**usage
+            }
+        
+        except Exception as e:
+            print(f"[AVISO] Falha na sumarização, mantendo conversa sem atualizar resumo: {e}")
             return {}
-
-        print("--- SUMMARIZATION NODE (PÓS-PROCESSAMENTO) ---")
-
-        old_summary = state.get("summary", "")
-
-        recent_msgs = messages[-2:]
-
-        messages_to_summarize = [
-            m for m in messages[:-2]
-            if isinstance(m, (HumanMessage, AIMessage)) and not getattr(m, 'tool_calls', None)
-        ]
-
-        message_content = "\n".join([
-            f"{'Usuário' if isinstance(msg, HumanMessage) else 'Assistente'}: {msg.content}"
-            for msg in messages_to_summarize
-        ])
-
-        SUMM_PROMPT = f"""
-        Você é um gerenciador de memória para um Assistente de Banco de Dados.
-        Atualize o resumo da conversa integrando o sumário antigo com as novas mensagens.
-
-        SUMÁRIO ANTERIOR:
-        {old_summary}
-
-        NOVAS MENSAGENS PARA INTEGRAR:
-        {message_content}
-
-        REGRAS DE OURO:
-        1. Mantenha fatos descobertos (ex: "O usuário perguntou sobre as 14 cidades sustentáveis de SC").
-        2. Remova jargão técnico SQL e IDs.
-        3. Nunca diga que "os dados não existem", pois o banco pode ser atualizado.
-        4. Crie um parágrafo narrativo único e fluido.
-        """
-        with get_openai_callback() as cb:
-            summary_response = await summarizer_model.ainvoke([
-                SystemMessage(content=SUMM_PROMPT)
-            ], config=config, max_tokens=150)
-            
-            print("VISUALIZANDO USO DE TOKENS NO SUMMARIZATION_NODE:")
-            print(f"Total de Tokens: {cb.total_tokens}")
-            print(f"Tokens de Prompt: {cb.prompt_tokens}")
-            print(f"Tokens de Resposta: {cb.completion_tokens}")
-            print(f"Custo Total (USD): ${cb.total_cost}")
-
-        new_summary_text = summary_response.content
-
-        summary_message = SystemMessage(
-            content=f"Contexto Histórico da Conversa:\n\n{new_summary_text}\n\n(Consulte sempre o banco de dados para fatos novos)."
-        )
-
-        remove_messages = [RemoveMessage(id=msg.id) for msg in messages if getattr(msg, 'id', None)]
-
-        reconstructed_recent = [
-            HumanMessage(content=recent_msgs[0].content),
-            AIMessage(content=recent_msgs[1].content)
-        ]
-
-        #token_count(summary_response, "SUMMARIZATION_NODE")
-        #usage = token_count_total(state, summary_response)
-
-        return {
-            "messages": [*remove_messages, summary_message, *reconstructed_recent],
-            "summary": new_summary_text,
-            #**usage
-        }
-
-# async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
-#     with timer("RAG_AGENT"):
-#         print("--- RAG AGENT NODE ---")
-
-#         user_messages = [m for m in state["messages"] if isinstance(m, HumanMessage)]
-#         user_question = user_messages[-1].content if user_messages else ""
-
-#         last_ai_msg = state.get("last_msg_ai", "")
-#         is_continuation = state.get("is_continuation", False)
-
-#         if last_ai_msg and is_continuation:
-#             print("   [INFO] Continuação detectada")
-            
-#             EXTRACTION_PROMPT = f"""
-#             Você é um filtro estrito de palavras-chave para um motor de busca.
-            
-#             Contexto: '{last_ai_msg}'
-#             Pergunta: '{user_question}'
-            
-#             Extraia os substantivos cruciais combinando a Pergunta com o Contexto (se ela for uma continuação).
-#             Retorne SEMPRE de 3 a 6 palavras separadas por espaço.
-#             Você DEVE retornar um objeto JSON válido correspondente ao esquema solicitado.
-#             NUNCA retorne uma string vazia. Se estiver em dúvida, retorne 'cidades sustentáveis turismo dados'.
-#             """            
-#             try:
-#                 extractor_model = kimi_model.with_structured_output(KeywordExtraction)
-#                 kw_messages = [SystemMessage(content=EXTRACTION_PROMPT)]
-#                 with get_openai_callback() as cb:
-#                     response_kw = await extractor_model.ainvoke(kw_messages, config=config)
-
-#                     print("VISUALIZANDO USO DE TOKENS DO RAG")
-#                     print(f"Total de Tokens: {cb.total_tokens}")
-#                     print(f"Tokens de Prompt: {cb.prompt_tokens}")
-#                     print(f"Tokens de Resposta: {cb.completion_tokens}")
-#                     print(f"Custo Total (USD): ${cb.total_cost}")
-
-#                 search_query = response_kw.search_query.strip()
-#                 print(f"   [SUCESSO] Keywords extraídas via Estrutura: '{search_query}'")
-
-#                 #usage = token_count_total(state, response_kw)
-
-#             except Exception as e:
-#                 print(f"   [AVISO] Erro na extração de palavras-chave: {e}")
-#                 search_query = f"{last_ai_msg} {user_question}" 
-#                 #usage = {}
-#         else:
-#             search_query = user_question
-#             #usage = {}
-
-#         if not search_query or search_query.strip() == "":
-#             print("   [AVISO CRÍTICO] search_query ficou vazia! Injetando texto de salvação.")
-#             search_query = "turismo sustentável dados"
-
-#         print(f"   [PINECONE] Buscando vetores por: '{search_query}'")
-
-#         with timer("RAG_AGENT - BUSCA VETORIAL"):
-#             docs = guide_vector_store.similarity_search(
-#                 query=search_query,
-#                 k=5,
-#                 namespace="data_dictionary"
-#             )
-            
-#             if not docs:
-#                 print("   --- NENHUM DICIONÁRIO RECUPERADO ---")
-#                 return {"sql_plan": "Nenhuma informação relevante encontrada no dicionário de dados."}#**usage
-            
-#             raw_dictionary_context = "\n\n".join([f"{doc.page_content}" for doc in docs])
-
-#             print("   --- DICIONÁRIO RECUPERADO (TEXTO BRUTO) ---")
-            
-#             print(f"   [INFO] Retornando {len(raw_dictionary_context)} caracteres de regras brutas do banco.")
-
-#         return {"sql_plan": raw_dictionary_context}#**usage
 
 
 async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
@@ -216,95 +213,51 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
         is_continuation = state.get("is_continuation", False)
 
         if last_ai_msg and is_continuation:
-            # print("   [INFO] Continuação detectada")
-            
-            # EXTRACTION_PROMPT = f"""
-            # Você é um filtro estrito de palavras-chave para um motor de busca.
-            
-            # Contexto: '{last_ai_msg}'
-            # Pergunta: '{user_question}'
-            
-            # Extraia os substantivos cruciais combinando a Pergunta com o Contexto (se ela for uma continuação).
-            # Retorne SEMPRE de 3 a 6 palavras separadas por espaço.
-            # Você DEVE retornar um objeto JSON válido correspondente ao esquema solicitado.
-            # NUNCA retorne uma string vazia. Se estiver em dúvida, retorne 'cidades sustentáveis turismo dados'.
-            # """            
-            # try:
-            #     extractor_model = kimi_model.with_structured_output(KeywordExtraction)
-            #     kw_messages = [SystemMessage(content=EXTRACTION_PROMPT)]
-            #     with get_openai_callback() as cb:
-            #         response_kw = await extractor_model.ainvoke(kw_messages, config=config)
-
-            #     search_query = response_kw.search_query.strip()
-            #     print(f"   [SUCESSO] Keywords extraídas via Estrutura: '{search_query}'")
-
-            # except Exception as e:
-            #     print(f"   [AVISO] Erro na extração de palavras-chave: {e}")
-            #     search_query = f"{last_ai_msg} {user_question}" 
-            # print("   [INFO] Continuação detectada")
-            
-            # EXTRACTION_PROMPT = f"""
-            # Você é um filtro estrito de palavras-chave para um motor de busca.
-            # Contexto: '{last_ai_msg}'
-            # Pergunta: '{user_question}'
-            
-            # Extraia de 3 a 6 palavras-chave cruciais.
-            
-            # REGRAS CRÍTICAS DE SAÍDA:
-            # 1. Extraia os substantivos cruciais combinando a Pergunta com o Contexto (se ela for uma continuação).
-            # 2. Retorne SEMPRE de 3 a 6 palavras separadas por espaço.
-            # 3. NUNCA retorne uma string vazia. Se estiver em dúvida, retorne 'cidades sustentáveis turismo dados'.
-            # 4. SE VOCÊ NÃO SOUBER O QUE EXTRAIR, RETORNE EXATAMENTE AS PALAVRAS DA PERGUNTA DO USUÁRIO. Nunca retorne vazio.
-            # """            
-            # try:
-            #     kw_messages = [SystemMessage(content=EXTRACTION_PROMPT)]
-                
-            #     with get_openai_callback() as cb:
-            #         response_kw = await kimi_model.ainvoke(kw_messages, config=config)
-
-            #     search_query = response_kw.content.strip().replace('"', '').replace("'", "")
-                
-            #     print(f"   [SUCESSO] Keywords extraídas em texto puro: '{search_query}'")
-
-            # except Exception as e:
-            #     print(f"   [AVISO] Erro na extração de palavras-chave: {e}")
-            #     search_query = f"{last_ai_msg} {user_question}"
-
             print("   [INFO] Continuação detectada")
+            
+            EXTRACTION_PROMPT = f"""
+            Você é um filtro estrito de palavras-chave para um motor de busca.
+            
+            Contexto: '{last_ai_msg}'
+            Pergunta: '{user_question}'
+            
+            Extraia os substantivos cruciais combinando a Pergunta com o Contexto (se ela for uma continuação).
+            Retorne SEMPRE de 3 a 6 palavras separadas por espaço.
+            Você DEVE retornar um objeto JSON válido correspondente ao esquema solicitado.
+            NUNCA retorne uma string vazia. Se estiver em dúvida, retorne 'cidades sustentáveis turismo dados'.
+            """            
             try:
-                sys_msg = SystemMessage(content="""Você é um extrator de palavras-chave. 
-                REGRAS: 
-                1. Retorne SEMPRE de 3 a 6 palavras separadas por espaço.
-                2. NUNCA retorne uma string vazia. Se estiver em dúvida, retorne 'cidades sustentáveis turismo dados'.
-                3. SE VOCÊ NÃO SOUBER O QUE EXTRAIR, RETORNE EXATAMENTE AS PALAVRAS DA PERGUNTA DO USUÁRIO. Nunca retorne vazio.
-                4. NENHUMA pontuação, NENHUMA explicação.""")
-                
-                human_msg = HumanMessage(content=f"""
-                Contexto: '{last_ai_msg}'
-                Pergunta: '{user_question}'
-                
-                Extraia os substantivos cruciais combinando a Pergunta com o Contexto.
-                """)
-                
-                kw_messages = [sys_msg, human_msg]
-                
+                extractor_model = kimi_model.with_structured_output(KeywordExtraction)
+                kw_messages = [SystemMessage(content=EXTRACTION_PROMPT)]
                 with get_openai_callback() as cb:
-                    response_kw = await kimi_model.ainvoke(kw_messages, config=config)
+                    response_kw = await extractor_model.ainvoke(kw_messages, config=config, max_tokens=100)
 
-                search_query = response_kw.content.strip().replace('"', '').replace("'", "")
-                
-                if not search_query or search_query == "":
-                    print("   [AVISO] Kimi retornou vazio. Usando a pergunta do usuário como fallback.")
-                    search_query = f"{user_question} {last_ai_msg}"[:200] 
-                else:
-                    print(f"   [SUCESSO] Keywords extraídas em texto puro: '{search_query}'")
+                    print("VISUALIZANDO USO DE TOKENS DO RAG")
+                    print(f"Total de Tokens: {cb.total_tokens}")
+                    print(f"Tokens de Prompt: {cb.prompt_tokens}")
+                    print(f"Tokens de Resposta: {cb.completion_tokens}")
+                    print(f"Custo Total (USD): ${cb.total_cost}")
+
+                search_query = response_kw.search_query.strip()
+                print(f"   [SUCESSO] Keywords extraídas via Estrutura: '{search_query}'")
+
+                #usage = token_count_total(state, response_kw)
 
             except Exception as e:
                 print(f"   [AVISO] Erro na extração de palavras-chave: {e}")
-                search_query = f"{user_question} {last_ai_msg}"[:200]
+                search_query = user_question
 
+                cidades_contexto = []
+                for cidade in CERTIFIED_CITY_NAMES:
+                    if cidade.lower() in last_ai_msg.lower():
+                        cidades_contexto.append(cidade)
+
+                if cidades_contexto:
+                    search_query = f"{user_question} {' '.join(cidades_contexto)}"
+                #usage = {}
         else:
             search_query = user_question
+            #usage = {}
 
         if not search_query or search_query.strip() == "":
             print("   [AVISO CRÍTICO] search_query ficou vazia! Injetando texto de salvação.")
@@ -315,63 +268,24 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
         with timer("RAG_AGENT - BUSCA VETORIAL"):
             docs = guide_vector_store.similarity_search(
                 query=search_query,
-                k=5,
+                k=MAX_RAG_DOCS,
                 namespace="data_dictionary"
             )
             
             if not docs:
                 print("   --- NENHUM DICIONÁRIO RECUPERADO ---")
-                return {"sql_plan": "Nenhuma informação relevante encontrada no dicionário de dados. Use a ferramenta sql_db_list_tables."}
+                return {"sql_plan": "Nenhuma informação relevante encontrada no dicionário de dados."}#**usage
             
             raw_dictionary_context = "\n\n".join([f"{doc.page_content}" for doc in docs])
-            print(f"   [INFO] Recuperados {len(raw_dictionary_context)} caracteres de regras brutas.")
+            raw_dictionary_context = raw_dictionary_context[:MAX_RAG_CHARS]
 
-        print("   [INFO] Gerando Plano de Pesquisa Estratégico...")
-        
-        PLANNER_PROMPT = f"""
-        Você é o Arquiteto de Dados Sênior do projeto Bússola da Sustentabilidade.
-        Sua função é analisar as regras do banco de dados (Dicionário) e criar um PLANO DE AÇÃO estrito para o Agente SQL (que é focado, mas tem pouca iniciativa).
-        
-        PERGUNTA DO USUÁRIO: "{user_question}"
-        CONTEXTO DA CONVERSA: "{last_ai_msg}"
-        
-        REGRAS DO BANCO DE DADOS DISPONÍVEIS:
-        {raw_dictionary_context}
-        
-        Crie um plano de pesquisa direto contendo:
-        1. O NOME EXATO da(s) tabela(s) que deve(m) ser usada(s) (priorize top100_30, top100_15 ou destinations_2023 para notas e comparações de Green Destinations).
-        2. As COLUNAS exatas que devem ser selecionadas.
-        3. Instruções para o WHERE (ex: "Use ILIKE respeitando os acentos exatos pedidos pelo usuário").
-        4. Um plano de contingência: "Se esta tabela retornar vazio, tente a tabela X em seguida".
-        
-        ## PROIBIÇÕES
-        1. PROIBIDO RACIOCINAR ALTO: Não justifique o porquê escolheu a tabela.
-        2. PROIBIDO INTRODUÇÕES: Não comece com "O plano de ação é..." ou "Baseado nas regras...".
-        3. CUSPA OS DADOS: A sua resposta deve ser APENAS os 4 tópicos do plano e absolutamente mais nada. Seja robótico e cru.
-        
-        NÃO escreva a query SQL final. Escreva apenas as instruções textuais em tópicos para o Agente SQL executar.
-        Seja breve e técnico (máximo de 5 a 6 linhas).
-        """
-        
-        try:
-            planner_messages = [SystemMessage(content=PLANNER_PROMPT)]
+            print("   --- DICIONÁRIO RECUPERADO (TEXTO BRUTO) ---")
             
-            with get_openai_callback() as cb:
-                plan_response = await kimi_model.ainvoke(planner_messages, config=config)
-                
-                print("VISUALIZANDO USO DE TOKENS DO PLANEJADOR RAG")
-                print(f"Total de Tokens: {cb.total_tokens}")
-                print(f"Custo Total (USD): ${cb.total_cost}")
+            print(f"   [INFO] Retornando {len(raw_dictionary_context)} caracteres de regras brutas do banco.")
 
-            final_plan = plan_response.content
-            print("   [SUCESSO] Plano de Ação Gerado!")
-            
-        except Exception as e:
-            print(f"   [AVISO] Falha ao gerar plano, enviando contexto bruto: {e}")
-            final_plan = raw_dictionary_context
-
-        return {"sql_plan": final_plan}
+        return {"sql_plan": raw_dictionary_context}#**usage
     
+
 async def agent(state: AgentState, config: RunnableConfig):
     with timer("AGENT_NODE"):
         print("--- AGENT NODE ---")
@@ -387,6 +301,7 @@ async def agent(state: AgentState, config: RunnableConfig):
 
             context_block = ""
             if last_msg_memory:
+                last_msg_memory = str(last_msg_memory)[:MAX_LAST_AI_MEMORY_CHARS]
                 context_block = f"""
                 --- CONTEXTO DA CONVERSA ANTERIOR ---
                 Na última interação, você respondeu:
@@ -398,31 +313,26 @@ async def agent(state: AgentState, config: RunnableConfig):
             sql_plan = state.get("sql_plan", "")
             plan_block = ""
             if sql_plan:
-                # plan_block = f"""
-                # --- DICIONÁRIO DE DADOS (LEITURA OBRIGATÓRIA) ---
-                # Abaixo estão as regras brutas do banco de dados e as colunas disponíveis relacionadas à pergunta do usuário.
-                # LEIA com atenção para saber quais colunas usar, se é necessário fazer CAST de tipos e como fazer JOINs:
-                # {sql_plan}
-
-                # 1. MÉDIAS: Sempre use AVG(CAST(REPLACE(nota, ',', '.') AS NUMERIC)).
-                # 2. NOMES PRÓPRIOS/CIDADES: NUNCA use '=' ou 'IN' com strings literais. USE SEMPRE `ILIKE` e remova acentos (ex: `cidade ILIKE '%MIGUEL DO GOSTOSO%'`).
-                # 3. BUSCA VAZIA: Se a query retornar [], PARE. Use `SELECT DISTINCT coluna` para entender os dados reais antes de tentar de novo.
-                # -------------------------------------------------                """
                 plan_block = f"""
-                --- PLANO DE AÇÃO ESTRATÉGICO (LEITURA OBRIGATÓRIA) ---
-                O Arquiteto de Dados (RAG) analisou o banco e gerou o seguinte plano de pesquisa para você:
-                
+                --- DICIONÁRIO DE DADOS (LEITURA OBRIGATÓRIA) ---
+                Abaixo estão as regras brutas do banco de dados e as colunas disponíveis relacionadas à pergunta do usuário.
+                LEIA com atenção para saber quais colunas usar, se é necessário fazer CAST de tipos e como fazer JOINs:
                 {sql_plan}
 
-                --- LEMBRETES VITAIS PARA EXECUÇÃO ---
-                1. DADOS BRUTOS: Extraia os dados com SELECT simples e faça as contas/comparações na sua mente. É proibido usar funções como AVG ou CAST(REPLACE).
-                2. ACENTOS SÃO OBRIGATÓRIOS: O ILIKE no Postgres não ignora acentos. Use '%Itá%' e NUNCA '%ita%'.
-                3. CONTINGÊNCIA: Se a query retornar [], a tabela pode estar errada ou o nome da cidade pode estar diferente. Não repita queries idênticas.
-                -------------------------------------------------                
-                """
+                1. MÉDIAS: Sempre use AVG(CAST(REPLACE(nota, ',', '.') AS NUMERIC)).
+                2. NOMES PRÓPRIOS/CIDADES: NUNCA use '=' ou 'IN' com strings literais. USE SEMPRE `unaccent(coluna::text) ILIKE unaccent('%valor%')`.
+                3. BUSCA VAZIA: Se a query retornar [], PARE. Use `SELECT DISTINCT coluna` para entender os dados reais antes de tentar de novo.
+                4. Nunca use SELECT *. Selecione apenas as colunas necessárias.
+                5. Faça apenas UMA chamada de sql_db_query por vez.
+                6. Para UF, use a coluna `estado`. Não use `uf`.
+                7. Use nomes normalizados de tabelas, sem acentos, por exemplo `salarios_e_visitas`.
+                8. Não use nomes de colunas quebrados por encoding, como `municã­pio` ou `salã¡rio_mã©dio`.
+                9. Para código IBGE e regiões das cidades, use preferencialmente a tabela `ibge`.
+                   Colunas esperadas: cidade, estado, codigo_municipio, regiao_intermediaria, mesorregiao, microrregiao.
+                -------------------------------------------------                """
 
             last_msg_content = str(messages[-1].content)
-            has_error = "does not exist" in last_msg_content.lower() or "error" in last_msg_content.lower()
+            has_error = "does not exist" in last_msg_content.lower() or "error" in last_msg_content.lower() or "erro" in last_msg_content.lower()
 
             if state.get("intent") == "CONVERSA":
                 print("   [ROTA] Chat Simples")
@@ -450,6 +360,12 @@ async def agent(state: AgentState, config: RunnableConfig):
                 1. NÃO repita a mesma query se ela retornou VAZIA ([]). Mude a abordagem ou simplifique os filtros.
                 2. É PROIBIDO chamar a mesma ferramenta com os mesmos argumentos mais de uma vez consecutiva.
                 3. Se a query estourar o limite de linhas, o sistema truncará. Adicione LIMIT nas suas queries.
+                4. É PROIBIDO usar SELECT *.
+                5. É PROIBIDO chamar mais de uma sql_db_query na mesma resposta.
+                6. Use `unaccent(coluna::text) ILIKE unaccent('%valor%')` para nomes de cidades, municípios, destinos e nomes próprios.
+                7. Use `estado` no lugar de `uf`.
+                8. Use `salarios_e_visitas`, sem acento, se precisar consultar essa tabela.
+                9. Para código IBGE e regiões das cidades, use a tabela `ibge` com `cidade`, `estado`, `codigo_municipio`, `regiao_intermediaria`, `mesorregiao` e `microrregiao`.
                 """
 
             if has_error:
@@ -483,6 +399,12 @@ async def agent(state: AgentState, config: RunnableConfig):
             print(f"Tokens de Resposta: {cb.completion_tokens}")
             print(f"Custo Total (USD): ${cb.total_cost}")
 
+            print("DEBUG response:", response)
+            print("DEBUG content repr:", repr(response.content))
+            print("DEBUG tool_calls:", getattr(response, "tool_calls", None))
+            print("DEBUG additional_kwargs:", getattr(response, "additional_kwargs", None))
+            print("DEBUG response_metadata:", getattr(response, "response_metadata", None))
+
             if response.tool_calls:
                 print(" --- FERRAMENTAS CHAMADAS ---")
                 for call in response.tool_calls:
@@ -493,15 +415,26 @@ async def agent(state: AgentState, config: RunnableConfig):
             #token_count(response, "AGENT")
             #usage = token_count_total(state, response)
 
-            response_content = response.content or ""
+            response_content = extract_text_content(response)
             has_tool_calls = bool(getattr(response, "tool_calls", None))
             next_retries = retries + 1 if not response_content.strip() and not has_tool_calls else 0
+
+            if response_content.strip():
+                next_last_msg_ai = response_content
+            elif has_tool_calls:
+                next_last_msg_ai = last_msg_memory
+            else:
+                next_last_msg_ai = ""
+
+            print("DEBUG RESPONSE CONTENT REPR:", repr(response.content))
+            print("DEBUG RESPONSE TOOL_CALLS:", getattr(response, "tool_calls", None))
+            print("DEBUG RESPONSE ADDITIONAL_KWARGS:", getattr(response, "additional_kwargs", None))
 
             return {
                 "messages": [response], 
                 "error_occurred": False, 
                 #**usage, 
-                "last_msg_ai": response.content,
+                "last_msg_ai": next_last_msg_ai,
                 "retries": next_retries
             }
 
@@ -579,6 +512,7 @@ async def guardrail_input(state: AgentState, config: RunnableConfig):
                 #**usage
                 }
 
+
 async def moderation_input(state: AgentState, config: RunnableConfig):
     print("--- MODERATION_INPUT ---")
 
@@ -626,6 +560,7 @@ async def moderation_input(state: AgentState, config: RunnableConfig):
             "messages": [AIMessage(content="Ocorreu um erro inesperado. Por favor, tente novamente.")],
             "error_occurred": True
             }
+
 
 async def check_relevance(state: AgentState, config: RunnableConfig):
     print("--- CHECK_RELEVANCE ---")
@@ -698,40 +633,6 @@ async def classify_intent(state: AgentState, config: RunnableConfig) -> AgentSta
         if last_msg_ai:
             context = f"\nMensagem anterior da IA (Contexto): '{last_msg_ai}'"
 
-        # sql_keywords = [
-        #     r"\bbanco\b", r"\bbase de dados\b", r"\bdados\b", r"\btabela\b", r"\bcoluna\b", r"\bsql\b",
-        #     r"\blistar\b", r"\branking\b", r"\bmédia\b", r"\bmedia\b", r"\bsoma\b", r"\btotal\b", 
-        #     r"\bcontagem\b", r"\bquantos\b", r"\bcomparar\b", r"\bcomparação\b", r"\bfiltrar\b", 
-        #     r"\btop\b", r"\bmaior\b", r"\bmenor\b", r"\bcidade\b", r"\bmunicípio\b", r"\bdestino\b", 
-        #     r"\bibge\b", r"\brais\b", r"\bindicador\b", r"\bcritério\b", r"\bcriterio\b", r"\bselo\b", 
-        #     r"\bturismo\b", r"\bsustentabilidade\b", r"\bcorrelação\b", r"\bcorrelacao\b", r"\bgd\b"
-        # ]
-
-        # if any(k in user_text for k in sql_keywords):
-        #     print("   Intent heurístico: SQL")
-        #     return {"intent": "SQL", "dictionary_context": ""}
-
-        # sql_keywords = [
-        #     "banco", "base de dados", "dados", "tabela", "coluna", "sql",
-        #     "listar", "ranking", "média", "media", "soma", "total", "contagem",
-        #     "quantos", "comparar", "comparação", "filtrar", "top", "maior", "menor",
-        #     "cidade", "município", "destino", "ibge", "rais", "indicador", "critério",
-        #     "criterio", "selo", "turismo", "sustentabilidade", "correlação", "correlacao", "GD"
-        # ]
-
-        # conversa_keywords = [
-        #     r"\boi\b", r"\bolá\b", r"\bola\b", r"\bbom dia\b", r"\bboa tarde\b", r"\bboa noite\b", 
-        #     r"\bquem é você\b", r"\bquem e voce\b", r"\bcomo você está\b", r"\bcomo voce esta\b", 
-        #     r"\bobrigado\b", r"\bvaleu\b", r"\bmeu nome é\b", r"\bmeu nome e\b", r"\bquem sou eu\b", 
-        #     r"\blembra de mim\b", r"\bqual o meu nome\b", r"\bqual meu nome\b", r"\bapresente-se\b", 
-        #     r"\bapresente se\b", r"\bdúvida sobre o projeto\b", r"\bdúvida sobre o agente\b",
-        #     r"\bfale sobre você\b", r"\bfale sobre o projeto\b", r"\bdúvida\b", r"\bapresente-se\b",
-        # ]
-        
-        # if any(k in user_text for k in conversa_keywords):
-        #     print("   Intent heurístico: CONVERSA")
-        #     return {"intent": "CONVERSA", "dictionary_context": ""}
-
         CLASSIFY_PROMPT = f"""Você é um roteador inteligente.
         Sua tarefa é analisar a mensagem atual do usuário e, usando o Contexto anterior (se existir), decidir a rota.
 
@@ -774,6 +675,7 @@ async def classify_intent(state: AgentState, config: RunnableConfig) -> AgentSta
         except Exception as e:
             print(f"   [AVISO] Erro no classificador LLM: {e}. Forçando rota SQL.")
             return {"intent": "SQL", "dictionary_context": ""}
+
 
 async def dictionary_retrieval(state: AgentState, config: RunnableConfig) -> AgentState:
     """
@@ -889,6 +791,25 @@ def verify_sql(state: AgentState):
             ]
 
             if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
+                sql_calls = [
+                    tool_call for tool_call in last_msg.tool_calls
+                    if tool_call["name"] == "sql_db_query"
+                ]
+
+                if len(sql_calls) > 1:
+                    print(" --- BLOQUEADO: MAIS DE UMA SQL QUERY NA MESMA MENSAGEM ---")
+                    return {
+                        "messages": make_tool_error_messages(
+                            last_msg.tool_calls,
+                            (
+                                "ERRO DE CONSULTA: Faça apenas UMA consulta SQL por vez. "
+                                "Se precisar comparar duas cidades, use uma única query com OR ou gere uma consulta agregada. "
+                                "Não chame sql_db_query múltiplas vezes na mesma resposta."
+                            )
+                        ),
+                        "error_occurred": False
+                    }
+
                 for tool_call in last_msg.tool_calls:
                     if tool_call["name"] == "sql_db_query":
                         query_gerada = tool_call["args"].get("query", "")
@@ -896,14 +817,100 @@ def verify_sql(state: AgentState):
                         print(f"-- AGENTE TENTANDO EXECUTAR: \n{query_gerada}\n")
 
                         query_comparacao = query_gerada.upper()
-
+                        query_lower = query_gerada.lower()
 
                         if any(keyword in query_comparacao for keyword in banned_sql_keywords):
-                            # return Command(
-                            #     goto=END,
-                            #     update={"messages": [AIMessage(content="Desculpa, sua consulta SQL contém palavras proibidas e não pode ser executada.")] }
-                            # )
-                            return {"messages": [AIMessage(content="Desculpa, sua consulta SQL contém palavras proibidas e não pode ser executada.")], "error_occurred": False }
+                            return {
+                                "messages": [
+                                    ToolMessage(
+                                        tool_call_id=tool_call["id"],
+                                        name=tool_call["name"],
+                                        content="ERRO DE SEGURANÇA: Apenas consultas SELECT são permitidas."
+                                    )
+                                ],
+                                "error_occurred": False
+                            }
+
+                        if re.search(r"\bSELECT\s+\*", query_gerada, flags=re.IGNORECASE):
+                            return {
+                                "messages": [
+                                    ToolMessage(
+                                        tool_call_id=tool_call["id"],
+                                        name=tool_call["name"],
+                                        content=(
+                                            "ERRO DE CONSULTA: Não use SELECT *. "
+                                            "Selecione apenas as colunas necessárias para responder ao usuário."
+                                        )
+                                    )
+                                ],
+                                "error_occurred": False
+                            }
+
+                        if re.search(r"\buf\b", query_gerada, flags=re.IGNORECASE):
+                            return {
+                                "messages": [
+                                    ToolMessage(
+                                        tool_call_id=tool_call["id"],
+                                        name=tool_call["name"],
+                                        content=(
+                                            "ERRO DE CONSULTA: A coluna `uf` não existe nas tabelas atuais. "
+                                            "Use a coluna `estado` quando quiser representar a UF."
+                                        )
+                                    )
+                                ],
+                                "error_occurred": False
+                            }
+
+                        if "salários_e_visitas" in query_lower:
+                            return {
+                                "messages": [
+                                    ToolMessage(
+                                        tool_call_id=tool_call["id"],
+                                        name=tool_call["name"],
+                                        content=(
+                                            "ERRO DE CONSULTA: Use o nome normalizado da tabela `salarios_e_visitas`, "
+                                            "sem acento."
+                                        )
+                                    )
+                                ],
+                                "error_occurred": False
+                            }
+
+                        if "municã" in query_lower or "salã" in query_lower or "mã©" in query_lower or "ã­" in query_lower:
+                            return {
+                                "messages": [
+                                    ToolMessage(
+                                        tool_call_id=tool_call["id"],
+                                        name=tool_call["name"],
+                                        content=(
+                                            "ERRO DE CONSULTA: A query contém nomes de colunas com encoding quebrado. "
+                                            "Use nomes normalizados, sem acentos e sem caracteres corrompidos."
+                                        )
+                                    )
+                                ],
+                                "error_occurred": False
+                            }
+
+                        if (
+                            re.search(r"\bFROM\s+situacional_2023\b", query_gerada, flags=re.IGNORECASE)
+                            and re.search(r"\bregiao\b", query_gerada, flags=re.IGNORECASE)
+                        ):
+                            return {
+                                "messages": [
+                                    ToolMessage(
+                                        tool_call_id=tool_call["id"],
+                                        name=tool_call["name"],
+                                        content=(
+                                            "ERRO DE CONSULTA: A tabela `situacional_2023` não deve ser usada para regiões. "
+                                            "Para código IBGE e regiões, use a tabela `ibge` com as colunas "
+                                            "`cidade`, `estado`, `codigo_municipio`, `regiao_intermediaria`, "
+                                            "`mesorregiao` e `microrregiao`."
+                                        )
+                                    )
+                                ],
+                                "error_occurred": False
+                            }
+
                         print(" --- CONSULTA SQL VERIFICADA, SEM PALAVRAS PROIBIDAS ---")
             #return Command(goto="go_tools")
             
@@ -915,6 +922,7 @@ def verify_sql(state: AgentState):
                 "messages": [AIMessage(content="Ocorreu um erro inesperado. Por favor, tente novamente.")],
                 "error_occurred": True
             }
+
 
 async def moderation_output(state: AgentState, config: RunnableConfig):
     with timer("MODERATION_OUTPUT"):
@@ -983,13 +991,14 @@ async def moderation_output(state: AgentState, config: RunnableConfig):
                 "error_occurred": True,
                 #**usage
             }
-def fallback_node (state: AgentState):
-    print(" --- LIMITE ATINGIDO: FORÇANDO RESPOSTA DE ERRO NAS FERRAMENTAS ---")
+
+
+def fallback_node(state: AgentState):
+    print(" --- FALLBACK: FORÇANDO RESPOSTA FINAL ---")
     last_msg = state["messages"][-1]
     
     tool_messages = []
     
-    # Vamos "responder" a todas as ferramentas que o agente pediu com uma mensagem de erro
     if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
         for tc in last_msg.tool_calls:
             tool_messages.append(
@@ -1005,7 +1014,48 @@ def fallback_node (state: AgentState):
                 )
             )
             
-    return {"messages": tool_messages}
+        return {
+            "messages": tool_messages,
+            "error_occurred": False
+        }
+
+    last_tool_msg = None
+
+    for msg in reversed(state["messages"]):
+        if isinstance(msg, ToolMessage):
+            last_tool_msg = msg
+            break
+
+    if last_tool_msg:
+        fallback_content = (
+            "Encontrei dados no banco, mas o modelo não conseguiu formatar a resposta final automaticamente. "
+            "Resultado bruto recuperado:\n\n"
+            f"{last_tool_msg.content}"
+        )
+
+        return {
+            "messages": [
+                AIMessage(content=fallback_content)
+            ],
+            "error_occurred": False,
+            "last_msg_ai": fallback_content,
+            "retries": 0
+        }
+
+    fallback_content = (
+        "Não consegui gerar uma resposta final nesta tentativa. "
+        "Tente reformular a pergunta ou solicitar uma consulta mais específica."
+    )
+
+    return {
+        "messages": [
+            AIMessage(content=fallback_content)
+        ],
+        "error_occurred": False,
+        "last_msg_ai": fallback_content,
+        "retries": 0
+    }
+
 
 # def should_continue(state: AgentState):
 #     last_msg = state["messages"][-1]
@@ -1028,6 +1078,7 @@ def route_moderation_input(state: AgentState):
     print(" --- PASSOU NA MODERAÇÃO ---")
     return "check_relevance"
 
+
 def route_check_relevance(state: AgentState):
     print("--- ROUTE CHECK RELEVANCE ---")
     last_msg = state["messages"][-1]
@@ -1040,6 +1091,7 @@ def route_check_relevance(state: AgentState):
         return END
     print(" --- PASSOU NA RELEVÂNCIA ---")
     return "agent"
+
 
 def should_continue(state: AgentState):
     print("--- SHOULD CONTINUE ---")
@@ -1066,17 +1118,31 @@ def should_continue(state: AgentState):
     #                 sql_tool_calls += 1
 
 
-    sql_tool_calls = 0
+    sql_query_calls = 0
+    sql_schema_calls = 0
+
     for msg in current_turn_msgs:
         if isinstance(msg, AIMessage) and getattr(msg, "tool_calls", None):
             for tool_call in msg.tool_calls:
-                if tool_call["name"] in ["sql_db_query", "sql_db_schema", "sql_db_list_tables"]:
-                    sql_tool_calls += 1
+                if tool_call["name"] == "sql_db_query":
+                    sql_query_calls += 1
+                elif tool_call["name"] in ["sql_db_schema", "sql_db_list_tables"]:
+                    sql_schema_calls += 1
 
 
     if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
         
         tool_name = last_msg.tool_calls[0]["name"]
+
+        sql_calls_now = [
+            tc for tc in last_msg.tool_calls
+            if tc["name"] == "sql_db_query"
+        ]
+
+        if len(sql_calls_now) > 1:
+            print(" --- MAIS DE UMA SQL TOOL NO MESMO PASSO, VAI PARA VERIFICAÇÃO ---")
+            return "verify_sql"
+
         # is_sql_tool = tool_name in ["sql_db_query", "sql_db_schema", "sql_db_list_tables", "sql_db_query_checker"]
         # if is_sql_tool and not state.get("is_dictionary_checked"):
         #     print(" --- REDIRECIONANDO PARA DICIONÁRIO ---")
@@ -1086,8 +1152,12 @@ def should_continue(state: AgentState):
         #     print(" --- DICIONÁRIO JÁ CONSULTADO, VAI PARA VERIFICAÇÃO DE SQL ---")
         #     return "verify_sql"
 
-        if sql_tool_calls >= 15 and tool_name in ["sql_db_query", "sql_db_schema", "sql_db_list_tables"]:
-            print(" --- LIMITE DE CHAMADAS SQL ATINGIDO, VAI PARA MODERAÇÃO DE SAÍDA ---")
+        if tool_name == "sql_db_query" and sql_query_calls > MAX_SQL_TOOL_CALLS_PER_TURN:
+            print(" --- LIMITE DE CONSULTAS SQL ATINGIDO, VAI PARA FALLBACK ---")
+            return "fallback_node"
+
+        if tool_name in ["sql_db_schema", "sql_db_list_tables"] and sql_schema_calls > MAX_SCHEMA_TOOL_CALLS_PER_TURN:
+            print(" --- LIMITE DE INSPEÇÕES DE SCHEMA ATINGIDO, VAI PARA FALLBACK ---")
             return "fallback_node"
 
         if tool_name in ["sql_db_query", "sql_db_schema", "sql_db_list_tables"]:
@@ -1098,6 +1168,20 @@ def should_continue(state: AgentState):
         print(" --- NENHUMA FERRAMENTA DE SQL FOI CHAMADA, INDO PARA TOOLS ---")
         return "go_tools"
     
+    if isinstance(last_msg, AIMessage):
+        response_content = extract_text_content(last_msg)
+        has_tool_calls = bool(getattr(last_msg, "tool_calls", None))
+
+        if not response_content.strip() and not has_tool_calls:
+            retries = state.get("retries", 0)
+
+            if retries < MAX_EMPTY_RESPONSE_RETRIES:
+                print(" --- RESPOSTA FINAL VAZIA DETECTADA, VOLTANDO AO AGENTE ---")
+                return "agent"
+
+            print(" --- RESPOSTA FINAL VAZIA APÓS RETRIES, USANDO FALLBACK ---")
+            return "fallback_node"
+
     print(" --- VAI PARA MODERAÇÃO DE SAÍDA ---")
     return "moderation_output"
 
@@ -1109,11 +1193,19 @@ def route_verify_sql(state: AgentState):
     if state.get("error_occurred"):
         print(" --- ERRO ENCONTRADO, BLOQUEANDO ---")
         return END
+
+    if isinstance(last_msg, ToolMessage):
+        content = str(last_msg.content or "")
+        if content.startswith("ERRO DE CONSULTA") or content.startswith("ERRO DE SEGURANÇA") or content.startswith("ERRO DO SISTEMA"):
+            print(" --- CONSULTA BLOQUEADA NA VERIFICAÇÃO, VOLTANDO AO AGENTE ---")
+            return "agent"
+
     if isinstance(last_msg, AIMessage) and "Desculpa" in last_msg.content:
         print(" --- BLOQUEADO NA VERIFICAÇÃO DE SQL ---")
         return END
     print(" --- SQL VERIFICADO, VAI PARA FERRAMENTAS ---")
     return "go_tools"
+
 
 def route_moderation_output(state: AgentState):
     print("--- ROUTE MODERATION OUTPUT ---")
@@ -1156,14 +1248,23 @@ def route_classify_intent(state: AgentState):
     print("   --- CONVERSA DIRETA ---")
     return "agent"
 
+
 def route_agent_check_output(state: AgentState):
     print("--- ROUTE AGENT CHECK OUTPUT ---")
-    response = state.get("last_msg_ai", "")
+
+    last_msg = state["messages"][-1]
     retries = state.get("retries", 0)
 
-    max_retries = 10
+    max_retries = MAX_EMPTY_RESPONSE_RETRIES
 
-    if response.strip() == "":
+    if isinstance(last_msg, AIMessage):
+        response = extract_text_content(last_msg)
+        has_tool_calls = bool(getattr(last_msg, "tool_calls", None))
+    else:
+        response = ""
+        has_tool_calls = False
+
+    if response.strip() == "" and not has_tool_calls:
         if retries < max_retries:
             print(" --- RESPOSTA VAZIA, REINICIANDO AGENTE ---")
             return "retry"
@@ -1172,4 +1273,3 @@ def route_agent_check_output(state: AgentState):
             return "blocked"
     print(" --- RESPOSTA GERADA COM SUCESSO ---")
     return "success"
-    
