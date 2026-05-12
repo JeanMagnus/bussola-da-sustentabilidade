@@ -23,7 +23,7 @@ from langchain_community.callbacks import get_openai_callback
 LIMITE_MENSAGENS_PARA_SUMARIZACAO = 10
 MAX_RAG_DOCS = 3
 MAX_RAG_CHARS = 3000
-MAX_SQL_TOOL_CALLS_PER_TURN = 10
+MAX_SQL_TOOL_CALLS_PER_TURN = 5
 MAX_SCHEMA_TOOL_CALLS_PER_TURN = 2
 MAX_LAST_AI_MEMORY_CHARS = 1500
 MAX_EMPTY_RESPONSE_RETRIES = 2
@@ -227,7 +227,7 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
             NUNCA retorne uma string vazia. Se estiver em dúvida, retorne 'cidades sustentáveis turismo dados'.
             """            
             try:
-                extractor_model = kimi_model.with_structured_output(KeywordExtraction)
+                extractor_model = summarizer_model.with_structured_output(KeywordExtraction)
                 kw_messages = [SystemMessage(content=EXTRACTION_PROMPT)]
                 with get_openai_callback() as cb:
                     response_kw = await extractor_model.ainvoke(kw_messages, config=config, max_tokens=100)
@@ -371,7 +371,7 @@ async def agent(state: AgentState, config: RunnableConfig):
             if has_error:
                 prompt_with_mission += "\nAVISO CRÍTICO: A execução SQL anterior falhou (coluna inexistente ou erro de sintaxe). Reveja os nomes das colunas e os tipos de dados (CAST)."
 
-            recent_msgs = messages[-10:]
+            recent_msgs = messages[-5:]
             #user_msg = next((m for m in messages if isinstance(m, HumanMessage)), None)
             user_msg = next((m for m in reversed(messages) if isinstance(m, HumanMessage)), None)
             while recent_msgs and isinstance(recent_msgs[0], ToolMessage):

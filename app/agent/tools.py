@@ -188,10 +188,7 @@ def sql_db_query(
     Executa consultas SQL SELECT no PostgreSQL e retorna os resultados.
 
     INSTRUÇÕES CRÍTICAS PARA O AGENTE:
-    - Você JÁ POSSUI o schema no prompt.
-    - NÃO invoque ferramentas como `sql_db_list_tables` ou `sql_db_schema`.
     - NÃO gere tags `<|DSML|>`.
-    - NÃO use SELECT *.
     - Para nomes de cidades, municípios, destinos ou nomes próprios, use obrigatoriamente:
 
         unaccent(coluna::text) ILIKE unaccent('%valor%')
@@ -288,20 +285,20 @@ def sql_db_query(
         if not resultado_bruto or str(resultado_bruto).strip() == "":
             return "A consulta foi executada com sucesso, mas retornou 0 resultados."
 
-        MAX_CHARS = 10000
+        # MAX_CHARS = 10000
 
         resultado_str = str(resultado_bruto)
 
-        if len(resultado_str) > MAX_CHARS:
-            print(
-                f"   [Aviso] Resultado longo ({len(resultado_str)} chars). "
-                f"Truncando para {MAX_CHARS}."
-            )
-            return (
-                resultado_str[:MAX_CHARS]
-                + '... [RESULTADO CORTADO PARA POUPAR TOKENS. '
-                + 'REFAÇA A QUERY COM UM "LIMIT" MENOR OU AGREGAÇÃO SE PRECISAR DE MAIS DADOS].'
-            )
+        # if len(resultado_str) > MAX_CHARS:
+        #     print(
+        #         f"   [Aviso] Resultado longo ({len(resultado_str)} chars). "
+        #         f"Truncando para {MAX_CHARS}."
+        #     )
+        #     return (
+        #         resultado_str[:MAX_CHARS]
+        #         + '... [RESULTADO CORTADO PARA POUPAR TOKENS. '
+        #         + 'REFAÇA A QUERY COM UM "LIMIT" MENOR OU AGREGAÇÃO SE PRECISAR DE MAIS DADOS].'
+        #     )
         
         resultado_bruto = db_bussola.run(query)
 
@@ -342,43 +339,35 @@ def sql_db_schema(
     try:
         print(f"\n [TOOL SCHEMA] Inspecionando tabelas: {table_names}")
         
-        # Limpa e separa os nomes das tabelas enviados pelo LLM
         tables = [t.strip() for t in table_names.split(",") if t.strip()]
         
         if not tables:
             return "ERRO: Nenhuma tabela foi fornecida. Envie os nomes separados por vírgula."
 
-        # Extrai o "motor" do SQLAlchemy por trás do LangChain para inspecionar diretamente
         inspector = inspect(db_bussola._engine)
         schema_info = []
         
         for table in tables:
             try:
-                # Busca as colunas e a chave primária
                 columns = inspector.get_columns(table)
                 pk_cols = inspector.get_pk_constraint(table).get('constrained_columns', [])
                 
                 col_details = []
                 for c in columns:
-                    # Adiciona um asterisco (*) para sinalizar que é Primary Key
                     pk_marker = "*" if c['name'] in pk_cols else ""
-                    # Ex: id* (INTEGER) ou nome (VARCHAR)
                     col_details.append(f"{c['name']}{pk_marker} ({c['type']})")
                 
-                # Formatação ultracompacta
                 schema_info.append(f"Tabela '{table}': {', '.join(col_details)}")
                 
             except Exception as e:
-                # Se o LLM inventar um nome de tabela que não existe
                 schema_info.append(f"Tabela '{table}': Erro - Esta tabela não existe no banco de dados.")
         
         resultado_str = "\n".join(schema_info)
         
-        # Proteção contra tabelas monstruosas (ex: tabelas com 200 colunas)
-        MAX_CHARS = 1000 
-        if len(resultado_str) > MAX_CHARS:
-            print(f"   [Aviso] Schema muito longo ({len(resultado_str)} chars). Truncando para {MAX_CHARS}.")
-            return resultado_str[:MAX_CHARS] + '... [SCHEMA CORTADO PARA POUPAR TOKENS].'
+        # MAX_CHARS = 1000 
+        # if len(resultado_str) > MAX_CHARS:
+        #     print(f"   [Aviso] Schema muito longo ({len(resultado_str)} chars). Truncando para {MAX_CHARS}.")
+        #     return resultado_str[:MAX_CHARS] + '... [SCHEMA CORTADO PARA POUPAR TOKENS].'
 
         return resultado_str
 
