@@ -41,4 +41,3 @@ app.add_middleware(
 @app.get("/", tags=["Health"])
 async def root():
     return {"status": "online", "message": "Tá vivo!!"}
-

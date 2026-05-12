@@ -2,16 +2,93 @@ from email.mime import text
 import json
 import re
 from sqlalchemy import inspect
+import unicodedata
 from app.agent.state import AgentState
 from langchain_community.agent_toolkits import SQLDatabaseToolkit
 from langgraph.prebuilt import ToolNode, InjectedState
 from langchain_core.runnables import RunnableConfig
 from langchain_core.documents import Document
 from langchain_core.tools import tool
-from typing import Annotated, List, Literal
+from typing import Annotated, List, Literal, Optional
 from app.core.config import model, db_bussola
 from app.agent.memory import vector_store, Memory, guide_vector_store, about_vector_store
 
+TABLE_ALIASES: dict[str, str] = {
+    "salarios_e_visitas": "salarios_e_visitas",
+    "salários_e_visitas": "salarios_e_visitas",
+    "salarios": "salarios_e_visitas",
+    "visitas": "salarios_e_visitas",
+    "emprego": "salarios_e_visitas",
+    "situacional": "situacional_2023",
+    "situacional_2023": "situacional_2023",
+    "situacional2023": "situacional_2023",
+    "ibge": "ibge",
+    "municipios": "ibge",
+    "municípios": "ibge",
+    "cidades": "ibge",
+    "selo": "selo",
+    "certificacao": "selo",
+    "certificação": "selo",
+}
+
+CERTIFIED_CITIES = [
+    "Arroio Trinta", "Bombinhas", "Bom Jardim da Serra", "Frei Rogério",
+    "Itá", "Navegantes", "Orleans", "São Joaquim", "Treze Tílias", "Urubici",
+    "Apodi", "São Miguel do Gostoso", "Tibau do Sul", "Fernando de Noronha",
+]
+
+TEXT_COLUMNS = {
+    "cidade", "municipio", "município", "destino", "nome",
+    "regiao", "região", "mesorregiao", "mesorregião",
+    "microrregiao", "microrregião", "regiao_intermediaria",
+    "regiao_turistíca", "regiao_turistica", "estado", "uf",
+}
+
+BOOL_MAP = {
+    "sim": "Sim", "s": "Sim", "yes": "Sim", "true": "Sim", "1": "Sim",
+    "não": "Não", "nao": "Não", "no": "Não", "false": "Não", "0": "Não",
+}
+
+def _strip_accents(text: str) -> str:
+    return "".join(
+        c for c in unicodedata.normalize("NFD", text)
+        if unicodedata.category(c) != "Mn"
+    )
+
+def _normalize_table(name: str) -> str:
+    clean = name.strip().lower()
+    clean_no_accent = _strip_accents(clean)
+    return TABLE_ALIASES.get(clean, TABLE_ALIASES.get(clean_no_accent, clean))
+
+def _closest_city(raw: str) -> Optional[str]:
+    raw_norm = _strip_accents(raw.strip().lower())
+    for city in CERTIFIED_CITIES:
+        if raw_norm in _strip_accents(city.lower()) or _strip_accents(city.lower()) in raw_norm:
+            return city
+    return None
+
+def _build_text_filter(column: str, value: str) -> str:
+    safe_value = value.replace("'", "''")
+    return f"unaccent({column}::text) ILIKE unaccent('%{safe_value}%')"
+
+def _build_numeric_filter(column: str, raw_value: str, operator: str = "=") -> str:
+    cleaned = raw_value.strip()
+    if re.match(r"^\d{1,3}(\.\d{3})*(,\d+)?$", cleaned):
+        cleaned = cleaned.replace(".", "").replace(",", ".")
+    elif re.match(r"^\d{1,3}(,\d{3})*(\.\d+)?$", cleaned):
+        cleaned = cleaned.replace(",", "")
+    cleaned = re.sub(r"[^\d.\-]", "", cleaned)
+    return f"CAST(REPLACE({column}::text, ',', '.') AS NUMERIC) {operator} {cleaned}"
+
+def _build_avg_expression(column: str) -> str:
+    return f"AVG(CAST(REPLACE({column}::text, ',', '.') AS NUMERIC))"
+
+def _build_date_filter(column: str, value: str) -> str:
+    v = value.strip()
+    if re.match(r"^\d{2}/\d{2}/\d{4}$", v):
+        d, m, y = v.split("/")
+        v = f"{y}-{m}-{d}"
+    return f"DATE({column}) = '{v}'::DATE"
 
 @tool
 async def store_memory_tool(
@@ -149,6 +226,85 @@ async def retrieve_last_ai_message_tool(state: Annotated[AgentState, InjectedSta
             return "Nenhuma mensagem da IA encontrada no estado atual."
     except Exception as e:
         return f"Erro ao recuperar a última mensagem da IA: {str(e)}"
+    
+@tool
+def sql_query_builder(
+    table: Annotated[str, "Nome da tabela principal. Aliases: 'situacional', 'ibge', 'salarios', etc."],
+    columns: Annotated[list[str], "Colunas a selecionar. NUNCA use ['*']."],
+    filters: Annotated[list[dict], "Lista de dicts: {'column', 'value', 'type', 'operator', 'logic'}"] = [],
+    joins: Annotated[list[dict], "JOINs: {'type', 'table', 'on'}"] = [],
+    aggregation: Annotated[Optional[Literal["avg", "count", "sum", "min", "max", "none"]], "Agregação SQL"] = None,
+    group_by: Annotated[Optional[str], "Colunas GROUP BY separadas por vírgula."] = None,
+    order_by: Annotated[Optional[str], "Cláusula ORDER BY sem a palavra-chave."] = None,
+    limit: Annotated[int, "Máximo de linhas (reforçado para 15)."] = 10,
+) -> str:
+    """
+    Gera uma query SQL SELECT pronta para execução via sql_db_query.
+    Aplica automaticamente unaccent, ILIKE, CAST de valores BR e resolução de aliases.
+    """
+    resolved_table = _normalize_table(table)
+    safe_limit = min(max(1, limit), 15)
+
+    if not columns or columns == ["*"]:
+        return "ERRO: Especifique as colunas. Não use ['*']."
+
+    agg = (aggregation or "none").lower()
+    select_parts: list[str] = []
+
+    for col in columns:
+        col_clean = col.strip()
+        if agg == "avg": select_parts.append(f"{_build_avg_expression(col_clean)} AS media_{col_clean}")
+        elif agg == "count": 
+            select_parts.append("COUNT(*) AS total")
+            break
+        elif agg == "sum": select_parts.append(f"SUM(CAST(REPLACE({col_clean}::text, ',', '.') AS NUMERIC)) AS soma_{col_clean}")
+        elif agg in ["min", "max"]: select_parts.append(f"{agg.upper()}(CAST(REPLACE({col_clean}::text, ',', '.') AS NUMERIC)) AS {agg}_{col_clean}")
+        else: select_parts.append(col_clean)
+
+    if group_by and agg != "none":
+        for gb_col in [c.strip() for c in group_by.split(",")]:
+            if gb_col and gb_col not in [col.strip() for col in columns]:
+                select_parts.insert(0, gb_col)
+
+    select_clause = "SELECT " + ", ".join(select_parts)
+    from_clause = f"FROM {resolved_table}"
+    
+    join_parts = [f"{j.get('type', 'INNER').upper()} JOIN {_normalize_table(j.get('table', ''))} ON {j.get('on', '')}" for j in joins if j.get('table') and j.get('on')]
+
+    where_conditions, pending_logic = [], "AND"
+    for flt in filters:
+        col, val = flt.get("column", "").strip(), str(flt.get("value", "")).strip()
+        ftype, operator, logic = flt.get("type", "auto").lower(), flt.get("operator", "=").upper(), flt.get("logic", "AND").upper()
+        if not col or not val: continue
+
+        if ftype == "auto":
+            if col.lower() in TEXT_COLUMNS or re.search(r"[a-zA-ZÀ-ú]{3,}", val): ftype = "text"
+            elif re.match(r"^\d{2}/\d{2}/\d{4}$", val): ftype = "date"
+            elif val.lower() in BOOL_MAP: ftype = "bool"
+            elif re.search(r"\d", val): ftype = "numeric"
+            else: ftype = "text"
+
+        if ftype == "text":
+            if col.lower() in ("cidade", "municipio", "município", "destino"):
+                suggestion = _closest_city(val)
+                if suggestion: val = suggestion
+            condition = _build_text_filter(col, val)
+        elif ftype == "numeric":
+            condition = f"CAST(REPLACE({col}::text, ',', '.') AS NUMERIC) BETWEEN {val}" if operator == "BETWEEN" else _build_numeric_filter(col, val, operator)
+        elif ftype == "date": condition = _build_date_filter(col, val)
+        elif ftype == "bool":
+            safe_val = BOOL_MAP.get(val.lower(), val).replace("'", "''")
+            condition = f"unaccent({col}::text) ILIKE unaccent('{safe_val}')"
+        else: condition = _build_text_filter(col, val)
+
+        where_conditions.append(f"{pending_logic} {condition}" if where_conditions else condition)
+        pending_logic = logic
+
+    where_clause = ("WHERE " + " ".join(where_conditions)) if where_conditions else ""
+    query = "\n".join(p for p in [select_clause, from_clause, *join_parts, where_clause, f"GROUP BY {group_by}" if group_by else "", f"ORDER BY {order_by}" if order_by else "", f"LIMIT {safe_limit}"] if p)
+    
+    print(f"\n[SQL_QUERY_BUILDER] Query:\n{query}\n")
+    return query
 
 @tool
 def sql_db_query(
@@ -409,66 +565,6 @@ def retrieve_about(
     except Exception as e:
         return f"Erro ao buscar no índice 'about': {str(e)}"
 
-# @tool
-# async def search_data_dictionary(
-#     query: Annotated[str, "Termos de busca para encontrar tabelas e colunas (ex: 'população', 'sustentabilidade', 'turismo')"],
-#     config: RunnableConfig
-# ) -> str:
-#     """
-#     Consulta o manual técnico do banco de dados (Dicionário de Dados).
-#     Use esta ferramenta SEMPRE que precisar saber:
-#     1. Qual o nome real de uma tabela no banco de dados.
-#     2. O significado de colunas específicas (ex: o que é Q01, Q02).
-#     3. Quais colunas podem ser usadas para unir (JOIN) duas tabelas.
-#     4. Ver uma amostra dos dados para entender o formato (ex: se o estado é 'SC' ou 'Santa Catarina').
-#     """
-#     print(f"--- CONSULTANDO DICIONÁRIO: {query} ---")
-    
-#     docs = guide_vector_store.similarity_search(
-#         query=query, 
-#         k=15, 
-#         filter={"type": "dictionary"}, 
-#         namespace="data_dictionary"
-#     )
-
-#     if not docs:
-#         return "Nenhuma tabela ou coluna correspondente encontrada no dicionário."
-
-#     # Formata a resposta para o Agente
-#     instrucoes = "RESULTADOS DO DICIONÁRIO DE DADOS:\n"
-#     for d in docs:
-#         instrucoes += f"\n========================================\n"
-#         instrucoes += f"CONTEÚDO: {d.page_content}\n"
-    
-#     return instrucoes
-
-# @tool
-# async def retrieve_dictionary_tool(
-#         query: Annotated[str, "Pergunta do usuário para busca semântica no dicionário de dados"],
-#         limit: Annotated[int, "Número de trechos do dicionário a recuperar"] = 15,
-#         config: RunnableConfig = None,
-# ) -> str:
-#     """Busca no dicionário de metadados do banco de dados usando similaridade semântica.
- 
-#     Use esta ferramenta ANTES de qualquer consulta SQL quando a pergunta do usuário
-#     envolver dados do banco. Ela retorna quais tabelas e colunas são relevantes para
-#     a pergunta, evitando alucinações de nomes técnicos.
- 
-#     Retorna: trechos do dicionário com nomes exatos de tabelas, colunas e descrições.
-#     """
-#     print("--- RETRIEVE DICTIONARY TOOL ---")
-#     try:
-#         docs = guide_vector_store.similarity_search(query=query, k=limit)
-#         if not docs:
-#             return "Nenhum metadado encontrado no dicionário para esta consulta."
-#         results = []
-#         for doc in docs:
-#             source = doc.metadata.get("source", "dicionário")
-#             results.append(f"[{source}]\n{doc.page_content}")
-#         return "\n\n---\n\n".join(results)
-#     except Exception as e:
-#         return f"Erro ao buscar no dicionário: {str(e)}"
- 
 
 
 toolkit = SQLDatabaseToolkit(db=db_bussola, llm=model)
@@ -480,7 +576,7 @@ db_tools_filtered = [
     tool for tool in db_tools 
     if tool.name not in excluded_tool_names
 ]
-tools_agent = [store_memory_tool, retrieve_memories_tool, retrieve_last_ai_message_tool, retrieve_about, sql_db_query, sql_db_schema]
+tools_agent = [store_memory_tool, retrieve_memories_tool, retrieve_last_ai_message_tool, sql_db_query, retrieve_about, sql_query_builder, sql_db_schema]
 tools_chat = [store_memory_tool, retrieve_memories_tool, retrieve_last_ai_message_tool, retrieve_about]
 tools_rag = [retrieve_last_ai_message_tool]
 tool_node = ToolNode(tools=tools_agent)

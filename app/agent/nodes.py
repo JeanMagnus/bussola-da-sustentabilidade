@@ -282,6 +282,7 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
             print("   --- DICIONÁRIO RECUPERADO (TEXTO BRUTO) ---")
             
             print(f"   [INFO] Retornando {len(raw_dictionary_context)} caracteres de regras brutas do banco.")
+            print(f"   [DEBUG] Conteúdo do dicionário:\n{raw_dictionary_context}")
 
         return {"sql_plan": raw_dictionary_context}#**usage
     
@@ -314,11 +315,18 @@ async def agent(state: AgentState, config: RunnableConfig):
             plan_block = ""
             if sql_plan:
                 plan_block = f"""
+
+                
                 --- DICIONÁRIO DE DADOS (LEITURA OBRIGATÓRIA) ---
                 Abaixo estão as regras brutas do banco de dados e as colunas disponíveis relacionadas à pergunta do usuário.
                 LEIA com atenção para saber quais colunas usar, se é necessário fazer CAST de tipos e como fazer JOINs:
                 {sql_plan}
 
+                --- PROTOCOLO DE ACESSO SEQUENCIAL ---
+                1. Use 'sql_query_builder' para gerar o comando SQL.
+                2. Copie o resultado e cole na ferramenta 'sql_db_query'.
+                3. Se o builder retornar erro, use 'sql_db_schema' para validar colunas.
+                --- REGRAS ---
                 1. MÉDIAS: Sempre use AVG(CAST(REPLACE(nota, ',', '.') AS NUMERIC)).
                 2. NOMES PRÓPRIOS/CIDADES: NUNCA use '=' ou 'IN' com strings literais. USE SEMPRE `unaccent(coluna::text) ILIKE unaccent('%valor%')`.
                 3. BUSCA VAZIA: Se a query retornar [], PARE. Use `SELECT DISTINCT coluna` para entender os dados reais antes de tentar de novo.
