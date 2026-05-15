@@ -88,6 +88,7 @@ kimi_model = AzureChatOpenAI(
     api_key = settings.AZURE_KIMI_API_KEY,
     temperature = 0,
     max_retries = 5,
+    reasoning_effort = "low",
     timeout = 45.0,
     tags=["resposta_final"],
 )
