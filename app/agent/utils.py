@@ -1,4 +1,5 @@
 
+import ast
 import time
 from contextlib import contextmanager
 from app.agent.state import AgentState
@@ -271,6 +272,236 @@ def sql_preserves_required_values(
     print(f"   [VERIFY_SQL] Taxa de preservação: {ratio:.2f}")
 
     return ratio >= threshold
+
+
+CONTINUATION_MARKERS = (
+    "elas", "eles", "essa", "esse", "essas", "esses", "isso", "isto",
+    "delas", "deles", "dessa", "desse", "dessas", "desses", "nelas", "neles",
+    "anteriores", "anterior", "acima", "citadas", "citados", "listadas", "listados",
+    "primeiras", "primeiros", "últimas", "ultimas", "últimos", "ultimos",
+)
+
+QUESTION_STOPWORDS = {
+    "a", "ao", "aos", "as", "com", "como", "da", "das", "de", "do", "dos",
+    "e", "em", "entre", "na", "nas", "no", "nos", "o", "os", "ou", "para",
+    "por", "qual", "quais", "que", "quem", "sao", "são", "seria", "seriam",
+    "sobre", "tem", "ter", "um", "uma", "uns", "umas", "me", "mostre", "liste",
+    "listar", "traga", "trazer", "diga", "informe", "dessas", "desses", "elas", "eles",
+}
+
+
+def is_likely_continuation_question(text: Any) -> bool:
+    """
+    Heurística barata para detectar perguntas que dependem do turno anterior.
+
+    Evita uma chamada extra ao LLM quando a mensagem usa pronomes ou expressões
+    típicas de continuação ("dessas", "e elas?", "quais são os códigos?").
+    """
+
+    text_norm = normalize_text(text)
+
+    if not text_norm:
+        return False
+
+    if any(re.search(rf"\b{re.escape(marker)}\b", text_norm) for marker in CONTINUATION_MARKERS):
+        return True
+
+    continuation_prefixes = (
+        "e ", "mas ", "tambem ", "também ", "agora ", "alem disso ", "além disso ",
+        "quanto a ", "quanto ao ", "no caso ", "nesse caso ", "neste caso ",
+    )
+
+    if text_norm.startswith(continuation_prefixes):
+        return True
+
+    short_follow_up_patterns = (
+        r"^quais( sao| são)?\b",
+        r"^qual( e| é)?\b",
+        r"^quant[ao]s?\b",
+        r"^liste\b",
+        r"^mostre\b",
+        r"^compare\b",
+        r"^detalhe\b",
+        r"^explique\b",
+    )
+
+    return len(text_norm.split()) <= 8 and any(
+        re.search(pattern, text_norm)
+        for pattern in short_follow_up_patterns
+    )
+
+
+def _stringify_short(value: Any, max_chars: int = 80) -> str:
+    value = str(value).strip()
+    value = re.sub(r"\s+", " ", value)
+
+    if len(value) > max_chars:
+        value = value[: max_chars - 1].rstrip() + "…"
+
+    return value
+
+
+def _append_unique(items: list[str], value: Any, max_items: int) -> None:
+    if len(items) >= max_items:
+        return
+
+    value_text = _stringify_short(value)
+
+    if not value_text:
+        return
+
+    value_norm = normalize_text(value_text)
+
+    if value_norm in {normalize_text(item) for item in items}:
+        return
+
+    items.append(value_text)
+
+
+def extract_keywords_from_text(text: Any, max_keywords: int = 8) -> list[str]:
+    """Extrai palavras-chave simples sem chamar modelo externo."""
+
+    text_norm = normalize_text(text)
+
+    if not text_norm:
+        return []
+
+    tokens = re.findall(r"[a-z0-9_]{3,}", text_norm)
+    keywords: list[str] = []
+
+    for token in tokens:
+        if token in QUESTION_STOPWORDS:
+            continue
+
+        _append_unique(keywords, token, max_keywords)
+
+        if len(keywords) >= max_keywords:
+            break
+
+    return keywords
+
+
+def build_lightweight_context(
+    *,
+    last_ai_message: Any = "",
+    last_result_context: Any = None,
+    max_entities: int = 20,
+) -> dict[str, Any]:
+    """
+    Monta uma memória de estado compacta com os principais atributos do turno anterior.
+
+    Essa estrutura substitui a antiga resolução contextual via LLM no nó RAG:
+    ela reaproveita entidades/atributos do último resultado SQL e poucas palavras
+    da resposta final, mantendo o contexto barato e previsível.
+    """
+
+    result_context = last_result_context if isinstance(last_result_context, dict) else {}
+    rows = result_context.get("rows") or []
+
+    entities: list[str] = []
+    attributes: list[str] = []
+
+    for row in rows[:max_entities]:
+        if isinstance(row, dict):
+            for key in row.keys():
+                _append_unique(attributes, key, 12)
+
+            preferred_values = [
+                value for value in row.values()
+                if isinstance(value, str)
+                and value.strip()
+                and not re.fullmatch(r"[-+]?\d+(?:[,.]\d+)?", value.strip())
+            ]
+
+            for value in preferred_values:
+                _append_unique(entities, value, max_entities)
+                if len(entities) >= max_entities:
+                    break
+        else:
+            _append_unique(entities, row, max_entities)
+
+        if len(entities) >= max_entities:
+            break
+
+    response_keywords = extract_keywords_from_text(last_ai_message, max_keywords=8)
+
+    return {
+        "type": "lightweight_previous_turn_context",
+        "entities": entities,
+        "attributes": attributes,
+        "response_keywords": response_keywords,
+        "row_count": result_context.get("row_count", len(rows) if rows else 0),
+        "source": result_context.get("source", "last_ai_message" if last_ai_message else "none"),
+    }
+
+
+def build_search_query_from_state(user_question: Any, previous_context: Any) -> str:
+    """
+    Conecta a pergunta atual aos principais atributos do estado anterior para o Pinecone.
+    """
+
+    context = previous_context if isinstance(previous_context, dict) else {}
+    terms: list[str] = []
+
+    for keyword in extract_keywords_from_text(user_question, max_keywords=8):
+        _append_unique(terms, keyword, 14)
+
+    for attribute in context.get("attributes", [])[:6]:
+        _append_unique(terms, attribute, 14)
+
+    for keyword in context.get("response_keywords", [])[:4]:
+        _append_unique(terms, keyword, 14)
+
+    # Alguns nomes de cidade/critério ajudam quando a continuação pede campos
+    # relacionados (ex.: "dessas cidades, quais têm código IBGE?").
+    for entity in context.get("entities", [])[:4]:
+        _append_unique(terms, entity, 14)
+
+    return " ".join(terms).strip()
+
+
+def build_context_resolution_from_state(user_question: Any, previous_context: Any) -> dict[str, Any] | None:
+    """
+    Cria uma resolução contextual compatível com o schema existente sem chamada LLM.
+    """
+
+    context = previous_context if isinstance(previous_context, dict) else {}
+    entities = context.get("entities", []) or []
+
+    if not entities and not context.get("attributes"):
+        return None
+
+    referents = []
+
+    if entities:
+        referents.append(
+            {
+                "label": "itens do resultado anterior",
+                "kind_hint": "previous_result_item",
+                "values": [
+                    {"value": entity, "attributes": {}}
+                    for entity in entities
+                ],
+                "expected_count": context.get("row_count") or len(entities),
+                "source": "last_sql_result" if context.get("source") == "sql_db_query" else "last_ai_message",
+                "must_preserve": True,
+            }
+        )
+
+    search_query = build_search_query_from_state(user_question, context)
+    rewritten_parts = [str(user_question).strip()]
+
+    if entities:
+        rewritten_parts.append("considerando os itens anteriores: " + ", ".join(entities[:10]))
+
+    return {
+        "is_context_dependent": True,
+        "rewritten_question": "; ".join(rewritten_parts),
+        "referents": referents,
+        "requested_outputs": extract_keywords_from_text(user_question, max_keywords=6),
+        "operation": "follow_up",
+        "search_query": search_query or str(user_question).strip(),
+    }
 
 
 def build_tool_error_messages(last_msg, error_content: str) -> list[ToolMessage]:
