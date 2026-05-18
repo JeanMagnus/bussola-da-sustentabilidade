@@ -9,7 +9,12 @@ from app.agent.prompt import SYSTEM_PROMPT
 from app.agent.tools import tools_agent, tools_chat, tools_rag
 from app.core.config import trimmer
 from app.agent.memory import vector_store, guide_vector_store, guide_vector_store_large
-from app.agent.utils import timer, token_count, token_count_total, build_last_result_context_from_messages, build_tool_error_messages,  collect_required_values, sql_preserves_required_values
+from app.agent.utils import (
+    timer, token_count, token_count_total, build_last_result_context_from_messages,
+    build_tool_error_messages, collect_required_values, sql_preserves_required_values,
+    build_context_resolution_from_state, build_lightweight_context,
+    build_search_query_from_state, is_likely_continuation_question,
+)
 from app.schemas.chat import IntentRouter, KeywordExtraction, ContextResolution
 from langgraph.graph import END
 from langchain.agents.middleware import before_model, after_model
@@ -147,67 +152,26 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
         context_resolution = None
 
         if is_continuation:
-            print("   [INFO] Continuação detectada")
+            print("   [INFO] Continuação detectada; usando contexto leve em estado (sem LLM extra).")
 
-            EXTRACTION_PROMPT = f"""
-            Você é um resolvedor genérico de contexto para um agente SQL.
+            previous_context = state.get("previous_turn_context") or build_lightweight_context(
+                last_ai_message=last_ai_msg,
+                last_result_context=last_result_context,
+            )
+            context_resolution = build_context_resolution_from_state(
+                user_question=user_question,
+                previous_context=previous_context,
+            )
+            search_query = build_search_query_from_state(
+                user_question=user_question,
+                previous_context=previous_context,
+            )
 
-            Contexto textual anterior:
-            {last_ai_msg}
-
-            Contexto estruturado anterior, se existir:
-            {last_result_context}
-
-            Pergunta atual:
-            {user_question}
-
-            Resolva referências contextuais como "esses", "essas", "deles",
-            "os primeiros", "a lista anterior", "esses critérios", "essas cidades",
-            "esses indicadores", etc.
-
-            Retorne:
-            - is_context_dependent
-            - rewritten_question
-            - search_query
-            - referents
-            - requested_outputs
-            - operation
-
-            Regras:
-            - referents deve conter os itens concretos que precisam ser preservados.
-            - search_query serve apenas para buscar metadados no dicionário vetorial.
-            - Não substitua itens concretos por filtros genéricos.
-            - Retorne apenas JSON válido no schema solicitado.
-            """
-
-            try:
-                extractor_model = kimi_model.with_structured_output(ContextResolution)
-
-                with get_openai_callback() as cb:
-                    context_resolution = await extractor_model.ainvoke(
-                        [SystemMessage(content=EXTRACTION_PROMPT)],
-                        config=config
-                    )
-
-                    print("VISUALIZANDO USO DE TOKENS DO RAG")
-                    print(f"Total de Tokens: {cb.total_tokens}")
-                    print(f"Tokens de Prompt: {cb.prompt_tokens}")
-                    print(f"Tokens de Resposta: {cb.completion_tokens}")
-                    print(f"Custo Total (USD): ${cb.total_cost}")
-
-                search_query = context_resolution.search_query.strip()
-
-                print(f"   [SUCESSO] Search query: {search_query}")
-                print(f"   [SUCESSO] Pergunta resolvida: {context_resolution.rewritten_question}")
-                print(f"   [SUCESSO] Referentes: {context_resolution.referents}")
-
-            except Exception as e:
-                print(f"   [AVISO] Erro na resolução de contexto: {e}")
-                search_query = user_question
-                context_resolution = None
-
+            print(f"   [SUCESSO] Search query por estado: {search_query}")
+            print(f"   [SUCESSO] Contexto leve: {previous_context}")
         else:
             search_query = user_question
+            previous_context = state.get("previous_turn_context")
 
         if not search_query or search_query.strip() == "":
             print("   [AVISO CRÍTICO] search_query ficou vazia! Injetando texto de salvação.")
@@ -225,7 +189,8 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
             if not docs:
                 return {
                     "sql_plan": "Nenhuma informação relevante encontrada no dicionário de dados.",
-                    "context_resolution": context_resolution.model_dump() if context_resolution else None,
+                    "context_resolution": context_resolution,
+                    "previous_turn_context": previous_context,
                 }
 
             raw_dictionary_context = "\n\n".join([doc.page_content for doc in docs])
@@ -235,9 +200,11 @@ async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
 
         return {
             "sql_plan": raw_dictionary_context,
-            "context_resolution": context_resolution.model_dump() if context_resolution else None,
+            "context_resolution": context_resolution,
+            "previous_turn_context": previous_context,
         }
     
+
 async def agent(state: AgentState, config: RunnableConfig):
     with timer("AGENT_NODE"):
         print("--- AGENT NODE ---")
@@ -258,6 +225,10 @@ async def agent(state: AgentState, config: RunnableConfig):
         )
 
         context_resolution = state.get("context_resolution", None)
+        previous_turn_context = state.get("previous_turn_context") or build_lightweight_context(
+            last_ai_message=last_msg_memory,
+            last_result_context=last_result_context,
+        )
 
         try:
             user_messages = [m for m in messages if isinstance(m, HumanMessage)]
@@ -266,19 +237,16 @@ async def agent(state: AgentState, config: RunnableConfig):
             context_block = ""
 
 
-            if is_continuation and (last_msg_memory or last_result_context or context_resolution):
+            if is_continuation and (previous_turn_context or context_resolution):
                 context_block = f"""
-                --- CONTEXTO DA CONVERSA ANTERIOR ---
-                Na última interação, você respondeu:
-                "{last_msg_memory}"
+                --- CONTEXTO LEVE DA CONVERSA ANTERIOR ---
+                Principais entidades/atributos do turno anterior em estado:
+                {previous_turn_context}
 
-                Último resultado estruturado de SQL:
-                {last_result_context}
-
-                Resolução contextual da pergunta atual:
+                Resolução contextual determinística da pergunta atual:
                 {context_resolution}
 
-                Use isso como referência para manter a coerência e contexto caso a pergunta atual dependa destes dados, mas confirme sempre informações novas no banco de dados.
+                Use esses itens apenas se a pergunta atual depender deles. Confirme sempre informações novas no banco de dados.
                 -------------------------
     
                 """
@@ -394,6 +362,10 @@ async def agent(state: AgentState, config: RunnableConfig):
             else:
                 update["last_msg_ai"] = response.content
                 update["final_response"] = response_content
+                update["previous_turn_context"] = build_lightweight_context(
+                    last_ai_message=response_content,
+                    last_result_context=last_result_context,
+                )
 
             return update
 
@@ -482,12 +454,29 @@ async def classify_intent(state: AgentState, config: RunnableConfig) -> AgentSta
     
         last_msg = state["messages"][-1].content    
         last_msg_ai = state.get("last_msg_ai", "")
+        previous_turn_context = state.get("previous_turn_context") or build_lightweight_context(
+            last_ai_message=last_msg_ai,
+            last_result_context=state.get("last_result_context", None),
+        )
 
         user_text = last_msg.lower().strip()
 
+        has_previous_context = bool(
+            previous_turn_context
+            and (
+                previous_turn_context.get("entities")
+                or previous_turn_context.get("attributes")
+                or previous_turn_context.get("response_keywords")
+            )
+        )
+
+        if has_previous_context and is_likely_continuation_question(user_text):
+            print("   [HEURÍSTICA] Continuação detectada sem chamada ao classificador LLM.")
+            return {"intent": "SQL", "is_continuation": True, "dictionary_context": ""}
+
         context = ""
-        if last_msg_ai:
-            context = f"\nMensagem anterior da IA (Contexto): '{last_msg_ai}'"
+        if has_previous_context:
+            context = f"\nContexto leve anterior: {previous_turn_context}"
 
         CLASSIFY_PROMPT = f"""Você é um roteador inteligente.
         Sua tarefa é analisar a mensagem atual do usuário e, usando o Contexto anterior (se existir), decidir a rota.

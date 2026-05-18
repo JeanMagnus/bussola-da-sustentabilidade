@@ -31,8 +31,7 @@ class AgentState(TypedDict):
     retries: int
     context_resolution: dict[str, Any]
     last_result_context: dict[str, Any]
+    previous_turn_context: dict[str, Any]
     last_sql_query: str | None
     final_response: str 
-    
-
     

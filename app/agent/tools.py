@@ -576,7 +576,7 @@ db_tools_filtered = [
     tool for tool in db_tools 
     if tool.name not in excluded_tool_names
 ]
-tools_agent = [store_memory_tool, retrieve_memories_tool, retrieve_last_ai_message_tool] + db_tools
+tools_agent = [store_memory_tool, retrieve_memories_tool, retrieve_last_ai_message_tool, retrieve_about] + db_tools
 #tools_agent = [store_memory_tool, retrieve_memories_tool, retrieve_last_ai_message_tool, sql_db_query, retrieve_about, sql_query_builder, sql_db_schema]
 tools_chat = [store_memory_tool, retrieve_memories_tool, retrieve_last_ai_message_tool, retrieve_about]
 tools_rag = [retrieve_last_ai_message_tool]
