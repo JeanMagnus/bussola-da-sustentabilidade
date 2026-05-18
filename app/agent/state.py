@@ -32,6 +32,7 @@ class AgentState(TypedDict):
     context_resolution: dict[str, Any]
     last_result_context: dict[str, Any]
     last_sql_query: str | None
+    final_response: str 
     
 
     
