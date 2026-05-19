@@ -114,6 +114,7 @@ def build_last_result_context_from_messages(state: AgentState):
     last_result_context = {
         "type": "sql_result",
         "source": "sql_db_query",
+        "query": last_sql_query,
         "sql": last_sql_query,
         "row_count": len(rows),
         "rows": rows,
@@ -376,7 +377,174 @@ def extract_keywords_from_text(text: Any, max_keywords: int = 8) -> list[str]:
             break
 
     return keywords
+def infer_entity_kind_from_column(column: str) -> str:
+    col = str(column or "").lower()
 
+    if col in ["cidade", "municipio", "município"]:
+        return "cidade"
+
+    if col in ["estado", "uf"]:
+        return "estado"
+
+    if col in ["criterio", "criteria_name_pt", "criteria_name_us", "criteria_name_es"]:
+        return "criterio"
+
+    if col in ["theme_pt", "theme_us", "theme_es", "theme"]:
+        return "tema"
+
+    if col in ["topic", "topic_description_pt"]:
+        return "topico"
+
+    if col in ["chave"]:
+        return "chave"
+
+    if col in ["codigo_municipio", "codigo", "codigo_ibge"]:
+        return "codigo"
+
+    return "valor"
+
+
+def is_metric_column(key: str, value: Any) -> bool:
+    col = str(key or "").lower()
+
+    metric_names = [
+        "nota",
+        "media",
+        "média",
+        "media_geral",
+        "media_tema",
+        "total",
+        "count",
+        "quantidade",
+        "qtd",
+        "populacao",
+        "pib",
+        "idhm",
+        "salario",
+        "visitas",
+        "aproveitamento",
+    ]
+
+    if any(name in col for name in metric_names):
+        return True
+
+    if isinstance(value, (int, float)):
+        return True
+
+    if isinstance(value, str) and re.fullmatch(r"[-+]?\d+(?:[,.]\d+)?", value.strip()):
+        return True
+
+    return False
+
+
+def infer_datasets_from_query(query: str) -> list[str]:
+    q = str(query or "").lower()
+
+    known_tables = [
+        "selo",
+        "top100_30",
+        "top100_15",
+        "criterios",
+        "ibge",
+        "timeline_gd",
+        "situacional_2023",
+        "situacional_2023_pivot_median",
+        "pivot_situacional",
+        "destinations_2023",
+        "remuneracao",
+        "rais_geral",
+    ]
+
+    return [table for table in known_tables if table in q]
+
+
+def infer_context_task(
+    *,
+    attributes: list[str],
+    response_keywords: list[str],
+    query: str = "",
+) -> str:
+    attrs = set(str(a).lower() for a in attributes)
+    text = " ".join(response_keywords).lower()
+    q = str(query or "").lower()
+
+    if {"nota", "criterio", "criteria_name_pt", "theme_pt"} & attrs:
+        return "avaliacao"
+
+    if {"codigo_municipio", "regiao_intermediaria", "mesorregiao", "microrregiao"} & attrs:
+        return "dados_geograficos"
+
+    if "selo" in q or "certifica" in text or "green destinations" in text:
+        return "certificacao"
+
+    if "situacional" in q or any(a.startswith("q") for a in attrs):
+        return "situacional"
+
+    if "criterios" in q or "criteria_description_pt" in attrs:
+        return "criterios"
+
+    if "timeline" in q or "aproveitamento" in attrs:
+        return "historico"
+
+    return "consulta_sql"
+
+
+def infer_operation_from_text(text: Any) -> str:
+    t = str(text or "").lower()
+
+    if any(k in t for k in ["compare", "comparação", "comparacao", "diferença", "diferenca"]):
+        return "comparar"
+
+    if any(k in t for k in ["ranking", "maiores", "menores", "ordenado", "ordem"]):
+        return "ranquear"
+
+    if any(k in t for k in ["média", "media", "avg"]):
+        return "calcular_media"
+
+    if any(k in t for k in ["liste", "lista", "quais", "mostre"]):
+        return "listar"
+
+    if any(k in t for k in ["explique", "significa", "descrição", "descricao"]):
+        return "explicar"
+
+    return "responder"
+
+
+def infer_focus(
+    *,
+    entity_objects: list[dict[str, Any]],
+    filters: dict[str, list[Any]],
+    task: str,
+) -> dict[str, Any]:
+    priority = ["cidade", "criterio", "tema", "estado", "codigo", "chave"]
+
+    for kind in priority:
+        values = [
+            e["value"]
+            for e in entity_objects
+            if e.get("kind") == kind and e.get("value")
+        ]
+
+        if values:
+            return {
+                "kind": kind,
+                "values": list(dict.fromkeys(values))[:10],
+                "label": f"foco anterior inferido para tarefa {task}",
+            }
+
+    if filters:
+        first_key = next(iter(filters.keys()))
+        return {
+            "kind": first_key,
+            "values": filters[first_key][:10],
+            "label": f"foco anterior inferido por filtro para tarefa {task}",
+        }
+
+    return {
+        "kind": "unknown",
+        "values": [],
+        "label": "nenhum foco claro inferido",
+    }
 
 def build_lightweight_context(
     *,
@@ -384,36 +552,71 @@ def build_lightweight_context(
     last_result_context: Any = None,
     max_entities: int = 20,
 ) -> dict[str, Any]:
-    """
-    Monta uma memória de estado compacta com os principais atributos do turno anterior.
-
-    Essa estrutura substitui a antiga resolução contextual via LLM no nó RAG:
-    ela reaproveita entidades/atributos do último resultado SQL e poucas palavras
-    da resposta final, mantendo o contexto barato e previsível.
-    """
-
     result_context = last_result_context if isinstance(last_result_context, dict) else {}
     rows = result_context.get("rows") or []
+    query = result_context.get("query", "")
+    columns = result_context.get("columns") or []
 
     entities: list[str] = []
     attributes: list[str] = []
+    entity_objects: list[dict[str, Any]] = []
+    metrics: list[dict[str, Any]] = []
+    filters: dict[str, list[Any]] = {}
 
     for row in rows[:max_entities]:
         if isinstance(row, dict):
             for key in row.keys():
-                _append_unique(attributes, key, 12)
+                _append_unique(attributes, key, 20)
 
-            preferred_values = [
-                value for value in row.values()
-                if isinstance(value, str)
-                and value.strip()
-                and not re.fullmatch(r"[-+]?\d+(?:[,.]\d+)?", value.strip())
-            ]
+            for key, value in row.items():
+                if not isinstance(value, str):
+                    continue
 
-            for value in preferred_values:
+                value = value.strip()
+
+                if not value:
+                    continue
+
+                if re.fullmatch(r"[-+]?\d+(?:[,.]\d+)?", value):
+                    continue
+                
+                if value.lower().startswith(("http://", "https://")):
+                    continue
+
+                kind = infer_entity_kind_from_column(key)
+
                 _append_unique(entities, value, max_entities)
-                if len(entities) >= max_entities:
-                    break
+
+                entity_obj = {
+                    "kind": kind,
+                    "value": value,
+                    "source_column": key,
+                }
+
+                attrs = {}
+                for attr_key in ["estado", "uf", "ano", "codigo_municipio", "criterio", "theme_pt"]:
+                    if attr_key in row and row[attr_key] not in (None, "", "nan"):
+                        attrs[attr_key] = row[attr_key]
+
+                if attrs:
+                    entity_obj["attributes"] = attrs
+
+                if entity_obj not in entity_objects:
+                    entity_objects.append(entity_obj)
+
+            for key, value in row.items():
+                if is_metric_column(key, value):
+                    metrics.append({
+                        "name": key,
+                        "value": value,
+                    })
+
+            for key in ["cidade", "estado", "uf", "ano", "criterio", "theme_pt", "codigo_municipio"]:
+                if key in row and row[key] not in (None, "", "nan"):
+                    filters.setdefault(key, [])
+                    if row[key] not in filters[key]:
+                        filters[key].append(row[key])
+
         else:
             _append_unique(entities, row, max_entities)
 
@@ -422,8 +625,35 @@ def build_lightweight_context(
 
     response_keywords = extract_keywords_from_text(last_ai_message, max_keywords=8)
 
+    datasets = infer_datasets_from_query(query)
+    task = infer_context_task(
+        attributes=attributes,
+        response_keywords=response_keywords,
+        query=query,
+    )
+    operation = infer_operation_from_text(last_ai_message)
+
+    focus = infer_focus(
+        entity_objects=entity_objects,
+        filters=filters,
+        task=task,
+    )
+
     return {
         "type": "lightweight_previous_turn_context",
+
+        "task": task,
+        "operation": operation,
+        "focus": focus,
+        "entity_objects": entity_objects[:max_entities],
+        "datasets": datasets,
+        "metrics": metrics[:12],
+        "filters": filters,
+        "result_summary": {
+            "row_count": result_context.get("row_count", len(rows) if rows else 0),
+            "sample_size": min(len(rows), max_entities) if rows else 0,
+            "columns": attributes[:20],
+        },
         "entities": entities,
         "attributes": attributes,
         "response_keywords": response_keywords,
@@ -498,6 +728,41 @@ def build_context_resolution_from_state(user_question: Any, previous_context: An
         "search_query": search_query or str(user_question).strip(),
     }
 
+def build_resolved_question_generic(
+    *,
+    user_text: str,
+    previous_context: dict | None,
+) -> str:
+    if not previous_context:
+        return user_text
+
+    compact_context = {
+        "task": previous_context.get("task"),
+        "operation": previous_context.get("operation"),
+        "focus": previous_context.get("focus"),
+        "datasets": previous_context.get("datasets"),
+        "attributes": previous_context.get("attributes", [])[:20],
+        "metrics": previous_context.get("metrics", [])[:10],
+        "filters": previous_context.get("filters"),
+        "entities": previous_context.get("entity_objects", [])[:15],
+        "row_count": previous_context.get("row_count"),
+    }
+
+    return f"""
+A pergunta atual é uma continuação da interação anterior.
+
+Pergunta original atual:
+{user_text}
+
+Contexto estruturado anterior:
+{compact_context}
+
+Tarefa:
+Responda à pergunta atual preservando o contexto anterior.
+Se o usuário pedir comparação, compare a nova entidade com o foco anterior.
+Se o usuário pedir filtro, tabela, ordenação, resumo ou detalhe, aplique isso sobre o foco anterior.
+Não trate a pergunta atual como isolada.
+"""
 
 def build_tool_error_messages(last_msg, error_content: str) -> list[ToolMessage]:
     """
@@ -523,3 +788,74 @@ def build_tool_error_messages(last_msg, error_content: str) -> list[ToolMessage]
         )
 
     return tool_messages
+
+
+def detect_continuation_question(
+    user_text: str,
+    previous_context: dict | None,
+) -> bool:
+    if not previous_context:
+        return False
+
+    text = str(user_text or "").lower().strip()
+
+    if not text:
+        return False
+
+    continuation_markers = [
+        "compare com",
+        "comparar com",
+        "e com",
+        "agora com",
+        "em relação a",
+        "em relacao a",
+        "dessas",
+        "desses",
+        "dessa",
+        "desse",
+        "essas",
+        "esses",
+        "isso",
+        "isto",
+        "elas",
+        "eles",
+        "respectivos",
+        "respectivas",
+        "dados anteriores",
+        "resultado anterior",
+        "lista anterior",
+        "da lista",
+        "com a cidade",
+        "com o município",
+        "com o municipio",
+        "filtre por",
+        "ordene por",
+        "mostre só",
+        "mostre apenas",
+        "faça uma tabela",
+        "transforme em tabela",
+        "explique melhor",
+        "detalhe",
+        "resuma",
+    ]
+
+    if any(marker in text for marker in continuation_markers):
+        return True
+
+    short_followup_verbs = [
+        "compare",
+        "detalhe",
+        "resuma",
+        "explique",
+        "liste",
+        "ordene",
+        "filtre",
+        "mostre",
+    ]
+
+    words = text.split()
+
+    if len(words) <= 6 and any(v in text for v in short_followup_verbs):
+        return True
+
+    return False

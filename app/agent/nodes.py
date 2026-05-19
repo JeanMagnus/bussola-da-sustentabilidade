@@ -14,6 +14,7 @@ from app.agent.utils import (
     build_tool_error_messages, collect_required_values, sql_preserves_required_values,
     build_context_resolution_from_state, build_lightweight_context,
     build_search_query_from_state, is_likely_continuation_question,
+    detect_continuation_question, build_resolved_question_generic,
 )
 from app.schemas.chat import IntentRouter, KeywordExtraction, ContextResolution
 from langgraph.graph import END
@@ -68,6 +69,36 @@ async def setup_node(state: AgentState, config: RunnableConfig) -> AgentState:
             return {**update, "messages": messages_to_remove}
 
         return update
+    
+async def context_resolution_node(state: AgentState, config: RunnableConfig) -> AgentState:
+    print("--- CONTEXT RESOLUTION NODE ---")
+
+    messages = state.get("messages", [])
+    user_messages = [m for m in messages if isinstance(m, HumanMessage)]
+    user_text = user_messages[-1].content if user_messages else ""
+
+    previous_context = state.get("previous_turn_context")
+
+    is_continuation = detect_continuation_question(
+        user_text=user_text,
+        previous_context=previous_context,
+    )
+
+    resolved_question = user_text
+
+    if is_continuation:
+        resolved_question = build_resolved_question_generic(
+            user_text=user_text,
+            previous_context=previous_context,
+        )
+
+    print(f"   [CONTEXT] is_continuation: {is_continuation}")
+    print(f"   [CONTEXT] resolved_question: {resolved_question}")
+
+    return {
+        "is_continuation": is_continuation,
+        "resolved_question": resolved_question,
+    }
 
 async def summarization_node(state: AgentState, config: RunnableConfig) -> AgentState:
     with timer("SUMMARIZATION_NODE"):
@@ -137,6 +168,70 @@ async def summarization_node(state: AgentState, config: RunnableConfig) -> Agent
             "summary": new_summary_text,
             #**usage
         }
+
+
+async def classify_intent(state: AgentState, config: RunnableConfig) -> AgentState:
+    """
+    Classifica a intenção do usuário:
+      - 'SQL'      → pergunta que exige consulta ao banco de dados
+      - 'CONVERSA' → saudação, apresentação, dúvida sobre o sistema,
+                     pergunta de memória pessoal, etc.
+ 
+    O resultado é guardado em state["intent"] e guia o roteamento
+    feito por route_classify_intent().
+    """
+    with timer("CLASSIFY_INTENT"):
+        print("--- CLASSIFY INTENT ---")
+
+    
+        last_msg = state["messages"][-1].content    
+        last_msg_ai = state.get("last_msg_ai", "")
+
+        user_text = last_msg.lower().strip()
+
+        context = ""
+        if last_msg_ai:
+            context = f"\nMensagem anterior da IA (Contexto): '{last_msg_ai}'"
+
+        CLASSIFY_PROMPT = f"""Você é um roteador inteligente.
+        Sua tarefa é analisar a mensagem atual do usuário e, usando o Contexto anterior (se existir), decidir a rota.
+
+        Pergunta atual: "{user_text}"{context}
+        - Rota SQL: Responda SQL se o usuário quer métricas, informações de cidades, sustentabilidade, turismo, comparar dados, etc.
+        - Rota SQL (Pronomes): Responda SQL se o usuário estiver fazendo uma PERGUNTA DE CONTINUAÇÃO (ex: "quais são elas?", "liste as cidades", "e no estado X?") que dependa dos dados do Contexto anterior.
+        - Rota CONVERSA: Responda CONVERSA se for saudações (oi, tudo bem), perguntas sobre quem você é, ou dúvidas genéricas que não exigem tabela.
+        - Apenas responda com SQL ou CONVERSA, sem explicações.
+        Atenção: Na dúvida entre SQL e CONVERSA em perguntas de continuação, escolha SQL."""
+        
+        try:
+            structured_model = classify_model.with_structured_output(IntentRouter)
+            with get_openai_callback() as cb:
+                response = await structured_model.ainvoke([SystemMessage(content=CLASSIFY_PROMPT), HumanMessage(content=last_msg)], config=config)
+
+                print(f"Total de Tokens: {cb.total_tokens}")
+                print(f"Tokens de Prompt: {cb.prompt_tokens}")
+                print(f"Tokens de Resposta: {cb.completion_tokens}")
+                print(f"Custo Total (USD): ${cb.total_cost}")
+
+            intent = response.intent
+            is_cont_str = response.is_continuation.strip().upper()
+            is_cont = True if is_cont_str == "SIM" else False
+
+            if "SQL" in intent:
+                intent = "SQL"
+            else:
+                intent = "CONVERSA"
+
+            print(f"   Raciocínio: {response.reasoning}")
+            print(f"   Intent classificado: {intent}")
+            print(f"   É continuação? {is_cont}")
+
+
+            return {"intent": intent, "is_continuation": is_cont, "dictionary_context": ""}
+        except Exception as e:
+            print(f"   [AVISO] Erro no classificador LLM: {e}. Forçando rota SQL.")
+            return {"intent": "SQL", "dictionary_context": ""}
+        
 
 async def rag_agent(state: AgentState, config: RunnableConfig) -> AgentState:
     with timer("RAG_AGENT"):
@@ -232,7 +327,9 @@ async def agent(state: AgentState, config: RunnableConfig):
 
         try:
             user_messages = [m for m in messages if isinstance(m, HumanMessage)]
-            actual_question = user_messages[-1].content if user_messages else "Analisar dados"
+            #actual_question = user_messages[-1].content if user_messages else "Analisar dados"
+            raw_question = user_messages[-1].content if user_messages else "Analisar dados"
+            actual_question = state.get("resolved_question") or raw_question
 
             context_block = ""
 
@@ -296,7 +393,8 @@ async def agent(state: AgentState, config: RunnableConfig):
                 {plan_block}
 
                 MISSÃO ATUAL:
-                O usuário solicitou: "{actual_question}"
+                Pergunta resolvida: "{actual_question}"
+                Pergunta original: "{raw_question}"
 
                 INSTRUÇÃO DE FLUXO:
                 - O Plano de Acesso é um guia. Os dados exatos e atualizados estão no banco.
@@ -437,85 +535,6 @@ async def guardrail_input(state: AgentState, config: RunnableConfig):
                 "error_occurred": True,
                 #**usage
                 }
-
-async def classify_intent(state: AgentState, config: RunnableConfig) -> AgentState:
-    """
-    Classifica a intenção do usuário:
-      - 'SQL'      → pergunta que exige consulta ao banco de dados
-      - 'CONVERSA' → saudação, apresentação, dúvida sobre o sistema,
-                     pergunta de memória pessoal, etc.
- 
-    O resultado é guardado em state["intent"] e guia o roteamento
-    feito por route_classify_intent().
-    """
-    with timer("CLASSIFY_INTENT"):
-        print("--- CLASSIFY INTENT ---")
-
-    
-        last_msg = state["messages"][-1].content    
-        last_msg_ai = state.get("last_msg_ai", "")
-        previous_turn_context = state.get("previous_turn_context") or build_lightweight_context(
-            last_ai_message=last_msg_ai,
-            last_result_context=state.get("last_result_context", None),
-        )
-
-        user_text = last_msg.lower().strip()
-
-        has_previous_context = bool(
-            previous_turn_context
-            and (
-                previous_turn_context.get("entities")
-                or previous_turn_context.get("attributes")
-                or previous_turn_context.get("response_keywords")
-            )
-        )
-
-        if has_previous_context and is_likely_continuation_question(user_text):
-            print("   [HEURÍSTICA] Continuação detectada sem chamada ao classificador LLM.")
-            return {"intent": "SQL", "is_continuation": True, "dictionary_context": ""}
-
-        context = ""
-        if has_previous_context:
-            context = f"\nContexto leve anterior: {previous_turn_context}"
-
-        CLASSIFY_PROMPT = f"""Você é um roteador inteligente.
-        Sua tarefa é analisar a mensagem atual do usuário e, usando o Contexto anterior (se existir), decidir a rota.
-
-        Pergunta atual: "{user_text}"{context}
-        - Rota SQL: Responda SQL se o usuário quer métricas, informações de cidades, sustentabilidade, turismo, comparar dados, etc.
-        - Rota SQL (Pronomes): Responda SQL se o usuário estiver fazendo uma PERGUNTA DE CONTINUAÇÃO (ex: "quais são elas?", "liste as cidades", "e no estado X?") que dependa dos dados do Contexto anterior.
-        - Rota CONVERSA: Responda CONVERSA se for saudações (oi, tudo bem), perguntas sobre quem você é, ou dúvidas genéricas que não exigem tabela.
-        - Apenas responda com SQL ou CONVERSA, sem explicações.
-        Atenção: Na dúvida entre SQL e CONVERSA em perguntas de continuação, escolha SQL."""
-        
-        try:
-            structured_model = classify_model.with_structured_output(IntentRouter)
-            with get_openai_callback() as cb:
-                response = await structured_model.ainvoke([SystemMessage(content=CLASSIFY_PROMPT), HumanMessage(content=last_msg)], config=config)
-
-                print(f"Total de Tokens: {cb.total_tokens}")
-                print(f"Tokens de Prompt: {cb.prompt_tokens}")
-                print(f"Tokens de Resposta: {cb.completion_tokens}")
-                print(f"Custo Total (USD): ${cb.total_cost}")
-
-            intent = response.intent
-            is_cont_str = response.is_continuation.strip().upper()
-            is_cont = True if is_cont_str == "SIM" else False
-
-            if "SQL" in intent:
-                intent = "SQL"
-            else:
-                intent = "CONVERSA"
-
-            print(f"   Raciocínio: {response.reasoning}")
-            print(f"   Intent classificado: {intent}")
-            print(f"   É continuação? {is_cont}")
-
-
-            return {"intent": intent, "is_continuation": is_cont, "dictionary_context": ""}
-        except Exception as e:
-            print(f"   [AVISO] Erro no classificador LLM: {e}. Forçando rota SQL.")
-            return {"intent": "SQL", "dictionary_context": ""}
 
 
 def verify_sql(state: AgentState):
@@ -812,7 +831,7 @@ def should_continue(state: AgentState):
         
         tool_name = last_msg.tool_calls[0]["name"]
 
-        if sql_tool_calls >= 5 and tool_name in ["sql_db_query", "sql_db_schema", "sql_db_list_tables"]:
+        if sql_tool_calls >= 10 and tool_name in ["sql_db_query", "sql_db_schema", "sql_db_list_tables"]:
             print(" --- LIMITE DE CHAMADAS SQL ATINGIDO, VAI PARA MODERAÇÃO DE SAÍDA ---")
             return "fallback_node"
 

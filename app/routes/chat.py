@@ -1,4 +1,6 @@
+import asyncio
 import json
+import re
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 from app.schemas.chat import ChatInput, ChatOutput, StreamInput
@@ -7,6 +9,7 @@ from time import perf_counter
 from uuid import uuid4
 
 router = APIRouter()
+STREAMING_SPEED = 0.03
 
 @router.post("/chat", response_model=ChatOutput)
 async def chat_endpoint(request: ChatInput, req: Request):
@@ -34,284 +37,6 @@ async def chat_endpoint(request: ChatInput, req: Request):
     print(f"LATENCY /chat: {elapsed_seconds:.2f}s (thread_id={request.thread_id}, user_id={request.user_id})")
 
     return ChatOutput(response=last_msg, thread_id=request.thread_id, user_id=request.user_id)
-
-
-# @router.post("/chat/stream")
-# async def chat_stream_endpoint(request: StreamInput, req: Request):
-#     """
-#     Emite Server-Sent Events para o frontend.
-
-#     Importante: para evitar "poluição" da resposta com tokens intermediários
-#     de nós internos do grafo, este endpoint envia apenas a mensagem final
-#     do agente em `messages/complete`.
-#     """
-
-#     graph = req.app.state.graph
-
-#     config = {
-#         "configurable": {
-#             "recursion_limit": 15,
-#             "thread_id": request.thread_id,
-#             "user_id": request.user_id,
-#         }
-#     }
-#     inputs = {"messages": [HumanMessage(content=request.message)]}
-
-#     async def event_generator():
-#         yield _sse(
-#             "metadata",
-#             {
-#                 "run_id": f"run-{request.thread_id}",
-#                 "thread_id": request.thread_id,
-#             },
-#         )
-
-#         try:
-#             streamed_content = False
-#             async for event in graph.astream_events(inputs, config, version="v2"):
-            
-#                 if event["event"] == "on_chat_model_stream":
-
-#                     tags = event.get("tags", [])
-
-#                     if "resposta_final" in tags:
-#                         chunk = event["data"]["chunk"]
-
-#                         if hasattr(chunk, "content_blocks") and chunk.content_blocks:
-#                             for block in chunk.content_blocks:
-#                                 if block.get("type") == "reasoning":
-#                                     yield _sse("thinking", {"content": block["reasoning"]})
-#                                 elif block.get("type") == "text":
-#                                     streamed_content = True
-#                                     yield _sse("chunk", {"content": block["text"]})
-                        
-#                         elif chunk.content and getattr(chunk, "tool_call_chunks", None):
-#                             yield _sse("thinking", {"content": chunk.content})
-
-#                         elif chunk.content and not getattr(chunk, "tool_call_chunks", None):
-#                             streamed_content = True
-#                             yield _sse("chunk", {"content": chunk.content})
-                
-#                 elif event["event"] == "on_tool_start":
-#                     yield _sse("status", {"message": f"Executando {event['name']}..."})
-
-#             state = await graph.aget_state(config)
-#             final_messages = state.values.get("messages", [])
-            
-#             if final_messages:
-#                 last_msg = final_messages[-1]
-                
-#                 if not streamed_content and isinstance(last_msg, AIMessage):
-#                     yield _sse("chunk", {"content": last_msg.content})
-
-#             yield _sse(
-#                 "messages/complete",
-#                 [
-#                     {
-#                         "type": "ai",
-#                         "status": "done"
-#                     }
-#                 ],
-#             )
-
-#         except Exception as exc:
-#             print(f"[SSE] Erro durante streaming: {exc}")
-#             yield _sse("error", {"message": str(exc)})
-
-#     return StreamingResponse(
-#         event_generator(),
-#         media_type="text/event-stream",
-#         headers={
-#             "Cache-Control": "no-cache",
-#             "X-Accel-Buffering": "no",
-#             "Access-Control-Allow-Origin": "*",
-#             "Connection": "keep-alive"
-#         },
-#     )
-
-# NODE_STATUS_MESSAGES = {
-#     "setup_node": "Preparando o contexto da conversa...",
-#     "summarization_node": "Resumindo o histórico da conversa...",
-#     "guardrail_input": "Verificando se a pergunta está dentro do escopo...",
-#     "classify_intent": "Identificando o tipo de análise necessária...",
-#     "dictionary_retrieval": "O agente está elaborando um dicionário para consulta...",
-#     "agent": "O agente está escrevendo e analisando a consulta...",
-#     "verify_sql": "O agente está validando a busca SQL...",
-#     "go_tools": "O agente está executando a consulta no banco de dados...",
-#     "moderation_output": "O agente está revisando a resposta final...",
-# }
-
-# @router.post("/chat/stream")
-# async def chat_stream_endpoint(request: StreamInput, req: Request):
-#     """
-#     Emite Server-Sent Events para o frontend.
-
-#     Versão usando graph.astream em vez de graph.astream_events.
-#     Mantém o mesmo protocolo atual do frontend:
-#       - metadata
-#       - chunk
-#       - thinking
-#       - status
-#       - messages/complete
-#       - error
-#     """
-
-#     graph = req.app.state.graph
-
-#     config = {
-#         "configurable": {
-#             "recursion_limit": 15,
-#             "thread_id": request.thread_id,
-#             "user_id": request.user_id,
-#         }
-#     }
-
-#     inputs = {
-#         "messages": [
-#             HumanMessage(content=request.message)
-#         ]
-#     }
-
-#     async def event_generator():
-#         yield _sse(
-#             "metadata",
-#             {
-#                 "run_id": f"run-{request.thread_id}",
-#                 "thread_id": request.thread_id,
-#             },
-#         )
-
-#         try:
-#             streamed_content = False
-#             last_status_node = None 
-
-#             async for chunk in graph.astream(
-#                 inputs,
-#                 config=config,
-#                 stream_mode=["messages", "updates"],
-#                 version="v2",
-#             ):
-#                 stream_type = chunk["type"]
-#                 data = chunk["data"]
-#                 if stream_type == "updates":
-#                     if isinstance(data, dict):
-#                         for node_name in data.keys():
-#                             status_message = NODE_STATUS_MESSAGES.get(node_name)
-
-#                             if status_message and node_name != last_status_node:
-#                                 last_status_node = node_name
-
-#                                 yield _sse(
-#                                     "status",
-#                                     {
-#                                         "node": node_name,
-#                                         "message": status_message,
-#                                     },
-#                                 )
-                            
-#                     continue
-
-#                 if stream_type == "messages":
-#                     message_chunk, metadata = data
-
-#                     tags = metadata.get("tags", [])
-
-#                     # Mantém a mesma lógica que você tinha:
-#                     # só transmite a resposta final marcada com "resposta_final".
-#                     if "resposta_final" not in tags:
-#                         continue
-
-#                     # Caso o modelo retorne content_blocks.
-#                     if (
-#                         hasattr(message_chunk, "content_blocks")
-#                         and message_chunk.content_blocks
-#                     ):
-#                         for block in message_chunk.content_blocks:
-#                             if block.get("type") == "reasoning":
-#                                 continue
-
-#                             elif block.get("type") == "text":
-#                                 content = block.get("text", "")
-#                                 if content:
-#                                     streamed_content = True
-#                                     yield _sse(
-#                                         "chunk",
-#                                         {"content": content},
-#                                     )
-                            
-#                     else:
-#                         if getattr(message_chunk, "tool_call_chunks", None):
-#                             continue
-
-#                         content = getattr(message_chunk, "content", "")
-
-#                         if content:
-#                             streamed_content = True
-#                             yield _sse(
-#                                 "chunk",
-#                                 {"content": content},
-#                             )
-
-#                 elif stream_type == "updates":
-#                     # Com astream você não recebe "on_tool_start" diretamente.
-#                     # Aqui dá para emitir status com base nos nós atualizados.
-#                     updates = data
-
-#                     if isinstance(updates, dict):
-#                         for node_name in updates.keys():
-#                             if node_name in ("go_tools", "tools", "tool_node"):
-#                                 yield _sse(
-#                                     "status",
-#                                     {"message": f"Executando Ferramentas..."},
-#                                 )
-
-#             state = await graph.aget_state(config)
-#             final_messages = state.values.get("messages", [])
-
-#             if final_messages:
-#                 last_msg = final_messages[-1]
-
-#                 if not streamed_content and isinstance(last_msg, AIMessage):
-#                     yield _sse(
-#                         "chunk",
-#                         {"content": last_msg.content},
-#                     )
-
-#             yield _sse(
-#                 "messages/complete",
-#                 [
-#                     {
-#                         "type": "ai",
-#                         "status": "done",
-#                     }
-#                 ],
-#             )
-
-#         except Exception as exc:
-#             print(f"[SSE] Erro durante streaming: {exc}")
-#             yield _sse("error", {"message": str(exc)})
-
-#     return StreamingResponse(
-#         event_generator(),
-#         media_type="text/event-stream",
-#         headers={
-#             "Cache-Control": "no-cache",
-#             "X-Accel-Buffering": "no",
-#             "Access-Control-Allow-Origin": "*",
-#             "Connection": "keep-alive",
-#         },
-#     )
-
-
-# def _sse(event: str, data) -> str:
-#     """
-#     Serializa um evento SSE no formato ndjson esperado pelo LangChain SDK.
- 
-#     Formato:
-#         data: {"event": "...", "data": ...}\n\n
-#     """
-#     payload = json.dumps({"event": event, "data": data}, ensure_ascii=False)
-#     return f"data: {payload}\n\n"
 
 NODE_STATUS_MESSAGES = {
     "setup_node": "Preparando o contexto da conversa...",
@@ -374,6 +99,121 @@ def _extract_visible_messages(messages: list) -> list:
 
     return visible
 
+def _get_message_content(message) -> str:
+    """
+    Extrai conteúdo textual de mensagens LangChain ou dicts.
+    """
+    if message is None:
+        return ""
+
+    if isinstance(message, dict):
+        content = message.get("content", "")
+    else:
+        content = getattr(message, "content", "")
+
+    if isinstance(content, str):
+        return content.strip()
+
+    if isinstance(content, list):
+        parts = []
+
+        for block in content:
+            if isinstance(block, dict):
+                if block.get("type") == "text":
+                    parts.append(block.get("text", ""))
+                elif "text" in block:
+                    parts.append(block.get("text", ""))
+
+        return "\n".join(parts).strip()
+
+    return str(content).strip() if content else ""
+
+
+def _has_tool_calls(message) -> bool:
+    """
+    Verifica se uma mensagem possui tool calls.
+    """
+    if message is None:
+        return False
+
+    if isinstance(message, dict):
+        return bool(
+            message.get("tool_calls")
+            or message.get("tool_call_chunks")
+            or message.get("additional_kwargs", {}).get("tool_calls")
+        )
+
+    return bool(
+        getattr(message, "tool_calls", None)
+        or getattr(message, "tool_call_chunks", None)
+        or getattr(message, "additional_kwargs", {}).get("tool_calls", None)
+    )
+
+
+def _is_ai_message(message) -> bool:
+    """
+    Verifica se a mensagem é AIMessage ou dict equivalente.
+    """
+    if isinstance(message, AIMessage):
+        return True
+
+    if isinstance(message, dict):
+        msg_type = message.get("type") or message.get("role")
+        return msg_type in ("ai", "assistant")
+
+    return getattr(message, "type", None) == "ai"
+
+
+def _get_final_ai_content(state_values: dict) -> str:
+    """
+    Busca a resposta final real do grafo.
+
+    Ordem:
+    1. final_response, se existir no state;
+    2. última AIMessage sem tool_calls;
+    3. fallback controlado.
+    """
+    final_response = state_values.get("final_response")
+
+    if isinstance(final_response, str) and final_response.strip():
+        return final_response.strip()
+
+    last_msg_ai = state_values.get("last_msg_ai")
+
+    if isinstance(last_msg_ai, str) and last_msg_ai.strip():
+        return last_msg_ai.strip()
+
+    messages = state_values.get("messages", [])
+
+    for msg in reversed(messages):
+        if not _is_ai_message(msg):
+            continue
+
+        if _has_tool_calls(msg):
+            continue
+
+        content = _get_message_content(msg)
+
+        if content:
+            return content
+
+    return (
+        "Não consegui gerar uma resposta final adequada. "
+        "Tente reformular sua pergunta."
+    )
+
+def _split_text_for_streaming(text: str) -> list[str]:
+    """
+    Divide a resposta em pequenos blocos preservando espaços.
+    Isso simula streaming token a token de forma visualmente fluida.
+    """
+    if not text:
+        return []
+
+    chunks = re.findall(r"\S+\s*", text)
+
+    return chunks if chunks else [text]
+
 
 @router.post("/chat/stream")
 async def chat_stream_endpoint(req: Request):
@@ -381,11 +221,13 @@ async def chat_stream_endpoint(req: Request):
     Endpoint compatível com useStream + FetchStreamTransport.
 
     Mantém:
-      - resposta em streaming
-      - status do agente
-      - thinking
+      - status do agente em streaming
       - stop pelo frontend
       - fallback de resposta final
+
+    Importante:
+      - não envia texto intermediário do agent;
+      - envia apenas a resposta final ao término do grafo.
     """
 
     graph = req.app.state.graph
@@ -441,7 +283,6 @@ async def chat_stream_endpoint(req: Request):
         )
 
         try:
-            streamed_content = False
             last_status_node = None
             message_id = f"assistant-{thread_id}-{uuid4()}"
 
@@ -475,29 +316,24 @@ async def chat_stream_endpoint(req: Request):
 
                 if stream_type == "messages":
                     message_chunk, metadata = data
-                    tags = metadata.get("tags", [])
                     node_name = metadata.get("langgraph_node")
-                    # print("\n===== DEBUG MESSAGE CHUNK =====")
-                    # print("NODE:", metadata.get("langgraph_node"))
-                    # print("TAGS:", metadata.get("tags"))
-                    # print("CHUNK TYPE:", type(message_chunk))
-                    # print("CONTENT:", getattr(message_chunk, "content", None))
-                    # print("CONTENT_BLOCKS:", getattr(message_chunk, "content_blocks", None))
-                    # print("ADDITIONAL_KWARGS:", getattr(message_chunk, "additional_kwargs", None))
-                    # print("RESPONSE_METADATA:", getattr(message_chunk, "response_metadata", None))
-                    # print("MODEL_DUMP:", message_chunk.model_dump() if hasattr(message_chunk, "model_dump") else None)
-                    # print("===== END DEBUG =====\n")
 
-                    # printar apenas mensagem final
                     if node_name != "agent":
                         continue
 
-                    if "resposta_final" not in tags:
-                        continue
-                    
-                    # ignorar tool calls na saída
-                    if getattr(message_chunk, "tool_call_chunks", None):
-                        continue
+                    additional_kwargs = getattr(message_chunk, "additional_kwargs", {}) or {}
+
+                    if "reasoning_content" in additional_kwargs:
+                        reasoning = additional_kwargs.get("reasoning_content", "")
+
+                        if reasoning:
+                            yield _sse(
+                                "custom",
+                                {
+                                    "type": "thinking",
+                                    "content": reasoning,
+                                },
+                            )
 
                     if (
                         hasattr(message_chunk, "content_blocks")
@@ -516,82 +352,37 @@ async def chat_stream_endpoint(req: Request):
                                         },
                                     )
 
-                            elif block.get("type") == "text":
-                                text = block.get("text", "")
-
-                                if text:
-                                    streamed_content = True
-
-                                    yield _sse(
-                                        "messages",
-                                        [
-                                            {
-                                                "type": "ai",
-                                                "id": message_id,
-                                                "content": text,
-                                            },
-                                            metadata,
-                                        ],
-                                    )
-
-                    else:
-                        additional_kwargs = getattr(message_chunk, "additional_kwargs", {})
-                        if "reasoning_content" in  additional_kwargs:
-                            reasoning = additional_kwargs.get("reasoning_content", "")
-                            if reasoning:
-                                yield _sse(
-                                    "custom",
-                                    {
-                                        "type": "thinking",
-                                        "content": reasoning,
-                                    },
-                                )
-
-                        content = getattr(message_chunk, "content", "")
-
-                        if content:
-                            streamed_content = True
-
-                            yield _sse(
-                                "messages",
-                                [
-                                    {
-                                        "type": "ai",
-                                        "id": message_id,
-                                        "content": content,
-                                    },
-                                    metadata,
-                                ],
-                            )
+                    continue
 
             state = await graph.aget_state(config)
-            final_messages = state.values.get("messages", [])
+            final_content = _get_final_ai_content(state.values)
 
-            if final_messages:
-                last_msg = final_messages[-1]
+            yield _sse(
+                "custom",
+                {
+                    "type": "status",
+                    "node": "final_response",
+                    "message": "Escrevendo resposta final...",
+                },
+            )
 
-                if not streamed_content and isinstance(last_msg, AIMessage):
-                    yield _sse(
-                        "messages",
-                        [
-                            {
-                                "type": "ai",
-                                "id": message_id,
-                                "content": last_msg.content,
-                            },
-                            {
-                                "langgraph_node": "agent",
-                                "tags": ["resposta_final"],
-                            },
-                        ],
-                    )
+            for text_chunk in _split_text_for_streaming(final_content):
+                yield _sse(
+                    "messages",
+                    [
+                        {
+                            "type": "ai",
+                            "id": message_id,
+                            "content": text_chunk,
+                        },
+                        {
+                            "langgraph_node": "agent",
+                            "tags": ["resposta_final"],
+                        },
+                    ],
+                )
 
-                # yield _sse(
-                #     "values",
-                #     {
-                #         "messages": _extract_visible_messages(final_messages)
-                #     },
-                # )
+                await asyncio.sleep(STREAMING_SPEED)
 
             yield _sse(
                 "custom",
@@ -611,6 +402,13 @@ async def chat_stream_endpoint(req: Request):
                 },
             )
 
+            yield _sse(
+                "custom",
+                {
+                    "type": "done",
+                },
+            )
+
     return StreamingResponse(
         event_generator(),
         media_type="text/event-stream",
@@ -620,8 +418,3 @@ async def chat_stream_endpoint(req: Request):
             "Connection": "keep-alive",
         },
     )
-
-
-# @router.post("/chat/stream_alt")
-# async def chat_stream_alt_endpoint(request: StreamInput, req: Request):
-
