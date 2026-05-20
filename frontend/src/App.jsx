@@ -216,12 +216,15 @@ export default function App() {
   const [elapsedMs, setElapsedMs] = useState(0);
 
   const bottomRef = useRef(null);
+  const chatMainRef = useRef(null);
   const textareaRef = useRef(null);
+  const shouldAutoScrollRef = useRef(true);
   const currentAssistantIdRef = useRef(null);
   const currentThinkingRef = useRef("");
   const streamMessagesRef = useRef(EMPTY_MESSAGES);
   const thinkingEventsSeenRef = useRef(new Set());
   const processingStartedAtRef = useRef(null);
+
 
   const toggleTheme = () => setTheme((prev) => (prev === "dark" ? "light" : "dark"));
 
@@ -294,6 +297,20 @@ export default function App() {
   const isStreaming = stream.isLoading;
   const streamError = stream.error;
 
+  const isNearBottom = useCallback((element, threshold = 120) => {
+  if (!element) return true;
+
+  const distanceFromBottom =
+    element.scrollHeight - element.scrollTop - element.clientHeight;
+
+  return distanceFromBottom <= threshold;
+  }, []);
+
+  const handleChatScroll = useCallback(() => {
+    shouldAutoScrollRef.current = isNearBottom(chatMainRef.current);
+  }, [isNearBottom]);
+
+
   useEffect(() => {
   if (!isStreaming || !processingStartedAtRef.current) return;
 
@@ -337,8 +354,10 @@ export default function App() {
   }, [chatMessages, streamedAssistantContent, isStreaming, elapsedMs]);
 
   useEffect(() => {
+    if (!shouldAutoScrollRef.current) return;
+
     bottomRef.current?.scrollIntoView({ behavior: "auto" });
-  }, [displayMessages.length, isStreaming, currentThinking, streamedAssistantContent, elapsedMs]);
+  }, [displayMessages.length, isStreaming, currentThinking, streamedAssistantContent]);
 
   useEffect(() => {
     if (!textareaRef.current) return;
@@ -358,6 +377,7 @@ export default function App() {
 
       processingStartedAtRef.current = Date.now();
       setElapsedMs(0);
+      shouldAutoScrollRef.current = true;
 
       currentAssistantIdRef.current = assistantId;
       currentThinkingRef.current = "";
@@ -418,6 +438,7 @@ export default function App() {
     thinkingEventsSeenRef.current.clear();
     processingStartedAtRef.current = null;
     setElapsedMs(0);
+    shouldAutoScrollRef.current = true;
 
     if (typeof stream.switchThread === "function") {
       stream.switchThread(newThreadId);
@@ -460,7 +481,7 @@ export default function App() {
           </div>
         </header>
 
-        <main className="chat-main">
+        <main ref={chatMainRef} className="chat-main" onScroll={handleChatScroll}>
           {displayMessages.length === 0 ? (
             <section className="empty-state">
               <div className="icon-buss-container">
