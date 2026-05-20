@@ -4,7 +4,9 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CiCirclePlus } from "react-icons/ci";
 import { FiSun, FiMoon } from "react-icons/fi";
+import { IoSend } from "react-icons/io5";
 import { useStream, FetchStreamTransport } from "@langchain/langgraph-sdk/react";
+
 
 const DEFAULT_API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
@@ -172,7 +174,7 @@ function ProcessingBubble({ isVisible, thinking, elapsedMs }) {
                 </span>
               </strong>
 
-              <p>{currentStatus}</p>
+              <p className="processing-current-status"> {currentStatus}</p>
             </div>
           </div>
 
@@ -191,7 +193,7 @@ function ProcessingBubble({ isVisible, thinking, elapsedMs }) {
                   ].join(" ")}
                 >
                   <span className="processing-step-dot" aria-hidden="true" />
-                  <span>{step}</span>
+                  <span className="processing-step-label">{step}</span>
                 </div>
               );
             })}
@@ -541,13 +543,22 @@ export default function App() {
 
           <div className="input-actions">
             <span className="hint">Enter envia · Shift + Enter quebra linha</span>
-
             <button
               type="submit"
               disabled={!input.trim() || isStreaming}
-              className="send-btn"
+              className={`send-btn ${isStreaming ? "is-processing" : ""}`}
+              aria-label={isStreaming ? "Processando mensagem" : "Enviar mensagem"}
+              title={isStreaming ? "Processando" : "Enviar"}
             >
-              {isStreaming ? "Processando..." : "Enviar"}
+              {isStreaming ? (
+                <span className="send-dots" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                </span>
+              ) : (
+                <IoSend className="send-icon" aria-hidden="true" />
+              )}
             </button>
           </div>
         </form>
