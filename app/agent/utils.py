@@ -2,10 +2,14 @@ import ast
 import time
 from contextlib import contextmanager
 from app.agent.state import AgentState
-from langchain_core.messages import ToolMessage
+from langchain_core.messages import ToolMessage, AIMessage, HumanMessage
 import re
 import unicodedata
 from typing import Any
+from sqlalchemy import inspect
+from app.core.config import db_bussola
+import json
+
 
 # FUNÇÃO PARA CONTAGEM DE TOKENS POR NÓ
 def token_count(response, node_name: str):
@@ -859,3 +863,63 @@ def detect_continuation_question(
         return True
 
     return False
+
+_SCHEMA_CACHE: str | None = None
+
+def get_schema_string() -> str:
+    global _SCHEMA_CACHE
+    if _SCHEMA_CACHE:
+        return _SCHEMA_CACHE
+
+    inspector = inspect(db_bussola._engine)
+    tables = inspector.get_table_names()
+    
+    lines = []
+    for table in tables:
+        cols = inspector.get_columns(table)
+        pk_cols = inspector.get_pk_constraint(table).get("constrained_columns", [])
+        col_strs = [
+            f"{c['name']}{'*' if c['name'] in pk_cols else ''} ({c['type']})"
+            for c in cols
+        ]
+        lines.append(f"• {table}: {', '.join(col_strs)}")
+    
+    _SCHEMA_CACHE = "\n".join(lines)
+    return _SCHEMA_CACHE
+
+
+MAX_TOOL_PAIRS = 3  
+
+def trim_messages_for_llm(messages: list, max_tool_pairs: int = 3) -> list:
+    """
+    Mantém: SystemMessage, última HumanMessage, e apenas os N últimos
+    pares AIMessage(tool_calls) + ToolMessage(s).
+    Remove pares antigos para não inflar o contexto.
+    """
+    user_msg = next((m for m in reversed(messages) if isinstance(m, HumanMessage)), None)
+    
+    pairs = []
+    i = len(messages) - 1
+    while i >= 0 and len(pairs) < max_tool_pairs:
+        msg = messages[i]
+        if isinstance(msg, ToolMessage):
+
+            j = i - 1
+            while j >= 0 and not (isinstance(messages[j], AIMessage) and messages[j].tool_calls):
+                j -= 1
+            if j >= 0:
+                pairs.insert(0, messages[j:i+1])
+                i = j - 1
+            else:
+                i -= 1
+        else:
+            i -= 1
+
+    flat_pairs = [msg for pair in pairs for msg in pair]
+    
+    result = []
+    if user_msg and user_msg not in flat_pairs:
+        result.append(user_msg)
+    result.extend(flat_pairs)
+    
+    return result

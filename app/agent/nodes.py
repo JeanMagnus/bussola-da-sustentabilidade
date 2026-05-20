@@ -10,11 +10,11 @@ from app.agent.tools import tools_agent, tools_chat, tools_rag
 from app.core.config import trimmer
 from app.agent.memory import vector_store, guide_vector_store, guide_vector_store_large
 from app.agent.utils import (
-    timer, token_count, token_count_total, build_last_result_context_from_messages,
+    get_schema_string, timer, token_count, token_count_total, build_last_result_context_from_messages,
     build_tool_error_messages, collect_required_values, sql_preserves_required_values,
     build_context_resolution_from_state, build_lightweight_context,
     build_search_query_from_state, is_likely_continuation_question,
-    detect_continuation_question, build_resolved_question_generic,
+    detect_continuation_question, build_resolved_question_generic, trim_messages_for_llm,
 )
 from app.schemas.chat import IntentRouter, KeywordExtraction, ContextResolution
 from langgraph.graph import END
@@ -98,6 +98,11 @@ async def context_resolution_node(state: AgentState, config: RunnableConfig) -> 
     return {
         "is_continuation": is_continuation,
         "resolved_question": resolved_question,
+        "context_resolution": {
+            "referents": previous_context.get("entities", []) if previous_context else [],
+            "raw_previous_context": previous_context,
+            "user_text": user_text,
+        }
     }
 
 async def summarization_node(state: AgentState, config: RunnableConfig) -> AgentState:
@@ -333,6 +338,15 @@ async def agent(state: AgentState, config: RunnableConfig):
 
             context_block = ""
 
+            schema_block = f"""
+            --- SCHEMA DO BANCO (LEITURA OBRIGATÓRIA) ---
+            Você já conhece todas as tabelas e colunas. NÃO use sql_db_schema a menos que receba um erro de coluna inexistente.
+
+            {get_schema_string()}
+
+            Aliases aceitos: situacional→situacional_2023, ibge→ibge, salarios→salarios_e_visitas, selo→selo
+            ---------------------------------------------
+            """
 
             if is_continuation and (previous_turn_context or context_resolution):
                 context_block = f"""
@@ -359,19 +373,19 @@ async def agent(state: AgentState, config: RunnableConfig):
                 -------------------------
                 """
 
-            sql_plan = state.get("sql_plan", "")
-            plan_block = ""
-            if sql_plan:
-                plan_block = f"""
-                --- DICIONÁRIO DE DADOS (LEITURA OBRIGATÓRIA) ---
-                Abaixo estão as regras brutas do banco de dados e as colunas disponíveis relacionadas à pergunta do usuário.
-                LEIA com atenção para saber quais colunas usar, se é necessário fazer CAST de tipos e como fazer JOINs:
-                {sql_plan}
+            # sql_plan = state.get("sql_plan", "")
+            # plan_block = ""
+            # if sql_plan:
+            #     plan_block = f"""
+            #     --- DICIONÁRIO DE DADOS (LEITURA OBRIGATÓRIA) ---
+            #     Abaixo estão as regras brutas do banco de dados e as colunas disponíveis relacionadas à pergunta do usuário.
+            #     LEIA com atenção para saber quais colunas usar, se é necessário fazer CAST de tipos e como fazer JOINs:
+            #     {sql_plan}
 
-                1. MÉDIAS: Sempre use AVG(CAST(REPLACE(nota, ',', '.') AS NUMERIC)).
-                2. NOMES PRÓPRIOS/CIDADES: NUNCA use '=' ou 'IN' com strings literais. USE SEMPRE `ILIKE` e remova acentos (ex: `cidade ILIKE '%MIGUEL DO GOSTOSO%'`).
-                3. BUSCA VAZIA: Se a query retornar [], PARE. Use `SELECT DISTINCT coluna` para entender os dados reais antes de tentar de novo.
-                -------------------------------------------------                """
+            #     1. MÉDIAS: Sempre use AVG(CAST(REPLACE(nota, ',', '.') AS NUMERIC)).
+            #     2. NOMES PRÓPRIOS/CIDADES: NUNCA use '=' ou 'IN' com strings literais. USE SEMPRE `ILIKE` e remova acentos (ex: `cidade ILIKE '%MIGUEL DO GOSTOSO%'`).
+            #     3. BUSCA VAZIA: Se a query retornar [], PARE. Use `SELECT DISTINCT coluna` para entender os dados reais antes de tentar de novo.
+            #     -------------------------------------------------                """
 
             last_msg_content = str(messages[-1].content)
             has_error = "does not exist" in last_msg_content.lower() or "error" in last_msg_content.lower()
@@ -390,14 +404,12 @@ async def agent(state: AgentState, config: RunnableConfig):
                 current_tools = tools_agent
                 prompt_with_mission = f"""{SYSTEM_PROMPT}
                 {context_block}
-                {plan_block}
 
                 MISSÃO ATUAL:
                 Pergunta resolvida: "{actual_question}"
                 Pergunta original: "{raw_question}"
 
-                INSTRUÇÃO DE FLUXO:
-                - O Plano de Acesso é um guia. Os dados exatos e atualizados estão no banco.
+                {schema_block}
                 
                 --- REGRAS INQUEBRÁVEIS ---
                 1. NÃO repita a mesma query se ela retornou VAZIA ([]). Mude a abordagem ou simplifique os filtros.
@@ -409,6 +421,7 @@ async def agent(state: AgentState, config: RunnableConfig):
                 prompt_with_mission += "\nAVISO CRÍTICO: A execução SQL anterior falhou (coluna inexistente ou erro de sintaxe). Reveja os nomes das colunas e os tipos de dados (CAST)."
 
             recent_msgs = messages[-10:]
+            #recent_msgs = trim_messages_for_llm(messages, max_tool_pairs=3)
             user_msg = next((m for m in reversed(messages) if isinstance(m, HumanMessage)), None)
             while recent_msgs and isinstance(recent_msgs[0], ToolMessage):
                 recent_msgs = recent_msgs[1:]
@@ -421,9 +434,9 @@ async def agent(state: AgentState, config: RunnableConfig):
             print(f"   [INFO] Enviando {len(messages_to_send)} mensagens para o LLM.")
 
             # FALLBACK BLOCK 
-            second_model_with_tools = deepseek_model.bind_tools(current_tools, parallel_tool_calls=False) if current_tools else deepseek_model
-            third_model_with_tools = model.bind_tools(current_tools, parallel_tool_calls=False) if current_tools else model
-            model_with_tools = kimi_model.bind_tools(current_tools, parallel_tool_calls=False) if current_tools else kimi_model
+            second_model_with_tools = deepseek_model.bind_tools(current_tools, parallel_tool_calls=True) if current_tools else deepseek_model
+            third_model_with_tools = model.bind_tools(current_tools, parallel_tool_calls=True) if current_tools else model
+            model_with_tools = kimi_model.bind_tools(current_tools, parallel_tool_calls=True) if current_tools else kimi_model
             model_with_fallback = model_with_tools.with_fallbacks([second_model_with_tools, third_model_with_tools])
 
             with get_openai_callback() as cb:
@@ -595,7 +608,24 @@ def verify_sql(state: AgentState):
 
             tool_call = sql_query_calls[0]
             query_gerada = tool_call["args"].get("query", "")
+            last_sql_query = state.get("last_sql_query")
 
+            def normalize_sql(sql: str) -> str:
+                return re.sub(r"\s+", " ", sql or "").strip().lower()
+            
+            if last_sql_query and normalize_sql(last_sql_query) == normalize_sql(query_gerada):
+                error_content = (
+                    "ERRO DE VALIDAÇÃO SQL: Você tentou executar exatamente a mesma consulta SQL novamente. "
+                    "Não repita a mesma consulta. Use o resultado anterior para gerar a resposta final, "
+                    "ou gere uma consulta realmente diferente se houver uma justificativa."
+                )
+
+                return {
+                    "messages": build_tool_error_messages(last_msg, error_content),
+                    "error_occurred": False,
+                    "sql_blocked": True,
+                    "sql_validation_error": error_content,
+                }
             
 
             print(f"-- AGENTE TENTANDO EXECUTAR: \n{query_gerada}\n")

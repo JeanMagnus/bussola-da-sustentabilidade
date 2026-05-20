@@ -308,229 +308,94 @@ def sql_query_builder(
 
 @tool
 def sql_db_query(
-    query: Annotated[
-        str,
-        """
-        Consulta SQL SELECT a ser executada no banco PostgreSQL.
-
-        REGRAS OBRIGATÓRIAS:
-        - Use apenas SELECT.
-        - É obrigatório usar LIMIT, no máximo LIMIT 15.
-        - Nunca use SELECT *.
-        - Para filtros textuais com nomes de cidades, municípios, destinos ou nomes próprios,
-          SEMPRE use busca tolerante a acentos e maiúsculas/minúsculas.
-
-        PADRÃO OBRIGATÓRIO PARA CIDADES/NOMES:
-        Use:
-            unaccent(coluna::text) ILIKE unaccent('%valor%')
-
-        Exemplo correto:
-            SELECT cidade, uf, codigo_municipio
-            FROM situacional_2023
-            WHERE unaccent(cidade::text) ILIKE unaccent('%Treze Tilias%')
-            LIMIT 15
-
-        Exemplo errado:
-            WHERE cidade ILIKE '%Treze Tilias%'
-
-        Exemplo errado:
-            WHERE cidade = 'Treze Tilias'
-        """
-    ]
+    query: Annotated[str, "Query SELECT para executar no PostgreSQL. LIMIT obrigatório (máx 15)."]
 ) -> str:
-    """
-    A ÚNICA ferramenta disponível para acessar o banco de dados.
-
-    Executa consultas SQL SELECT no PostgreSQL e retorna os resultados.
-
-    INSTRUÇÕES CRÍTICAS PARA O AGENTE:
-    - NÃO gere tags `<|DSML|>`.
-    - Para nomes de cidades, municípios, destinos ou nomes próprios, use obrigatoriamente:
-
-        unaccent(coluna::text) ILIKE unaccent('%valor%')
-
-    Isso evita erro com:
-    - acentos: "Tílias" vs "Tilias";
-    - maiúsculas/minúsculas: "Bombinhas" vs "BOMBINHAS";
-    - variações simples de escrita.
-    """
+    """Executa SELECT no banco. Use sql_query_builder para montar a query antes."""
 
     query = query.strip()
     query_upper = query.upper()
 
-    forbidden_keywords = [
-        "DROP ",
-        "DELETE ",
-        "UPDATE ",
-        "INSERT ",
-        "ALTER ",
-        "TRUNCATE ",
-        "GRANT ",
-        "REVOKE ",
-        "CREATE ",
-        "REPLACE ",
-    ]
+    FORBIDDEN = ["DROP ", "DELETE ", "UPDATE ", "INSERT ",
+                 "ALTER ", "TRUNCATE ", "GRANT ", "REVOKE ", "CREATE "]
 
-    if any(keyword in query_upper for keyword in forbidden_keywords):
-        return "ERRO DE SEGURANÇA: Apenas consultas SELECT são permitidas."
-
+    if any(kw in query_upper for kw in FORBIDDEN):
+        return "ERRO DE SEGURANÇA: Apenas SELECT é permitido."
     if not query_upper.startswith("SELECT"):
-        return "ERRO DE SEGURANÇA: A consulta deve começar com SELECT."
-
+        return "ERRO: A consulta deve começar com SELECT."
     if "SELECT *" in query_upper:
-        return (
-            "ERRO DE CONSULTA: Não use SELECT *. "
-            "Selecione apenas as colunas necessárias para responder ao usuário."
-        )
-
+        return "ERRO: Não use SELECT *. Especifique as colunas necessárias."
     if " LIMIT " not in query_upper:
-        return (
-            "ERRO DE CONSULTA: Toda consulta precisa usar LIMIT, no máximo LIMIT 15."
-        )
+        return "ERRO: Toda query precisa de LIMIT (máximo 15)."
 
     limit_match = re.search(r"\bLIMIT\s+(\d+)\b", query_upper)
-    if limit_match:
-        limit_value = int(limit_match.group(1))
-        if limit_value > 15:
-            return (
-                "ERRO DE CONSULTA: O LIMIT máximo permitido é 15. "
-                "Refaça a query usando LIMIT 15 ou menor."
-            )
+    if limit_match and int(limit_match.group(1)) > 15:
+        return "ERRO: LIMIT máximo é 15."
 
-    text_columns = [
-        "cidade",
-        "municipio",
-        "município",
-        "destino",
-        "nome",
-    ]
-
-    uses_text_column = any(
+    # Checagem de unaccent para colunas textuais
+    uses_text_col = any(
         re.search(rf"\b{col}\b", query, flags=re.IGNORECASE)
-        for col in text_columns
+        for col in ["cidade", "municipio", "município", "destino", "nome"]
     )
+    uses_filter = bool(re.search(r"\b(ILIKE|LIKE|=|IN)\s*(\(|')", query, re.IGNORECASE))
 
-    uses_text_filter = bool(
-        re.search(
-            r"\b(ILIKE|LIKE|=|IN)\s*(\(|')",
-            query,
-            flags=re.IGNORECASE,
-        )
-    )
-
-    uses_unaccent = "unaccent(" in query.lower()
-
-    if uses_text_column and uses_text_filter and not uses_unaccent:
+    if uses_text_col and uses_filter and "unaccent(" not in query.lower():
         return (
-            "ERRO DE CONSULTA: Para filtros textuais com cidade, município, destino "
-            "ou nome próprio, use busca tolerante a acentos e maiúsculas/minúsculas.\n\n"
-            "Use este padrão:\n"
-            "unaccent(coluna::text) ILIKE unaccent('%valor%')\n\n"
-            "Exemplo:\n"
-            "SELECT cidade, uf, codigo_municipio\n"
-            "FROM situacional_2023\n"
-            "WHERE unaccent(cidade::text) ILIKE unaccent('%Treze Tilias%')\n"
-            "LIMIT 15;"
+            "ERRO: Use unaccent para filtros textuais:\n"
+            "  unaccent(coluna::text) ILIKE unaccent('%valor%')"
         )
 
     try:
-        print(f"\n [TOOL SQL] Executando: {query}")
+        print(f"[SQL] Executando: {query}")
+        resultado = db_bussola.run(query)  # ← executa UMA vez
 
-        resultado_bruto = db_bussola.run(query)
+        if not resultado or str(resultado).strip() == "":
+            return "Query executada com sucesso, mas sem resultados."
 
-        if not resultado_bruto or str(resultado_bruto).strip() == "":
-            return "A consulta foi executada com sucesso, mas retornou 0 resultados."
-
-        # MAX_CHARS = 10000
-
-        resultado_str = str(resultado_bruto)
-
-        # if len(resultado_str) > MAX_CHARS:
-        #     print(
-        #         f"   [Aviso] Resultado longo ({len(resultado_str)} chars). "
-        #         f"Truncando para {MAX_CHARS}."
-        #     )
-        #     return (
-        #         resultado_str[:MAX_CHARS]
-        #         + '... [RESULTADO CORTADO PARA POUPAR TOKENS. '
-        #         + 'REFAÇA A QUERY COM UM "LIMIT" MENOR OU AGREGAÇÃO SE PRECISAR DE MAIS DADOS].'
-        #     )
-        
-        resultado_bruto = db_bussola.run(query)
-
-        print(f"   [TOOL SQL] Resultado bruto repr: {repr(resultado_bruto)[:1000]}")
-
-        if not resultado_bruto or str(resultado_bruto).strip() == "":
-            print("   [TOOL SQL] Resultado vazio.")
-            return "A consulta foi executada com sucesso, mas retornou 0 resultados."
-
-        return resultado_str
+        return str(resultado)
 
     except Exception as e:
-        erro_limpo = str(e).split("\n")[0]
-        print(f"   [Erro DB] {erro_limpo}")
+        erro = str(e).split("\n")[0]
+        print(f"[SQL ERROR] {erro}")
 
-        if "unaccent" in erro_limpo.lower():
-            return (
-                "Erro de execução SQL: a função unaccent parece não estar habilitada "
-                "no banco de dados. É necessário habilitar a extensão PostgreSQL "
-                "unaccent com: CREATE EXTENSION IF NOT EXISTS unaccent;"
-            )
+        if "unaccent" in erro.lower():
+            return "Erro: extensão unaccent não habilitada. Execute: CREATE EXTENSION IF NOT EXISTS unaccent;"
+        if "does not exist" in erro.lower():
+            return f"Erro: coluna ou tabela não existe. Use sql_db_schema para verificar. Detalhe: {erro}"
 
-        return (
-            f"Erro de Sintaxe ou Execução SQL: {erro_limpo}. "
-            "Revise a query, os nomes das colunas e os tipos utilizados."
-        )
+        return f"Erro SQL: {erro}"
+
 
 
 @tool
 def sql_db_schema(
-    table_names: Annotated[str, "Uma string com os nomes das tabelas separados por vírgula (ex: 'ibge, selo')."]
+    table_names: Annotated[str, "Nomes das tabelas separados por vírgula"]
 ) -> str:
-    """
-    Retorna a estrutura OTIMIZADA (apenas colunas, tipos e chaves primárias) das tabelas solicitadas.
-    Use esta ferramenta IMEDIATAMENTE se receber um erro de "column does not exist" ou 
-    "relation does not exist" para descobrir os nomes exatos antes de tentar a query novamente.
-    """
+    """Retorna estrutura das tabelas. Use ao receber erro 'column does not exist'."""
     try:
-        print(f"\n [TOOL SCHEMA] Inspecionando tabelas: {table_names}")
-        
-        tables = [t.strip() for t in table_names.split(",") if t.strip()]
-        
+        tables = [_normalize_table(t) for t in table_names.split(",") if t.strip()]  # ← fix
+
         if not tables:
-            return "ERRO: Nenhuma tabela foi fornecida. Envie os nomes separados por vírgula."
+            return "ERRO: Nenhuma tabela fornecida."
 
         inspector = inspect(db_bussola._engine)
         schema_info = []
-        
+
         for table in tables:
             try:
                 columns = inspector.get_columns(table)
-                pk_cols = inspector.get_pk_constraint(table).get('constrained_columns', [])
-                
-                col_details = []
-                for c in columns:
-                    pk_marker = "*" if c['name'] in pk_cols else ""
-                    col_details.append(f"{c['name']}{pk_marker} ({c['type']})")
-                
+                pk_cols = inspector.get_pk_constraint(table).get("constrained_columns", [])
+                col_details = [
+                    f"{c['name']}{'*' if c['name'] in pk_cols else ''} ({c['type']})"
+                    for c in columns
+                ]
                 schema_info.append(f"Tabela '{table}': {', '.join(col_details)}")
-                
-            except Exception as e:
-                schema_info.append(f"Tabela '{table}': Erro - Esta tabela não existe no banco de dados.")
-        
-        resultado_str = "\n".join(schema_info)
-        
-        # MAX_CHARS = 1000 
-        # if len(resultado_str) > MAX_CHARS:
-        #     print(f"   [Aviso] Schema muito longo ({len(resultado_str)} chars). Truncando para {MAX_CHARS}.")
-        #     return resultado_str[:MAX_CHARS] + '... [SCHEMA CORTADO PARA POUPAR TOKENS].'
+            except Exception:
+                schema_info.append(f"Tabela '{table}': não existe no banco.")
 
-        return resultado_str
+        return "\n".join(schema_info)
 
     except Exception as e:
-        erro_limpo = str(e).split('\n')[0] 
-        print(f"   [Erro Schema] {erro_limpo}")
-        return f"Erro ao tentar ler a estrutura do banco: {erro_limpo}"
+        return f"Erro ao ler estrutura: {str(e).split(chr(10))[0]}"
 
 @tool
 def retrieve_about(
@@ -576,8 +441,8 @@ db_tools_filtered = [
     tool for tool in db_tools 
     if tool.name not in excluded_tool_names
 ]
-#tools_agent = [store_memory_tool, retrieve_memories_tool, retrieve_last_ai_message_tool, retrieve_about] + db_tools
-tools_agent = [store_memory_tool, retrieve_memories_tool, retrieve_last_ai_message_tool, sql_db_query, retrieve_about, sql_db_schema]
+tools_agent = [store_memory_tool, retrieve_memories_tool, retrieve_last_ai_message_tool, retrieve_about] + db_tools
+#tools_agent = [store_memory_tool, retrieve_memories_tool, retrieve_last_ai_message_tool, sql_db_query, retrieve_about, sql_db_schema]
 tools_chat = [store_memory_tool, retrieve_memories_tool, retrieve_last_ai_message_tool, retrieve_about]
 tools_rag = [retrieve_last_ai_message_tool]
 tool_node = ToolNode(tools=tools_agent)
