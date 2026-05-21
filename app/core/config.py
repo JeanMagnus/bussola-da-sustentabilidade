@@ -1,7 +1,7 @@
 import os 
 from dotenv import load_dotenv
 from langchain_community.utilities import SQLDatabase
-from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
+from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings, ChatOpenAI
 from langchain_core.messages import trim_messages
 from langchain_openai.middleware import OpenAIModerationMiddleware
 from langchain.agents import create_agent
@@ -15,7 +15,7 @@ class Settings:
 
     AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
     AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
-    AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
+    # AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
     AZURE_OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT")
 
     AZURE_OPENAI_EMBEDDING_DEPLOYMENT = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT")
@@ -45,6 +45,9 @@ class Settings:
     AZURE_DEEPSEEK_ENDPOINT = os.getenv("AZURE_DEEPSEEK_ENDPOINT")
     AZURE_DEEPSEEK_API_VERSION = os.getenv("AZURE_DEEPSEEK_API_VERSION")
     AZURE_DEEPSEEK_DEPLOYMENT = os.getenv("AZURE_DEEPSEEK_DEPLOYMENT")
+
+    AZURE_OPENAI_BASE_URL = os.getenv("AZURE_OPENAI_BASE_URL")
+    AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
 
 settings = Settings()
 
@@ -80,18 +83,48 @@ deepseek_model = AzureChatOpenAI(
     tags=["resposta_final"],
 )
 
-kimi_model = AzureChatOpenAI(
-    model = "Kimi-K2.5",
-    azure_deployment = settings.AZURE_KIMI_DEPLOYMENT,
-    api_version = settings.AZURE_KIMI_API_VERSION,
-    azure_endpoint = settings.AZURE_KIMI_ENDPOINT,
-    api_key = settings.AZURE_KIMI_API_KEY,
+gpt_model = ChatOpenAI(
+    model = "gpt-5-mini",
+    base_url = settings.AZURE_OPENAI_BASE_URL,
+    api_key = settings.AZURE_OPENAI_API_KEY,
     temperature = 0,
-    max_retries = 5,
-    reasoning_effort = "low",
-    timeout = 45.0,
     tags=["resposta_final"],
 )
+
+kimi_model = ChatOpenAI(
+    model = "Kimi-K2.5",
+    base_url = settings.AZURE_OPENAI_BASE_URL,
+    api_key = settings.AZURE_OPENAI_API_KEY,
+    temperature = 0,
+    tags=["resposta_final"],
+)
+
+summarizer_model = ChatOpenAI(
+    model = "grok-4-1-fast-non-reasoning",
+    base_url = settings.AZURE_OPENAI_BASE_URL,
+    api_key = settings.AZURE_OPENAI_API_KEY,
+)
+
+llama_model = ChatOpenAI(
+    model = "Llama-3.3-70B-Instruct",
+    base_url = settings.AZURE_OPENAI_BASE_URL,
+    api_key = settings.AZURE_OPENAI_API_KEY, 
+    temperature = 0,
+    tags=["resposta_final"],
+)
+
+# kimi_model = AzureChatOpenAI(
+#     model = "Kimi-K2.5",
+#     azure_deployment = settings.AZURE_KIMI_DEPLOYMENT,
+#     api_version = settings.AZURE_KIMI_API_VERSION,
+#     azure_endpoint = settings.AZURE_KIMI_ENDPOINT,
+#     api_key = settings.AZURE_KIMI_API_KEY,
+#     temperature = 0,
+#     max_retries = 5,
+#     reasoning_effort = "low",
+#     timeout = 45.0,
+#     tags=["resposta_final"],
+# )
 
 # summarizer_model = AzureChatOpenAI(
 #     model = "gpt-5-nano",
@@ -102,11 +135,12 @@ kimi_model = AzureChatOpenAI(
 #     temperature = 0,
 # )
 
-summarizer_model = ChatGroq(
-    model = "llama-3.1-8b-instant",
-    groq_api_key = settings.GROQ_API_KEY,
-    temperature = 0,
-)
+# summarizer_model = ChatGroq(
+#     model = "llama-3.1-8b-instant",
+#     groq_api_key = settings.GROQ_API_KEY,
+#     temperature = 0,
+# )
+
 
 classify_model = ChatGroq(
     model = "llama-3.3-70b-versatile",

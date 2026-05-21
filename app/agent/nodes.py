@@ -3,7 +3,7 @@ import re
 from urllib import response
 from app.agent import state
 from app.core import config
-from app.core.config import model, db_bussola, summarizer_model, moderation_model, deepseek_model, rag_model, classify_model, kimi_model
+from app.core.config import model, db_bussola, summarizer_model, moderation_model, deepseek_model, rag_model, classify_model, kimi_model, gpt_model,llama_model
 from app.agent.state import AgentState
 from app.agent.prompt import SYSTEM_PROMPT
 from app.agent.tools import tools_agent, tools_chat, tools_rag
@@ -393,9 +393,13 @@ async def agent(state: AgentState, config: RunnableConfig):
             if state.get("intent") == "CONVERSA":
                 print("   [ROTA] Chat Simples")
                 current_tools = tools_chat
-                prompt_with_mission = f"""Você é o Assistente do Projeto Bússola da Sustentabilidade.
-            Responda de forma educada e prestativa à seguinte interação do usuário.
-            Mantenha a resposta curta.
+                prompt_with_mission = f"""Você é um especialista em análise de dados sobre turismo sustentável.
+
+                    Existe um banco de dados interno com todos os dados necessários para responder ao usuário.
+                    Você deve usar exclusivamente esse banco. Não faça consultas externas e não invente dados.
+
+                    Sua análise deve ser silenciosa: não mencione ferramentas, SQL, nomes técnicos de tabelas, prompts ou infraestrutura.
+                    Responda de forma clara, objetiva, profissional, gentil e amigável.
             
             Memória: {context_block}
             """
@@ -412,35 +416,65 @@ async def agent(state: AgentState, config: RunnableConfig):
                 {schema_block}
                 
                 --- REGRAS INQUEBRÁVEIS ---
+
                 1. NÃO repita a mesma query se ela retornou VAZIA ([]). Mude a abordagem ou simplifique os filtros.
                 2. É PROIBIDO chamar a mesma ferramenta com os mesmos argumentos mais de uma vez consecutiva.
                 3. Se a query estourar o limite de linhas, o sistema truncará. Adicione LIMIT nas suas queries.
+                4. Para comparação entre cidades, gere UMA ÚNICA query consolidada com CTEs.
+                5. Para comparação, não faça query separada por cidade.
+                6. Para comparação, não consulte top100_15 se top100_30 já retornou dados suficientes.
+                7. Se uma sql_db_query retornar linhas com as colunas necessárias para responder, NÃO chame sql_db_query novamente.
+                8. É proibido chamar a mesma ferramenta com os mesmos argumentos mais de uma vez consecutiva.
+                9. Se precisar comparar cidades, use CTE cidades_alvo(cidade_ref, uf_ref) com VALUES.
                 """
 
             if has_error:
                 prompt_with_mission += "\nAVISO CRÍTICO: A execução SQL anterior falhou (coluna inexistente ou erro de sintaxe). Reveja os nomes das colunas e os tipos de dados (CAST)."
 
-            recent_msgs = messages[-10:]
-            #recent_msgs = trim_messages_for_llm(messages, max_tool_pairs=3)
-            user_msg = next((m for m in reversed(messages) if isinstance(m, HumanMessage)), None)
-            while recent_msgs and isinstance(recent_msgs[0], ToolMessage):
-                recent_msgs = recent_msgs[1:]
+            # recent_msgs = messages[-5:]
+            # #recent_msgs = trim_messages_for_llm(messages, max_tool_pairs=3)
+            # user_msg = next((m for m in reversed(messages) if isinstance(m, HumanMessage)), None)
+            # while recent_msgs and isinstance(recent_msgs[0], ToolMessage):
+            #     recent_msgs = recent_msgs[1:]
                 
-            if user_msg and user_msg not in recent_msgs:
-                recent_msgs = [user_msg] + recent_msgs
+            # if user_msg and user_msg not in recent_msgs:
+            #     recent_msgs = [user_msg] + recent_msgs
 
-            messages_to_send = [SystemMessage(content=prompt_with_mission)] + recent_msgs
+            # messages_to_send = [SystemMessage(content=prompt_with_mission)] + recent_msgs
+
+            def get_current_turn_messages(messages):
+                last_user_idx = 0
+
+                for i in range(len(messages) - 1, -1, -1):
+                    if isinstance(messages[i], HumanMessage):
+                        last_user_idx = i
+                        break
+
+                return messages[last_user_idx:]
+            
+            current_turn_msgs = get_current_turn_messages(messages)
+
+            messages_to_send = [
+                SystemMessage(content=prompt_with_mission),
+                *current_turn_msgs,
+            ]
             
             print(f"   [INFO] Enviando {len(messages_to_send)} mensagens para o LLM.")
 
             # FALLBACK BLOCK 
-            second_model_with_tools = deepseek_model.bind_tools(current_tools, parallel_tool_calls=True) if current_tools else deepseek_model
-            third_model_with_tools = model.bind_tools(current_tools, parallel_tool_calls=True) if current_tools else model
-            model_with_tools = kimi_model.bind_tools(current_tools, parallel_tool_calls=True) if current_tools else kimi_model
-            model_with_fallback = model_with_tools.with_fallbacks([second_model_with_tools, third_model_with_tools])
+            # second_model_with_tools = deepseek_model.bind_tools(current_tools, parallel_tool_calls=True) if current_tools else deepseek_model
+            # third_model_with_tools = model.bind_tools(current_tools, parallel_tool_calls=True) if current_tools else model
+            # model_with_tools = kimi_model.bind_tools(current_tools, parallel_tool_calls=True) if current_tools else kimi_model
+            # model_with_fallback = model_with_tools.with_fallbacks([second_model_with_tools, third_model_with_tools])
+            
+            if state.get("intent") == "CONVERSA":
+                model_use = gpt_model
+            else:
+                model_use = kimi_model
 
             with get_openai_callback() as cb:
-                response = await model_with_fallback.ainvoke(messages_to_send, config=config)
+                model_with_tools = model_use.bind_tools(current_tools, parallel_tool_calls=True) if current_tools else gpt_model   
+                response = await model_with_tools.ainvoke(messages_to_send, config=config)
 
             print(" VISUALIZANDO USO DE TOKENS DO AGENTE ")
             print(f"Total de Tokens: {cb.total_tokens}")
@@ -805,6 +839,130 @@ def fallback_node (state: AgentState):
             )
             
     return {"messages": tool_messages}
+
+def compact_result_context(result_context: dict, max_rows: int = 40) -> dict:
+    """
+    Reduz o tamanho do last_result_context antes de enviar ao modelo final.
+    Evita mandar milhares de linhas para o GPT.
+    """
+
+    if not isinstance(result_context, dict):
+        return {
+            "row_count": 0,
+            "columns": [],
+            "rows_preview": str(result_context)[:4000],
+            "truncated": True,
+        }
+
+    rows = result_context.get("rows", [])
+    columns = result_context.get("columns", [])
+    row_count = result_context.get("row_count")
+
+    if row_count is None:
+        row_count = len(rows) if isinstance(rows, list) else 0
+
+    if isinstance(rows, list):
+        rows_preview = rows[:max_rows]
+        truncated = len(rows) > max_rows
+    else:
+        rows_preview = str(rows)[:4000]
+        truncated = True
+
+    return {
+        "row_count": row_count,
+        "columns": columns,
+        "rows_preview": rows_preview,
+        "truncated": truncated,
+    }
+
+def capture_tool_result_node(state: AgentState):
+    print("--- CAPTURE TOOL RESULT NODE ---")
+
+    captured_context_update = build_last_result_context_from_messages(state)
+
+    if not captured_context_update:
+        print("   [CAPTURE] Nenhum resultado de tool capturado.")
+        return {}
+
+    ctx = captured_context_update.get("last_result_context", {})
+
+    if isinstance(ctx, dict):
+        row_count = ctx.get("row_count", 0)
+    else:
+        row_count = 0
+
+    print(f"   [CAPTURE] last_result_context atualizado com {row_count} linhas.")
+
+    return captured_context_update
+
+def get_last_tool_name(state: AgentState) -> str | None:
+    messages = state.get("messages", [])
+
+    for msg in reversed(messages):
+        if isinstance(msg, ToolMessage):
+            return getattr(msg, "name", None)
+
+    return None
+
+
+def result_is_sufficient(state: AgentState) -> bool:
+    """
+    Versão inicial simples:
+    se uma sql_db_query retornou pelo menos uma linha, já pode formular resposta final.
+
+    Depois você pode sofisticar isso usando:
+    - sql_strategy;
+    - min_rows;
+    - colunas obrigatórias;
+    - entidades esperadas.
+    """
+
+    ctx = state.get("last_result_context") or {}
+
+    if not isinstance(ctx, dict):
+        return False
+
+    row_count = ctx.get("row_count", 0)
+
+    return row_count > 0
+
+
+async def answer_generation_node(state: AgentState, config: RunnableConfig):
+    print("--- ANSWER GENERATION NODE ---")
+    result = state.get("final_response")
+    question = state.get("resolved_question", "")
+    last_result_context = state.get("last_result_context") or {}
+
+    ANSWER_PROMPT = f""" Você é um especialista em análise de dados sobre turismo sustentável, 
+    e sua tarefa é gerar uma resposta final para o usuário com base na seguinte pergunta e resultado da consulta ao banco de dados:
+
+    Pergunta: {question}
+
+    Resultado: {result}
+    """
+    with get_openai_callback() as cb:
+        response = await gpt_model.ainvoke(
+            [SystemMessage(content=ANSWER_PROMPT)],
+            config=config
+        )
+
+    print("VISUALIZANDO USO DE TOKENS DO ANSWER_GENERATION_NODE:")
+    print(f"Total de Tokens: {cb.total_tokens}")
+    print(f"Tokens de Prompt: {cb.prompt_tokens}")
+    print(f"Tokens de Resposta: {cb.completion_tokens}")
+    print(f"Custo Total (USD): ${cb.total_cost}")
+
+    response_content = response.content or ""
+
+    return {
+        "messages": [AIMessage(content=response_content)],
+        "final_response": response_content,
+        "last_msg_ai": response_content,
+        "previous_turn_context": build_lightweight_context(
+            last_ai_message=response_content,
+            last_result_context=last_result_context,
+        ),
+    }
 
 def route_moderation_input(state: AgentState):
     print("--- DECIDINDO ROTA APÓS MODERATION INPUT ---")

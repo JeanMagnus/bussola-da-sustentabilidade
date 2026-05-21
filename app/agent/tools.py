@@ -9,6 +9,7 @@ from langgraph.prebuilt import ToolNode, InjectedState
 from langchain_core.runnables import RunnableConfig
 from langchain_core.documents import Document
 from langchain_core.tools import tool
+from pydantic import BaseModel, Field
 from typing import Annotated, List, Literal, Optional
 from app.core.config import model, db_bussola
 from app.agent.memory import vector_store, Memory, guide_vector_store, about_vector_store
@@ -431,6 +432,402 @@ def retrieve_about(
         return f"Erro ao buscar no índice 'about': {str(e)}"
 
 
+class SQLStrategyInput(BaseModel):
+    task_type: Literal[
+        "lookup_cidades",
+        "comparacao_cidades",
+        "resumo_avaliacoes",
+        "ranking_notas",
+        "evolucao_temporal",
+        "detalhamento_criterios",
+        "geral"
+    ] = Field(
+        description="Tipo da tarefa SQL identificada."
+    )
+
+    user_question: str = Field(
+        description="Pergunta original ou resolvida do usuário."
+    )
+
+    entities: Optional[list[str]] = Field(
+        default=None,
+        description="Entidades relevantes, como ['Apodi-RN', 'Bombinhas-SC']."
+    )
+
+
+@tool(args_schema=SQLStrategyInput)
+def get_sql_strategy(
+    task_type: str,
+    user_question: str,
+    entities: Optional[list[str]] = None,
+) -> str:
+    """
+    Retorna uma estratégia SQL recomendada para gerar uma única consulta mais objetiva.
+    Use antes de sql_db_query quando a pergunta exigir consulta ao banco.
+    """
+
+    strategies = {
+        "lookup_cidades": """
+ESTRATÉGIA SQL: LOOKUP DE CIDADES
+
+Use quando o usuário pedir:
+- código IBGE;
+- região;
+- mesorregião;
+- microrregião;
+- população;
+- PIB;
+- IDH;
+- bioma;
+- dados territoriais de cidades específicas.
+
+FORMATO:
+- Use uma única query.
+- Use CTE cidades_alvo(cidade_ref, uf_ref) com VALUES.
+- Use LEFT JOIN com ibge.
+- Retorne uma linha por cidade solicitada.
+- Preserve cidade e UF.
+- Não use ILIKE quando cidade e UF estiverem disponíveis.
+- Não use LIMIT se a lista fechada já estiver na CTE.
+
+MODELO:
+
+WITH cidades_alvo(cidade_ref, uf_ref) AS (
+    VALUES
+        ('Cidade1', 'UF'),
+        ('Cidade2', 'UF')
+)
+SELECT
+    ca.cidade_ref AS cidade_solicitada,
+    ca.uf_ref AS uf_solicitada,
+    i.codigo_municipio,
+    i.regiao_intermediaria,
+    i.mesorregiao,
+    i.microrregiao,
+    i.populacao,
+    i.pib,
+    i.idhm,
+    i.bioma
+FROM cidades_alvo ca
+LEFT JOIN ibge i
+    ON unaccent(upper(i.cidade::text)) = unaccent(upper(ca.cidade_ref))
+   AND upper(i.estado::text) = upper(ca.uf_ref)
+ORDER BY ca.uf_ref, ca.cidade_ref;
+
+RESULTADO SUFICIENTE:
+- Uma linha por cidade solicitada, mesmo que alguns campos venham nulos.
+- Se retornar as cidades solicitadas com as colunas pedidas, não consulte novamente.
+""",
+
+        "comparacao_cidades": """
+ESTRATÉGIA SQL: COMPARAÇÃO DE CIDADES
+
+Use quando o usuário pedir:
+- comparar cidades;
+- diferenças entre destinos;
+- qual cidade tem melhor desempenho;
+- comparação territorial, socioeconômica ou de notas.
+
+FORMATO:
+- Use uma única query consolidada.
+- Use CTE cidades_alvo.
+- Crie CTEs para dados territoriais, selo e métricas de notas.
+- Retorne preferencialmente uma linha por cidade.
+- Não faça uma query separada para cada cidade.
+
+MODELO:
+
+WITH cidades_alvo(cidade_ref, uf_ref) AS (
+    VALUES
+        ('Cidade1', 'UF'),
+        ('Cidade2', 'UF')
+),
+dados_ibge AS (
+    SELECT
+        ca.cidade_ref,
+        ca.uf_ref,
+        i.codigo_municipio,
+        i.regiao_intermediaria,
+        i.mesorregiao,
+        i.microrregiao,
+        i.populacao,
+        i.pib,
+        i.idhm,
+        i.salario_medio,
+        i.area_territorial,
+        i.bioma,
+        i.sistema_costeiro
+    FROM cidades_alvo ca
+    LEFT JOIN ibge i
+        ON unaccent(upper(i.cidade::text)) = unaccent(upper(ca.cidade_ref))
+       AND upper(i.estado::text) = upper(ca.uf_ref)
+),
+selo_gd AS (
+    SELECT
+        ca.cidade_ref,
+        ca.uf_ref,
+        s.selo
+    FROM cidades_alvo ca
+    LEFT JOIN selo s
+        ON upper(s.chave) = upper(ca.cidade_ref || '-' || ca.uf_ref)
+),
+notas AS (
+    SELECT
+        ca.cidade_ref,
+        ca.uf_ref,
+        AVG(CAST(REPLACE(t.nota, ',', '.') AS NUMERIC)) AS media_top100_30,
+        COUNT(t.nota) AS qtd_criterios_top100_30,
+        MAX(CAST(REPLACE(t.nota, ',', '.') AS NUMERIC)) AS melhor_nota_top100_30,
+        MIN(CAST(REPLACE(t.nota, ',', '.') AS NUMERIC)) AS pior_nota_top100_30
+    FROM cidades_alvo ca
+    LEFT JOIN top100_30 t
+        ON unaccent(upper(t.cidade::text)) = unaccent(upper(ca.cidade_ref))
+       AND upper(t.estado::text) = upper(ca.uf_ref)
+       AND t.nota IS NOT NULL
+    GROUP BY ca.cidade_ref, ca.uf_ref
+)
+SELECT
+    d.cidade_ref AS cidade,
+    d.uf_ref AS uf,
+    d.codigo_municipio,
+    d.regiao_intermediaria,
+    d.mesorregiao,
+    d.microrregiao,
+    d.populacao,
+    d.pib,
+    d.idhm,
+    d.salario_medio,
+    d.area_territorial,
+    d.bioma,
+    d.sistema_costeiro,
+    s.selo,
+    n.media_top100_30,
+    n.qtd_criterios_top100_30,
+    n.melhor_nota_top100_30,
+    n.pior_nota_top100_30
+FROM dados_ibge d
+LEFT JOIN selo_gd s
+    ON d.cidade_ref = s.cidade_ref
+   AND d.uf_ref = s.uf_ref
+LEFT JOIN notas n
+    ON d.cidade_ref = n.cidade_ref
+   AND d.uf_ref = n.uf_ref
+ORDER BY d.cidade_ref;
+
+RESULTADO SUFICIENTE:
+- Uma linha por cidade comparada.
+- Se houver dados territoriais e pelo menos alguma métrica ou status disponível, responda.
+- Não consulte top100_15 automaticamente se top100_30 já trouxe dados úteis.
+""",
+
+        "resumo_avaliacoes": """
+ESTRATÉGIA SQL: RESUMO DE AVALIAÇÕES
+
+Use quando o usuário perguntar:
+- quais avaliações uma cidade possui;
+- quais dados de avaliação existem;
+- quais foram as avaliações de uma cidade;
+- disponibilidade de Top100, GD ou pesquisa situacional.
+
+FORMATO:
+- Não busque todos os detalhes de primeira.
+- Faça primeiro um resumo por tipo de avaliação.
+- Retorne uma linha por tipo de avaliação.
+- Use UNION ALL para consolidar Top100 30, Top100 15 e pesquisa situacional.
+
+MODELO:
+
+WITH cidade_alvo AS (
+    SELECT codigo_municipio, cidade, estado
+    FROM ibge
+    WHERE unaccent(upper(cidade::text)) = unaccent(upper('Cidade'))
+      AND upper(estado::text) = upper('UF')
+    LIMIT 1
+),
+avaliacoes AS (
+    SELECT
+        'Top 100 (30 critérios)' AS tipo_avaliacao,
+        COUNT(*) AS qtd_registros,
+        AVG(CAST(REPLACE(nota, ',', '.') AS NUMERIC)) AS media_nota
+    FROM top100_30
+    WHERE unaccent(upper(cidade::text)) = unaccent(upper('Cidade'))
+      AND upper(estado::text) = upper('UF')
+      AND nota IS NOT NULL
+
+    UNION ALL
+
+    SELECT
+        'Top 100 (15 critérios)' AS tipo_avaliacao,
+        COUNT(*) AS qtd_registros,
+        AVG(CAST(REPLACE(nota, ',', '.') AS NUMERIC)) AS media_nota
+    FROM top100_15
+    WHERE unaccent(upper(cidade::text)) = unaccent(upper('Cidade'))
+      AND upper(estado::text) = upper('UF')
+      AND nota IS NOT NULL
+
+    UNION ALL
+
+    SELECT
+        'Pesquisa Situacional' AS tipo_avaliacao,
+        COUNT(*) AS qtd_registros,
+        AVG(nota::numeric) AS media_nota
+    FROM situacional_2023_pivot_median s
+    JOIN cidade_alvo c
+      ON s.codigo_municipio = c.codigo_municipio
+    WHERE s.nota IS NOT NULL
+)
+SELECT *
+FROM avaliacoes
+WHERE qtd_registros > 0
+ORDER BY tipo_avaliacao;
+
+RESULTADO SUFICIENTE:
+- Uma linha por tipo de avaliação encontrada.
+- Se o usuário pediu apenas "quais avaliações", não busque detalhes de critérios/perguntas ainda.
+- Só busque detalhes se o usuário pedir explicitamente.
+""",
+
+        "ranking_notas": """
+ESTRATÉGIA SQL: RANKING POR NOTAS
+
+Use quando o usuário perguntar:
+- melhores notas;
+- piores notas;
+- ranking;
+- cidades com melhor desempenho em um tema ou critério.
+
+FORMATO:
+- Use uma única query.
+- Se houver termo temático, primeiro encontre critérios relevantes em criterios.
+- Cruze os critérios encontrados com top100_30.
+- Calcule média ou nota conforme a pergunta.
+- Ordene e limite o resultado.
+
+MODELO:
+
+WITH criterios_alvo AS (
+    SELECT criterio
+    FROM criterios
+    WHERE unaccent(criteria_name_pt::text) ILIKE unaccent('%termo%')
+       OR unaccent(criteria_description_pt::text) ILIKE unaccent('%termo%')
+       OR unaccent(topic_description_pt::text) ILIKE unaccent('%termo%')
+),
+ranking AS (
+    SELECT
+        t.cidade,
+        t.estado,
+        AVG(CAST(REPLACE(t.nota, ',', '.') AS NUMERIC)) AS media_nota,
+        COUNT(*) AS qtd_criterios
+    FROM top100_30 t
+    JOIN criterios_alvo c
+      ON t.criterio = c.criterio
+    WHERE t.nota IS NOT NULL
+    GROUP BY t.cidade, t.estado
+)
+SELECT *
+FROM ranking
+ORDER BY media_nota DESC
+LIMIT 20;
+
+RESULTADO SUFICIENTE:
+- Pelo menos algumas cidades ranqueadas com métrica calculada.
+- Não faça nova busca se o ranking já responde à pergunta.
+""",
+
+        "evolucao_temporal": """
+ESTRATÉGIA SQL: EVOLUÇÃO TEMPORAL
+
+Use quando o usuário perguntar:
+- evolução;
+- histórico;
+- ao longo dos anos;
+- ciclos;
+- aproveitamento.
+
+FORMATO:
+- Use uma query agregada por ano.
+- Retorne uma linha por cidade e ano.
+- Use timeline_gd quando o foco for histórico/ciclos/aproveitamento.
+
+MODELO:
+
+WITH cidades_alvo(cidade_ref, uf_ref) AS (
+    VALUES
+        ('Cidade', 'UF')
+)
+SELECT
+    ca.cidade_ref AS cidade,
+    ca.uf_ref AS uf,
+    t.ano,
+    t.origem,
+    t.total,
+    t.numero_criterios,
+    t.aproveitamento
+FROM cidades_alvo ca
+LEFT JOIN timeline_gd t
+    ON upper(t.chave) = upper(ca.cidade_ref || '-' || ca.uf_ref)
+ORDER BY ca.cidade_ref, t.ano;
+
+RESULTADO SUFICIENTE:
+- Duas ou mais linhas por ano quando houver histórico.
+- Se houver apenas um ano, responda com essa limitação.
+""",
+
+        "detalhamento_criterios": """
+ESTRATÉGIA SQL: DETALHAMENTO DE CRITÉRIOS
+
+Use quando o usuário pedir:
+- critérios de uma cidade;
+- pontos fortes e fracos;
+- notas por indicador;
+- descrição dos critérios.
+
+FORMATO:
+- Retorne detalhes necessários, mas evite excesso.
+- Para pontos fortes/fracos, use ordenação por nota e limite.
+- Para todos os critérios, limite de forma razoável.
+
+MODELO PARA PONTOS FORTES:
+
+SELECT
+    cidade,
+    estado,
+    theme_pt AS tema,
+    criteria_name_pt AS criterio,
+    criteria_description_pt AS descricao,
+    nota,
+    ano
+FROM top100_30
+WHERE unaccent(upper(cidade::text)) = unaccent(upper('Cidade'))
+  AND upper(estado::text) = upper('UF')
+  AND nota IS NOT NULL
+ORDER BY CAST(REPLACE(nota, ',', '.') AS NUMERIC) DESC
+LIMIT 10;
+
+MODELO PARA PONTOS FRACOS:
+
+SELECT
+    cidade,
+    estado,
+    theme_pt AS tema,
+    criteria_name_pt AS criterio,
+    criteria_description_pt AS descricao,
+    nota,
+    ano
+FROM top100_30
+WHERE unaccent(upper(cidade::text)) = unaccent(upper('Cidade'))
+  AND upper(estado::text) = upper('UF')
+  AND nota IS NOT NULL
+ORDER BY CAST(REPLACE(nota, ',', '.') AS NUMERIC) ASC
+LIMIT 10;
+
+RESULTADO SUFICIENTE:
+- Critérios retornados com tema, nome, descrição e nota.
+- Não busque em outra tabela se a pergunta já foi respondida.
+"""
+    }
+
+    return strategies.get(task_type, strategies["geral"] if "geral" in strategies else strategies["resumo_avaliacoes"])
 
 toolkit = SQLDatabaseToolkit(db=db_bussola, llm=model)
 

@@ -2,6 +2,7 @@ from langgraph.graph import StateGraph, START, END
 from app.agent.state import AgentState
 from app.agent.nodes import (
     agent,
+    answer_generation_node,
     classify_intent,
     context_resolution_node,
     fallback_node,
@@ -24,7 +25,7 @@ workflow = StateGraph(AgentState)
 
 workflow.add_node("setup_node", setup_node)
 workflow.add_node("guardrail_input", guardrail_input)
-#workflow.add_node("classify_intent", classify_intent)
+workflow.add_node("classify_intent", classify_intent)
 #workflow.add_node("rag_agent", rag_agent)
 workflow.add_node("agent", agent)
 workflow.add_node("verify_sql", verify_sql)
@@ -33,6 +34,7 @@ workflow.add_node("moderation_output", moderation_output)
 workflow.add_node("fallback_node", fallback_node)
 workflow.add_node("summarization_node", summarization_node)
 workflow.add_node("context_resolution_node", context_resolution_node)
+#workflow.add_node("answer_generation_node", answer_generation_node)
 
 
 workflow.add_edge(START, "setup_node")
@@ -47,7 +49,8 @@ workflow.add_conditional_edges(
     },
 )
 
-workflow.add_edge("context_resolution_node", "agent")
+workflow.add_edge("context_resolution_node", "classify_intent")
+workflow.add_edge("classify_intent", "agent")
 
 # workflow.add_conditional_edges(
 #     "classify_intent",
@@ -94,5 +97,6 @@ workflow.add_conditional_edges(
         "summarization_node": "summarization_node",
     },
 )
-
+#workflow.add_edge("answer_generation_node", "summarization_node")
 workflow.add_edge("summarization_node", END)
+
