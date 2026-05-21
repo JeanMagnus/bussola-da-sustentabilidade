@@ -1,4 +1,6 @@
+import asyncio
 import json
+import re
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 from app.schemas.chat import ChatInput, ChatOutput, StreamInput
@@ -7,6 +9,7 @@ from time import perf_counter
 from uuid import uuid4
 
 router = APIRouter()
+STREAMING_SPEED = 0.03
 
 @router.post("/chat", response_model=ChatOutput)
 async def chat_endpoint(request: ChatInput, req: Request):
@@ -34,7 +37,6 @@ async def chat_endpoint(request: ChatInput, req: Request):
     print(f"LATENCY /chat: {elapsed_seconds:.2f}s (thread_id={request.thread_id}, user_id={request.user_id})")
 
     return ChatOutput(response=last_msg, thread_id=request.thread_id, user_id=request.user_id)
-
 
 NODE_STATUS_MESSAGES = {
     "setup_node": "Preparando o contexto da conversa...",
@@ -97,6 +99,121 @@ def _extract_visible_messages(messages: list) -> list:
 
     return visible
 
+def _get_message_content(message) -> str:
+    """
+    Extrai conteúdo textual de mensagens LangChain ou dicts.
+    """
+    if message is None:
+        return ""
+
+    if isinstance(message, dict):
+        content = message.get("content", "")
+    else:
+        content = getattr(message, "content", "")
+
+    if isinstance(content, str):
+        return content.strip()
+
+    if isinstance(content, list):
+        parts = []
+
+        for block in content:
+            if isinstance(block, dict):
+                if block.get("type") == "text":
+                    parts.append(block.get("text", ""))
+                elif "text" in block:
+                    parts.append(block.get("text", ""))
+
+        return "\n".join(parts).strip()
+
+    return str(content).strip() if content else ""
+
+
+def _has_tool_calls(message) -> bool:
+    """
+    Verifica se uma mensagem possui tool calls.
+    """
+    if message is None:
+        return False
+
+    if isinstance(message, dict):
+        return bool(
+            message.get("tool_calls")
+            or message.get("tool_call_chunks")
+            or message.get("additional_kwargs", {}).get("tool_calls")
+        )
+
+    return bool(
+        getattr(message, "tool_calls", None)
+        or getattr(message, "tool_call_chunks", None)
+        or getattr(message, "additional_kwargs", {}).get("tool_calls", None)
+    )
+
+
+def _is_ai_message(message) -> bool:
+    """
+    Verifica se a mensagem é AIMessage ou dict equivalente.
+    """
+    if isinstance(message, AIMessage):
+        return True
+
+    if isinstance(message, dict):
+        msg_type = message.get("type") or message.get("role")
+        return msg_type in ("ai", "assistant")
+
+    return getattr(message, "type", None) == "ai"
+
+
+def _get_final_ai_content(state_values: dict) -> str:
+    """
+    Busca a resposta final real do grafo.
+
+    Ordem:
+    1. final_response, se existir no state;
+    2. última AIMessage sem tool_calls;
+    3. fallback controlado.
+    """
+    final_response = state_values.get("final_response")
+
+    if isinstance(final_response, str) and final_response.strip():
+        return final_response.strip()
+
+    last_msg_ai = state_values.get("last_msg_ai")
+
+    if isinstance(last_msg_ai, str) and last_msg_ai.strip():
+        return last_msg_ai.strip()
+
+    messages = state_values.get("messages", [])
+
+    for msg in reversed(messages):
+        if not _is_ai_message(msg):
+            continue
+
+        if _has_tool_calls(msg):
+            continue
+
+        content = _get_message_content(msg)
+
+        if content:
+            return content
+
+    return (
+        "Não consegui gerar uma resposta final adequada. "
+        "Tente reformular sua pergunta."
+    )
+
+def _split_text_for_streaming(text: str) -> list[str]:
+    """
+    Divide a resposta em pequenos blocos preservando espaços.
+    Isso simula streaming token a token de forma visualmente fluida.
+    """
+    if not text:
+        return []
+
+    chunks = re.findall(r"\S+\s*", text)
+
+    return chunks if chunks else [text]
+
 
 @router.post("/chat/stream")
 async def chat_stream_endpoint(req: Request):
@@ -104,11 +221,13 @@ async def chat_stream_endpoint(req: Request):
     Endpoint compatível com useStream + FetchStreamTransport.
 
     Mantém:
-      - resposta em streaming
-      - status do agente
-      - thinking
+      - status do agente em streaming
       - stop pelo frontend
       - fallback de resposta final
+
+    Importante:
+      - não envia texto intermediário do agent;
+      - envia apenas a resposta final ao término do grafo.
     """
 
     graph = req.app.state.graph
@@ -141,7 +260,7 @@ async def chat_stream_endpoint(req: Request):
     )
 
     config = {
-        "recursion_limit": 50,
+        "recursion_limit": 100,
         "configurable": {
             "thread_id": thread_id,
             "user_id": user_id,
@@ -164,7 +283,6 @@ async def chat_stream_endpoint(req: Request):
         )
 
         try:
-            streamed_content = False
             last_status_node = None
             message_id = f"assistant-{thread_id}-{uuid4()}"
 
@@ -198,15 +316,24 @@ async def chat_stream_endpoint(req: Request):
 
                 if stream_type == "messages":
                     message_chunk, metadata = data
-                    tags = metadata.get("tags", [])
+                    node_name = metadata.get("langgraph_node")
 
-                    # printar apenas mensagem final
-                    if "resposta_final" not in tags:
+                    if node_name != "agent":
                         continue
-                    
-                    # ignorar tool calls na saída
-                    if getattr(message_chunk, "tool_call_chunks", None):
-                        continue
+
+                    additional_kwargs = getattr(message_chunk, "additional_kwargs", {}) or {}
+
+                    if "reasoning_content" in additional_kwargs:
+                        reasoning = additional_kwargs.get("reasoning_content", "")
+
+                        if reasoning:
+                            yield _sse(
+                                "custom",
+                                {
+                                    "type": "thinking",
+                                    "content": reasoning,
+                                },
+                            )
 
                     if (
                         hasattr(message_chunk, "content_blocks")
@@ -225,70 +352,37 @@ async def chat_stream_endpoint(req: Request):
                                         },
                                     )
 
-                            elif block.get("type") == "text":
-                                text = block.get("text", "")
-
-                                if text:
-                                    streamed_content = True
-
-                                    yield _sse(
-                                        "messages",
-                                        [
-                                            {
-                                                "type": "ai",
-                                                "id": message_id,
-                                                "content": text,
-                                            },
-                                            metadata,
-                                        ],
-                                    )
-
-                    else:
-                        content = getattr(message_chunk, "content", "")
-
-                        if content:
-                            streamed_content = True
-
-                            yield _sse(
-                                "messages",
-                                [
-                                    {
-                                        "type": "ai",
-                                        "id": message_id,
-                                        "content": content,
-                                    },
-                                    metadata,
-                                ],
-                            )
+                    continue
 
             state = await graph.aget_state(config)
-            final_messages = state.values.get("messages", [])
+            final_content = _get_final_ai_content(state.values)
 
-            if final_messages:
-                last_msg = final_messages[-1]
+            yield _sse(
+                "custom",
+                {
+                    "type": "status",
+                    "node": "final_response",
+                    "message": "Escrevendo resposta final...",
+                },
+            )
 
-                if not streamed_content and isinstance(last_msg, AIMessage):
-                    yield _sse(
-                        "messages",
-                        [
-                            {
-                                "type": "ai",
-                                "id": message_id,
-                                "content": last_msg.content,
-                            },
-                            {
-                                "langgraph_node": "agent",
-                                "tags": ["resposta_final"],
-                            },
-                        ],
-                    )
-
+            for text_chunk in _split_text_for_streaming(final_content):
                 yield _sse(
-                    "values",
-                    {
-                        "messages": _extract_visible_messages(final_messages)
-                    },
+                    "messages",
+                    [
+                        {
+                            "type": "ai",
+                            "id": message_id,
+                            "content": text_chunk,
+                        },
+                        {
+                            "langgraph_node": "agent",
+                            "tags": ["resposta_final"],
+                        },
+                    ],
                 )
+
+                await asyncio.sleep(STREAMING_SPEED)
 
             yield _sse(
                 "custom",
@@ -305,6 +399,13 @@ async def chat_stream_endpoint(req: Request):
                 {
                     "message": str(exc),
                     "type": exc.__class__.__name__,
+                },
+            )
+
+            yield _sse(
+                "custom",
+                {
+                    "type": "done",
                 },
             )
 
