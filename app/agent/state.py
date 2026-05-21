@@ -11,7 +11,6 @@ def overwrite_reducer(a, b):
 
 class AgentState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], add_messages]
-    # error_occurred: Annotated[bool, overwrite_reducer]
     error_occurred: bool
     dictionary_rules: str
     is_dictionary_checked: bool
@@ -21,7 +20,6 @@ class AgentState(TypedDict):
     input_tokens: int
     output_tokens: int
     total_tokens: int
-    # last_msg_ai: Annotated[str, overwrite_reducer]
     last_msg_ai: str
     is_continuation: bool
     summary: str

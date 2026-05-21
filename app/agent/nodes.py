@@ -332,7 +332,6 @@ async def agent(state: AgentState, config: RunnableConfig):
 
         try:
             user_messages = [m for m in messages if isinstance(m, HumanMessage)]
-            #actual_question = user_messages[-1].content if user_messages else "Analisar dados"
             raw_question = user_messages[-1].content if user_messages else "Analisar dados"
             actual_question = state.get("resolved_question") or raw_question
 
@@ -373,20 +372,6 @@ async def agent(state: AgentState, config: RunnableConfig):
                 -------------------------
                 """
 
-            # sql_plan = state.get("sql_plan", "")
-            # plan_block = ""
-            # if sql_plan:
-            #     plan_block = f"""
-            #     --- DICIONÁRIO DE DADOS (LEITURA OBRIGATÓRIA) ---
-            #     Abaixo estão as regras brutas do banco de dados e as colunas disponíveis relacionadas à pergunta do usuário.
-            #     LEIA com atenção para saber quais colunas usar, se é necessário fazer CAST de tipos e como fazer JOINs:
-            #     {sql_plan}
-
-            #     1. MÉDIAS: Sempre use AVG(CAST(REPLACE(nota, ',', '.') AS NUMERIC)).
-            #     2. NOMES PRÓPRIOS/CIDADES: NUNCA use '=' ou 'IN' com strings literais. USE SEMPRE `ILIKE` e remova acentos (ex: `cidade ILIKE '%MIGUEL DO GOSTOSO%'`).
-            #     3. BUSCA VAZIA: Se a query retornar [], PARE. Use `SELECT DISTINCT coluna` para entender os dados reais antes de tentar de novo.
-            #     -------------------------------------------------                """
-
             last_msg_content = str(messages[-1].content)
             has_error = "does not exist" in last_msg_content.lower() or "error" in last_msg_content.lower()
 
@@ -421,7 +406,6 @@ async def agent(state: AgentState, config: RunnableConfig):
                 prompt_with_mission += "\nAVISO CRÍTICO: A execução SQL anterior falhou (coluna inexistente ou erro de sintaxe). Reveja os nomes das colunas e os tipos de dados (CAST)."
 
             recent_msgs = messages[-10:]
-            #recent_msgs = trim_messages_for_llm(messages, max_tool_pairs=3)
             user_msg = next((m for m in reversed(messages) if isinstance(m, HumanMessage)), None)
             while recent_msgs and isinstance(recent_msgs[0], ToolMessage):
                 recent_msgs = recent_msgs[1:]

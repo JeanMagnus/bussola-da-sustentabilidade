@@ -1,5 +1,6 @@
 from langgraph.graph import StateGraph, START, END
 from app.agent.state import AgentState
+from app.agent.tools import tool_node
 from app.agent.nodes import (
     agent,
     classify_intent,
@@ -17,15 +18,12 @@ from app.agent.nodes import (
     route_moderation_output,
     summarization_node,
 )
-from app.agent.tools import tool_node
 
 
 workflow = StateGraph(AgentState)
 
 workflow.add_node("setup_node", setup_node)
 workflow.add_node("guardrail_input", guardrail_input)
-#workflow.add_node("classify_intent", classify_intent)
-#workflow.add_node("rag_agent", rag_agent)
 workflow.add_node("agent", agent)
 workflow.add_node("verify_sql", verify_sql)
 workflow.add_node("go_tools", tool_node)
@@ -48,17 +46,6 @@ workflow.add_conditional_edges(
 )
 
 workflow.add_edge("context_resolution_node", "agent")
-
-# workflow.add_conditional_edges(
-#     "classify_intent",
-#     route_classify_intent,
-#     {
-#         "rag_agent": "rag_agent",
-#         "agent": "agent",
-#     },
-# )
-
-#workflow.add_edge("rag_agent", "agent")
 
 workflow.add_conditional_edges(
     "agent",

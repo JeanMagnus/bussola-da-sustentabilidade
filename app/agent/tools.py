@@ -331,7 +331,6 @@ def sql_db_query(
     if limit_match and int(limit_match.group(1)) > 15:
         return "ERRO: LIMIT máximo é 15."
 
-    # Checagem de unaccent para colunas textuais
     uses_text_col = any(
         re.search(rf"\b{col}\b", query, flags=re.IGNORECASE)
         for col in ["cidade", "municipio", "município", "destino", "nome"]
@@ -346,7 +345,7 @@ def sql_db_query(
 
     try:
         print(f"[SQL] Executando: {query}")
-        resultado = db_bussola.run(query)  # ← executa UMA vez
+        resultado = db_bussola.run(query) 
 
         if not resultado or str(resultado).strip() == "":
             return "Query executada com sucesso, mas sem resultados."
