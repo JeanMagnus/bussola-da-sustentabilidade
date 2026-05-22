@@ -468,7 +468,7 @@ async def agent(state: AgentState, config: RunnableConfig):
             # model_with_fallback = model_with_tools.with_fallbacks([second_model_with_tools, third_model_with_tools])
             
             if state.get("intent") == "CONVERSA":
-                model_use = gpt_model
+                model_use = kimi_model
             else:
                 model_use = kimi_model
 

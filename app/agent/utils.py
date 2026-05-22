@@ -864,6 +864,18 @@ def detect_continuation_question(
 
     return False
 
+
+COLUMN_ALIASES = {
+    "atividade_turistica": {
+        "municã­pio": "municipio",
+        "o_municã­pio_possui_legislaã§ã£o_relacionada_ao_turismo?": "possui_legislacao_turismo",
+        "o_municã­pio_possui_plano_municipal_de_turismo_e_/ou_plano_de": "possui_plano_turismo",
+        "nâº_de_hospedagem": "num_hospedagem",
+        "nâº_de_leitos": "num_leitos",
+        "possui_guias_e/ou_condutores_de_turismo?": "possui_guias_turismo",
+    }
+}
+
 _SCHEMA_CACHE: str | None = None
 
 def get_schema_string() -> str:
@@ -873,20 +885,30 @@ def get_schema_string() -> str:
 
     inspector = inspect(db_bussola._engine)
     tables = inspector.get_table_names()
-    
     lines = []
+
     for table in tables:
         cols = inspector.get_columns(table)
         pk_cols = inspector.get_pk_constraint(table).get("constrained_columns", [])
-        col_strs = [
-            f"{c['name']}{'*' if c['name'] in pk_cols else ''} ({c['type']})"
-            for c in cols
-        ]
+        table_aliases = COLUMN_ALIASES.get(table, {})
+
+        col_strs = []
+        for c in cols:
+            raw_name = c["name"]
+            alias = table_aliases.get(raw_name)
+
+            if alias:
+                col_str = f"{alias} [use este nome] ({c['type']})"
+            else:
+                is_pk = "*" if raw_name in pk_cols else ""
+                col_str = f"{raw_name}{is_pk} ({c['type']})"
+
+            col_strs.append(col_str)
+
         lines.append(f"• {table}: {', '.join(col_strs)}")
-    
+
     _SCHEMA_CACHE = "\n".join(lines)
     return _SCHEMA_CACHE
-
 
 MAX_TOOL_PAIRS = 3  
 
