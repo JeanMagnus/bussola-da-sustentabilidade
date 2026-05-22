@@ -3,5 +3,7 @@ __pycache__/
 .env
 .vscode/
 
+
 frontend/.vite/
 frontend/node_modules/
+

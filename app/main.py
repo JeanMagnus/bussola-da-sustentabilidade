@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from app.core.config import settings
@@ -15,14 +16,12 @@ async def lifespan(app: FastAPI):
 
         try:
             print("Tentando gerar imagem do grafo...")
-            # Aumentamos o limite de tentativas e o atraso entre elas
             graph_png = app.state.graph.get_graph().draw_mermaid_png()
             
             with open("grafo_projeto_bussola.png", "wb") as f:
                 f.write(graph_png)
             print("Grafo salvo com sucesso!")
         except Exception as e:
-            # Se falhar, apenas logamos o erro e deixamos a API subir normalmente
             print(f"Aviso: Não foi possível gerar a imagem do grafo (Timeout ou Rede).")
             print(f"Dica: O sistema continuará funcionando normalmente sem a imagem.")
         yield
@@ -30,7 +29,15 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.include_router(chat.router, tags=["Chat"])
 
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 @app.get("/", tags=["Health"])
 async def root():
     return {"status": "online", "message": "Tá vivo!!"}
-
