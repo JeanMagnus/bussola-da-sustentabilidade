@@ -48,3 +48,13 @@ O agente é capaz de guardar memórias de longo prazo como nomes e preferências
 
 - "Meu nome é Jean"
 - "Eu prefiro consultas da região Sul"
+
+## Chat como widget em outro sistema 
+
+Para testar o chat acoplado em outro sistema, desenvolvi um sistema React simples apenas para a implementação do chat em widget com o método `iframe`, onde é referenciado a URL do chat para o widget do sistema.
+
+O sistema está no repositório [aqui](https://github.com/JeanMagnus/anchor-website-react).
+
+Esse sistema não possui container docker configurado, é necessário possuir o react vite na máquina e então rode o sistema com esse comando:
+
+`npm run dev -- --port 5174`
