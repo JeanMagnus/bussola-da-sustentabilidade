@@ -292,45 +292,6 @@ QUESTION_STOPWORDS = {
 }
 
 
-def is_likely_continuation_question(text: Any) -> bool:
-    """
-    Heurística barata para detectar perguntas que dependem do turno anterior.
-
-    Evita uma chamada extra ao LLM quando a mensagem usa pronomes ou expressões
-    típicas de continuação ("dessas", "e elas?", "quais são os códigos?").
-    """
-
-    text_norm = normalize_text(text)
-
-    if not text_norm:
-        return False
-
-    if any(re.search(rf"\b{re.escape(marker)}\b", text_norm) for marker in CONTINUATION_MARKERS):
-        return True
-
-    continuation_prefixes = (
-        "e ", "mas ", "tambem ", "também ", "agora ", "alem disso ", "além disso ",
-        "quanto a ", "quanto ao ", "no caso ", "nesse caso ", "neste caso ",
-    )
-
-    if text_norm.startswith(continuation_prefixes):
-        return True
-
-    short_follow_up_patterns = (
-        r"^quais( sao| são)?\b",
-        r"^qual( e| é)?\b",
-        r"^quant[ao]s?\b",
-        r"^liste\b",
-        r"^mostre\b",
-        r"^compare\b",
-        r"^detalhe\b",
-        r"^explique\b",
-    )
-
-    return len(text_norm.split()) <= 8 and any(
-        re.search(pattern, text_norm)
-        for pattern in short_follow_up_patterns
-    )
 
 
 def _stringify_short(value: Any, max_chars: int = 80) -> str:
@@ -665,73 +626,6 @@ def build_lightweight_context(
         "source": result_context.get("source", "last_ai_message" if last_ai_message else "none"),
     }
 
-
-def build_search_query_from_state(user_question: Any, previous_context: Any) -> str:
-    """
-    Conecta a pergunta atual aos principais atributos do estado anterior para o Pinecone.
-    """
-
-    context = previous_context if isinstance(previous_context, dict) else {}
-    terms: list[str] = []
-
-    for keyword in extract_keywords_from_text(user_question, max_keywords=8):
-        _append_unique(terms, keyword, 14)
-
-    for attribute in context.get("attributes", [])[:6]:
-        _append_unique(terms, attribute, 14)
-
-    for keyword in context.get("response_keywords", [])[:4]:
-        _append_unique(terms, keyword, 14)
-
-    for entity in context.get("entities", [])[:4]:
-        _append_unique(terms, entity, 14)
-
-    return " ".join(terms).strip()
-
-
-def build_context_resolution_from_state(user_question: Any, previous_context: Any) -> dict[str, Any] | None:
-    """
-    Cria uma resolução contextual compatível com o schema existente sem chamada LLM.
-    """
-
-    context = previous_context if isinstance(previous_context, dict) else {}
-    entities = context.get("entities", []) or []
-
-    if not entities and not context.get("attributes"):
-        return None
-
-    referents = []
-
-    if entities:
-        referents.append(
-            {
-                "label": "itens do resultado anterior",
-                "kind_hint": "previous_result_item",
-                "values": [
-                    {"value": entity, "attributes": {}}
-                    for entity in entities
-                ],
-                "expected_count": context.get("row_count") or len(entities),
-                "source": "last_sql_result" if context.get("source") == "sql_db_query" else "last_ai_message",
-                "must_preserve": True,
-            }
-        )
-
-    search_query = build_search_query_from_state(user_question, context)
-    rewritten_parts = [str(user_question).strip()]
-
-    if entities:
-        rewritten_parts.append("considerando os itens anteriores: " + ", ".join(entities[:10]))
-
-    return {
-        "is_context_dependent": True,
-        "rewritten_question": "; ".join(rewritten_parts),
-        "referents": referents,
-        "requested_outputs": extract_keywords_from_text(user_question, max_keywords=6),
-        "operation": "follow_up",
-        "search_query": search_query or str(user_question).strip(),
-    }
-
 def build_resolved_question_generic(
     *,
     user_text: str,
@@ -909,39 +803,3 @@ def get_schema_string() -> str:
 
     _SCHEMA_CACHE = "\n".join(lines)
     return _SCHEMA_CACHE
-
-MAX_TOOL_PAIRS = 3  
-
-def trim_messages_for_llm(messages: list, max_tool_pairs: int = 3) -> list:
-    """
-    Mantém: SystemMessage, última HumanMessage, e apenas os N últimos
-    pares AIMessage(tool_calls) + ToolMessage(s).
-    Remove pares antigos para não inflar o contexto.
-    """
-    user_msg = next((m for m in reversed(messages) if isinstance(m, HumanMessage)), None)
-    
-    pairs = []
-    i = len(messages) - 1
-    while i >= 0 and len(pairs) < max_tool_pairs:
-        msg = messages[i]
-        if isinstance(msg, ToolMessage):
-
-            j = i - 1
-            while j >= 0 and not (isinstance(messages[j], AIMessage) and messages[j].tool_calls):
-                j -= 1
-            if j >= 0:
-                pairs.insert(0, messages[j:i+1])
-                i = j - 1
-            else:
-                i -= 1
-        else:
-            i -= 1
-
-    flat_pairs = [msg for pair in pairs for msg in pair]
-    
-    result = []
-    if user_msg and user_msg not in flat_pairs:
-        result.append(user_msg)
-    result.extend(flat_pairs)
-    
-    return result

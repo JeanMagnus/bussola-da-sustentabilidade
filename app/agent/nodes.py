@@ -11,10 +11,8 @@ from app.core.config import trimmer
 from app.agent.memory import vector_store, guide_vector_store, guide_vector_store_large
 from app.agent.utils import (
     get_schema_string, timer, token_count, token_count_total, build_last_result_context_from_messages,
-    build_tool_error_messages, collect_required_values, sql_preserves_required_values,
-    build_context_resolution_from_state, build_lightweight_context,
-    build_search_query_from_state, is_likely_continuation_question,
-    detect_continuation_question, build_resolved_question_generic, trim_messages_for_llm,
+    build_tool_error_messages, collect_required_values, sql_preserves_required_values,  build_lightweight_context,
+    detect_continuation_question, build_resolved_question_generic,
 )
 from app.schemas.chat import IntentRouter, KeywordExtraction, ContextResolution
 from langgraph.graph import END
@@ -840,130 +838,6 @@ def fallback_node (state: AgentState):
             
     return {"messages": tool_messages}
 
-def compact_result_context(result_context: dict, max_rows: int = 40) -> dict:
-    """
-    Reduz o tamanho do last_result_context antes de enviar ao modelo final.
-    Evita mandar milhares de linhas para o GPT.
-    """
-
-    if not isinstance(result_context, dict):
-        return {
-            "row_count": 0,
-            "columns": [],
-            "rows_preview": str(result_context)[:4000],
-            "truncated": True,
-        }
-
-    rows = result_context.get("rows", [])
-    columns = result_context.get("columns", [])
-    row_count = result_context.get("row_count")
-
-    if row_count is None:
-        row_count = len(rows) if isinstance(rows, list) else 0
-
-    if isinstance(rows, list):
-        rows_preview = rows[:max_rows]
-        truncated = len(rows) > max_rows
-    else:
-        rows_preview = str(rows)[:4000]
-        truncated = True
-
-    return {
-        "row_count": row_count,
-        "columns": columns,
-        "rows_preview": rows_preview,
-        "truncated": truncated,
-    }
-
-def capture_tool_result_node(state: AgentState):
-    print("--- CAPTURE TOOL RESULT NODE ---")
-
-    captured_context_update = build_last_result_context_from_messages(state)
-
-    if not captured_context_update:
-        print("   [CAPTURE] Nenhum resultado de tool capturado.")
-        return {}
-
-    ctx = captured_context_update.get("last_result_context", {})
-
-    if isinstance(ctx, dict):
-        row_count = ctx.get("row_count", 0)
-    else:
-        row_count = 0
-
-    print(f"   [CAPTURE] last_result_context atualizado com {row_count} linhas.")
-
-    return captured_context_update
-
-def get_last_tool_name(state: AgentState) -> str | None:
-    messages = state.get("messages", [])
-
-    for msg in reversed(messages):
-        if isinstance(msg, ToolMessage):
-            return getattr(msg, "name", None)
-
-    return None
-
-
-def result_is_sufficient(state: AgentState) -> bool:
-    """
-    Versão inicial simples:
-    se uma sql_db_query retornou pelo menos uma linha, já pode formular resposta final.
-
-    Depois você pode sofisticar isso usando:
-    - sql_strategy;
-    - min_rows;
-    - colunas obrigatórias;
-    - entidades esperadas.
-    """
-
-    ctx = state.get("last_result_context") or {}
-
-    if not isinstance(ctx, dict):
-        return False
-
-    row_count = ctx.get("row_count", 0)
-
-    return row_count > 0
-
-
-async def answer_generation_node(state: AgentState, config: RunnableConfig):
-    print("--- ANSWER GENERATION NODE ---")
-    result = state.get("final_response")
-    question = state.get("resolved_question", "")
-    last_result_context = state.get("last_result_context") or {}
-
-    ANSWER_PROMPT = f""" Você é um especialista em análise de dados sobre turismo sustentável, 
-    e sua tarefa é gerar uma resposta final para o usuário com base na seguinte pergunta e resultado da consulta ao banco de dados:
-
-    Pergunta: {question}
-
-    Resultado: {result}
-    """
-    with get_openai_callback() as cb:
-        response = await gpt_model.ainvoke(
-            [SystemMessage(content=ANSWER_PROMPT)],
-            config=config
-        )
-
-    print("VISUALIZANDO USO DE TOKENS DO ANSWER_GENERATION_NODE:")
-    print(f"Total de Tokens: {cb.total_tokens}")
-    print(f"Tokens de Prompt: {cb.prompt_tokens}")
-    print(f"Tokens de Resposta: {cb.completion_tokens}")
-    print(f"Custo Total (USD): ${cb.total_cost}")
-
-    response_content = response.content or ""
-
-    return {
-        "messages": [AIMessage(content=response_content)],
-        "final_response": response_content,
-        "last_msg_ai": response_content,
-        "previous_turn_context": build_lightweight_context(
-            last_ai_message=response_content,
-            last_result_context=last_result_context,
-        ),
-    }
-
 def route_moderation_input(state: AgentState):
     print("--- DECIDINDO ROTA APÓS MODERATION INPUT ---")
     last_msg = state["messages"][-1]
@@ -977,18 +851,6 @@ def route_moderation_input(state: AgentState):
     print(" --- PASSOU NA MODERAÇÃO ---")
     return "check_relevance"
 
-def route_check_relevance(state: AgentState):
-    print("--- ROUTE CHECK RELEVANCE ---")
-    last_msg = state["messages"][-1]
-
-    if state.get("error_occurred"):
-        print(" --- ERRO ENCONTRADO, BLOQUEANDO ---")
-        return END
-    if isinstance(last_msg, AIMessage) and "Desculpa" in last_msg.content:
-        print(" --- BLOQUEADO NA RELEVÂNCIA ---")
-        return END
-    print(" --- PASSOU NA RELEVÂNCIA ---")
-    return "agent"
 
 def should_continue(state: AgentState):
     print("--- SHOULD CONTINUE ---")
@@ -1090,24 +952,3 @@ def route_classify_intent(state: AgentState):
         return "rag_agent"
     print("   --- CONVERSA DIRETA ---")
     return "agent"
-
-def route_agent_check_output(state: AgentState):
-    print("--- ROUTE AGENT CHECK OUTPUT ---")
-    response = state.get("last_msg_ai", "")
-    retries = state.get("retries", 0)
-
-    max_retries = 2
-
-    if not isinstance(response, str):
-        response = str(response or "")
-
-    if response.strip() == "":
-        if retries < max_retries:
-            print(" --- RESPOSTA VAZIA, REINICIANDO AGENTE ---")
-            return "retry"
-        else:
-            print(" --- MÁXIMO DE RETRIES ATINGIDO, BLOQUEANDO ---")
-            return "blocked"
-    print(" --- RESPOSTA GERADA COM SUCESSO ---")
-    return "success"
-    
